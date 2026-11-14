@@ -876,9 +876,12 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
             {/* Day Switcher Tabs */}
             <div className="p-3 sm:px-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto">
               <div className="flex items-center gap-1.5">
-                {DAYS_OF_WEEK_CONFIG.map((d: { id: DayOfWeek; nameBn: string }) => {
+                {DAYS_OF_WEEK_CONFIG.map((d) => {
                   const dayPeriodsCount = effectiveTeacherPeriods.filter((p) => p.day === d.id).length;
                   const isActive = selectedDayTab === d.id;
+                  const isCultural = d.id === 'tuesday';
+                  const isWeekend = !d.isSchoolDay;
+
                   return (
                     <button
                       key={d.id}
@@ -886,10 +889,20 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
                       onClick={() => setSelectedDayTab(d.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? 'bg-indigo-700 text-white shadow-xs'
+                          ? isCultural
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : isWeekend
+                            ? 'bg-slate-700 text-white shadow-xs'
+                            : 'bg-indigo-700 text-white shadow-xs'
+                          : isCultural
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+                          : isWeekend
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-dashed border-slate-200'
                           : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-200'
                       }`}
                     >
+                      {isCultural && <span>🎨</span>}
+                      {isWeekend && <span>🏖️</span>}
                       <span>{d.nameBn}</span>
                       <span
                         className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
@@ -915,6 +928,19 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
 
             {/* Modal Body / Periods for Selected Day */}
             <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-3">
+              {/* Cultural Day Banner for Tuesday */}
+              {selectedDayTab === 'tuesday' && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-rose-50 border border-rose-200 flex items-center gap-3 text-xs text-rose-950 font-bold">
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <span>মঙ্গলবার: কালচারাল ডে (Cultural Day)</span>
+                    <span className="block text-[11px] font-normal text-slate-600">
+                      সৃজনশীল মেধা বিকাশ, চারু-কারুকলা, সমবেত সঙ্গীত ও আনন্দময় কার্যক্রমের দিন।
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-xs text-slate-600 pb-2 border-b border-slate-100">
                 <span className="font-bold text-slate-900">
                   {getDayNameBn(selectedDayTab)}-এর ক্লাসের তালিকা
@@ -922,7 +948,17 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
                 <span>মোট ক্লাস: {weeklyPeriodsForSelectedDay.length} টি</span>
               </div>
 
-              {weeklyPeriodsForSelectedDay.length === 0 ? (
+              {selectedDayTab === 'friday' || selectedDayTab === 'saturday' ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 space-y-2">
+                  <span className="text-2xl">🏖️</span>
+                  <p className="text-xs font-bold text-slate-800">
+                    {getDayNameBn(selectedDayTab)} আনন্দ পাঠশালার সাপ্তাহিক ছুটি — স্কুল বন্ধ।
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    রবিবার থেকে বৃহস্পতিবার ৫ দিন নিয়মিত ক্লাস পরিচালিত হয়।
+                  </p>
+                </div>
+              ) : weeklyPeriodsForSelectedDay.length === 0 ? (
                 <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500">
                   <p className="text-xs font-bold text-slate-700">
                     {getDayNameBn(selectedDayTab)} কোনো ক্লাস নির্ধারিত নেই।
@@ -2643,9 +2679,12 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
             {/* Day Switcher Tabs */}
             <div className="p-3 sm:px-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 overflow-x-auto">
               <div className="flex items-center gap-1.5">
-                {DAYS_OF_WEEK_CONFIG.map((d: { id: DayOfWeek; nameBn: string }) => {
+                {DAYS_OF_WEEK_CONFIG.map((d) => {
                   const dayCount = getPeriodsForClass(allRoutines, childClass, d.id).length;
                   const isActive = selectedChildDayTab === d.id;
+                  const isCultural = d.id === 'tuesday';
+                  const isWeekend = !d.isSchoolDay;
+
                   return (
                     <button
                       key={d.id}
@@ -2653,10 +2692,20 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                       onClick={() => setSelectedChildDayTab(d.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? 'bg-emerald-700 text-white shadow-xs'
+                          ? isCultural
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : isWeekend
+                            ? 'bg-slate-700 text-white shadow-xs'
+                            : 'bg-emerald-700 text-white shadow-xs'
+                          : isCultural
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+                          : isWeekend
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-500 border border-dashed border-slate-200'
                           : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-200'
                       }`}
                     >
+                      {isCultural && <span>🎨</span>}
+                      {isWeekend && <span>🏖️</span>}
                       <span>{d.nameBn}</span>
                       <span
                         className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
@@ -2696,6 +2745,19 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
             {/* Modal Body / Periods for Selected Day */}
             <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-3">
+              {/* Cultural Day Banner for Parents */}
+              {selectedChildDayTab === 'tuesday' && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-rose-50 border border-rose-200 flex items-center gap-3 text-xs text-rose-950 font-bold">
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <span>মঙ্গলবার: আনন্দ পাঠশালা কালচারাল ডে (Cultural Day)</span>
+                    <span className="block text-[11px] font-normal text-slate-600">
+                      আপনার সন্তানের সৃজনশীল মেধা বিকাশ, চারু-কারুকলা, সমবেত সঙ্গীত ও আনন্দময় কার্যক্রমের দিন।
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-xs text-slate-600 pb-2 border-b border-slate-100">
                 <span className="font-bold text-slate-900">
                   {getDayNameBn(selectedChildDayTab)}-এর সময়সূচি
@@ -2703,7 +2765,17 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 <span>মোট পিরিয়ড: {childWeeklyPeriodsForSelectedDay.length} টি</span>
               </div>
 
-              {childWeeklyPeriodsForSelectedDay.length === 0 ? (
+              {selectedChildDayTab === 'friday' || selectedChildDayTab === 'saturday' ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 space-y-2">
+                  <span className="text-2xl">🏖️</span>
+                  <p className="text-xs font-bold text-slate-800">
+                    {getDayNameBn(selectedChildDayTab)} আনন্দ পাঠশালার সাপ্তাহিক ছুটি — স্কুল বন্ধ।
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    রবিবার থেকে বৃহস্পতিবার ৫ দিন নিয়মিত ক্লাস অনুষ্ঠিত হয়।
+                  </p>
+                </div>
+              ) : childWeeklyPeriodsForSelectedDay.length === 0 ? (
                 <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500">
                   <p className="text-xs font-bold text-slate-700">
                     {getDayNameBn(selectedChildDayTab)} কোনো ক্লাস নির্ধারিত নেই।

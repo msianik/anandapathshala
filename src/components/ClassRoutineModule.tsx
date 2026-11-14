@@ -48,6 +48,8 @@ import {
 import { getSchoolClassNameBn, isSameSchoolClass } from '../utils/schoolLogic';
 import { SCHOOL_TEACHERS } from '../data/mockData';
 import { ExamScheduleTab } from './ExamScheduleTab';
+import { CulturalDayHubTab } from './CulturalDayHubTab';
+import { WeeklyTiffinMenuTab } from './WeeklyTiffinMenuTab';
 import {
   Calendar,
   Clock,
@@ -77,6 +79,9 @@ import {
   Hourglass,
   ListChecks,
   ClipboardList,
+  Apple,
+  Palette,
+  Award,
 } from 'lucide-react';
 
 /**
@@ -140,7 +145,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const [showDetailedLessonPlans, setShowDetailedLessonPlans] = useState<boolean>(true);
 
   // Weekly Summary View & Whole-Week Progress State
-  const [activeRoutineTab, setActiveRoutineTab] = useState<'daily_routine' | 'weekly_summary' | 'exam_schedule'>('daily_routine');
+  const [activeRoutineTab, setActiveRoutineTab] = useState<
+    'daily_routine' | 'cultural_day' | 'tiffin_routine' | 'weekly_summary' | 'exam_schedule'
+  >('daily_routine');
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>('nov-2026-w1');
   const [weeklyProgress, setWeeklyProgress] = useState<WeeklyClassProgressRecord>(() =>
     getClassWeeklyProgress(initialClass, 'nov-2026-w1')
@@ -188,7 +195,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   // Full Period Form State
   const [formData, setFormData] = useState({
     className: initialClass,
-    day: 'saturday' as DayOfWeek,
+    day: 'sunday' as DayOfWeek,
     periodNo: 1,
     periodLabelBn: '১ম পিরিয়ড',
     startTime: '09:00 AM',
@@ -320,12 +327,13 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   // All non-break periods for the selected class across the entire week
   const allClassPeriodsForWeek = useMemo(() => {
     const dayOrder: Record<DayOfWeek, number> = {
-      saturday: 1,
-      sunday: 2,
-      monday: 3,
-      tuesday: 4,
-      wednesday: 5,
-      thursday: 6,
+      sunday: 1,
+      monday: 2,
+      tuesday: 3,
+      wednesday: 4,
+      thursday: 5,
+      friday: 6,
+      saturday: 7,
     };
     return routines
       .filter((r) => isSameSchoolClass(r.className, selectedClass) && !r.isBreak)
@@ -496,12 +504,13 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
       })
       .sort((a, b) => {
         const dayOrder: Record<DayOfWeek, number> = {
-          saturday: 1,
-          sunday: 2,
-          monday: 3,
-          tuesday: 4,
-          wednesday: 5,
-          thursday: 6,
+          sunday: 1,
+          monday: 2,
+          tuesday: 3,
+          wednesday: 4,
+          thursday: 5,
+          friday: 6,
+          saturday: 7,
         };
         if (a.day !== b.day) return dayOrder[a.day] - dayOrder[b.day];
         return a.periodNo - b.periodNo;
@@ -650,7 +659,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
   // Open Add Modal
   const handleOpenAdd = () => {
-    const defaultDay = effectiveDay === 'all' ? 'saturday' : effectiveDay;
+    const defaultDay = effectiveDay === 'all' || effectiveDay === 'friday' || effectiveDay === 'saturday' ? 'sunday' : effectiveDay;
     const existingInClassDay = routines.filter(
       (r) => isSameSchoolClass(r.className, selectedClass) && r.day === defaultDay
     );
@@ -1107,8 +1116,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
           {/* Right Controls: View Switcher Tabs & Teacher Whole-Week Completed/Pending Buttons */}
           <div className="flex flex-col sm:items-end gap-2.5 shrink-0 print:hidden">
-            {/* Primary View Mode Tabs: Daily Routine vs Weekly Summary View */}
-            <div className="inline-flex p-1 rounded-2xl bg-slate-900/95 text-white shadow-xs self-start sm:self-end">
+            {/* Primary View Mode Tabs: Daily Routine vs Cultural Hub vs Tiffin vs Weekly Summary vs Exam */}
+            <div className="inline-flex flex-wrap p-1 rounded-2xl bg-slate-900/95 text-white shadow-xs self-start sm:self-end gap-1">
               <button
                 type="button"
                 onClick={() => setActiveRoutineTab('daily_routine')}
@@ -1119,19 +1128,43 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                 }`}
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>দৈনিক রুটিন ভিউ</span>
+                <span>দৈনিক ক্লাস রুটিন</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRoutineTab('cultural_day')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                  activeRoutineTab === 'cultural_day'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'text-rose-200 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>🎨 কালচারাল ডে হাব</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveRoutineTab('tiffin_routine')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                  activeRoutineTab === 'tiffin_routine'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-amber-200 hover:text-white'
+                }`}
+              >
+                <Apple className="w-3.5 h-3.5" />
+                <span>🍎 পুষ্টিকর টিফিন চার্ট</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveRoutineTab('weekly_summary')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
                   activeRoutineTab === 'weekly_summary'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    ? 'bg-indigo-500 text-white shadow-xs'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>📊 সাপ্তাহিক সারসংক্ষেপ ভিউ (Weekly Summary)</span>
+                <span>📊 সাপ্তাহিক সারসংক্ষেপ</span>
               </button>
               <button
                 type="button"
@@ -1143,7 +1176,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                 }`}
               >
                 <ClipboardList className="w-3.5 h-3.5" />
-                <span>📝 পরীক্ষার সময়সূচি (Exam Schedule)</span>
+                <span>📝 পরীক্ষার সময়সূচি</span>
               </button>
             </div>
 
@@ -1214,9 +1247,25 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* VIEW 1: WEEKLY SUMMARY VIEW FOR PARENTS & TEACHERS                     */}
+      {/* VIEW SWITCHER: CULTURAL HUB, TIFFIN MENU, WEEKLY SUMMARY, EXAM, DAILY ROUTINE */}
       {/* ===================================================================== */}
-      {activeRoutineTab === 'weekly_summary' ? (
+      {activeRoutineTab === 'cultural_day' ? (
+        <CulturalDayHubTab
+          currentRole={currentRole}
+          canEdit={canEditLessonPlan}
+          selectedClass={selectedClass}
+          onSelectClass={(cls) => setSelectedClass(cls)}
+          onNavigateToRoutineDay={() => {
+            setSelectedDay('tuesday');
+            setActiveRoutineTab('daily_routine');
+          }}
+        />
+      ) : activeRoutineTab === 'tiffin_routine' ? (
+        <WeeklyTiffinMenuTab
+          currentRole={currentRole}
+          canEdit={canEditLessonPlan}
+        />
+      ) : activeRoutineTab === 'weekly_summary' ? (
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Week Selector Bar & Quick Status Filter */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 print:hidden">
@@ -1792,20 +1841,32 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                 {DAYS_OF_WEEK_CONFIG.map((d) => {
                   const isSelected = selectedDay === d.id;
                   const isToday = d.id === todayDay;
+                  const isCultural = d.isCulturalDay;
+                  const isWeekend = !d.isSchoolDay;
 
                   return (
                     <button
                       key={d.id}
                       type="button"
                       onClick={() => setSelectedDay(d.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-1 ${
                         isSelected
-                          ? 'bg-slate-900 text-white shadow-xs'
+                          ? isCultural
+                            ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-600/30'
+                            : isWeekend
+                            ? 'bg-slate-700 text-white shadow-xs'
+                            : 'bg-slate-900 text-white shadow-xs'
+                          : isCultural
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+                          : isWeekend
+                          ? 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-dashed border-slate-200'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                     >
+                      {isCultural && <span>🎨</span>}
+                      {isWeekend && <span>🏖️</span>}
                       <span>{d.nameBn}</span>
-                      {isToday && <span className="text-[10px] opacity-75 ml-1">(আজ)</span>}
+                      {isToday && <span className="text-[10px] opacity-75 ml-0.5">(আজ)</span>}
                     </button>
                   );
                 })}
@@ -1867,16 +1928,62 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
               </div>
             </div>
 
-            {/* Friday Notice Banner if Friday */}
-            {isFridayToday() && selectedDay === 'today' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  আজ <strong>শুক্রবার</strong> — বিদ্যালয়ের সাপ্তাহিক ছুটির দিন। উপরে শনিবার বা সপ্তাহের অন্যান্য দিন নির্বাচন করে ওই দিনের রুটিন ও পাঠ পরিকল্পনা দেখতে পারেন।
-                </span>
+            {/* Weekend Notice Banner if Weekend */}
+            {(effectiveDay === 'friday' || effectiveDay === 'saturday') && (
+              <div className="bg-gradient-to-r from-amber-50 to-sky-50 border border-amber-200 rounded-2xl p-4 text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl shrink-0">🏖️</span>
+                  <div>
+                    <span className="font-black text-amber-900 block">
+                      সাপ্তাহিক ছুটির দিন ({getDayNameBn(effectiveDay as DayOfWeek)}) — আনন্দ পাঠশালা বন্ধ থাকে
+                    </span>
+                    <span className="text-slate-600">
+                      সপ্তাহে ৫ দিন ক্লাস: রবিবার থেকে বৃহস্পতিবার। শুক্রবার ও শনিবার সাপ্তাহিক ছুটি।
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDay('sunday')}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer shrink-0 self-start sm:self-center shadow-xs"
+                >
+                  রবিবারের রুটিন দেখুন →
+                </button>
               </div>
             )}
           </div>
+
+          {/* Tuesday Cultural Day Special Banner */}
+          {effectiveDay === 'tuesday' && (
+            <div className="rounded-3xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-indigo-500/15 border-2 border-dashed border-rose-300 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in">
+              <div className="flex items-center gap-3.5">
+                <span className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-md">
+                  🎨
+                </span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-2xs">
+                      🎭 মঙ্গলবার: কালচারাল ডে
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">
+                      সৃজনশীল প্রতিভা বিকাশ ও আনন্দের বিশেষ দিন
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    আজকের পিরিয়ডসমূহ সমবেত সঙ্গীত, চারু ও কারুকলা, গল্পবলা ও পাপেট থিয়েটার, পুষ্টিকর টিফিন ও নাট্যাভিনয়ে সাজানো।
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveRoutineTab('cultural_day')}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition cursor-pointer shrink-0 self-start md:self-center shadow-md flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>কালচারাল ইভেন্ট হাব দেখুন →</span>
+              </button>
+            </div>
+          )}
 
           {/* Routine & Lesson Plan Cards Grid */}
           <div className="space-y-4">
@@ -1903,7 +2010,47 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
               </div>
             </div>
 
-            {filteredPeriods.length === 0 ? (
+            {effectiveDay === 'friday' || effectiveDay === 'saturday' ? (
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center space-y-4 shadow-2xs">
+                <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center text-3xl mx-auto shadow-inner">
+                  🏖️
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-black">
+                    সাপ্তাহিক ছুটি (Weekend Holiday)
+                  </span>
+                  <h4 className="text-lg font-black text-slate-900">
+                    {getDayNameBn(effectiveDay as DayOfWeek)}-এ কোনো ক্লাস নেই — আনন্দ পাঠশালা বন্ধ
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    আনন্দ পাঠশালায় সপ্তাহে ৫ দিন ক্লাস অনুষ্ঠিত হয় (রবিবার থেকে বৃহস্পতিবার)। শুক্র ও শনিবার আমাদের সাপ্তাহিক ছুটি। ছুটির দিনে পরিবারের সাথে আনন্দময় সময় কাটান!
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay('sunday')}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+                  >
+                    রবিবারের রুটিন দেখুন →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRoutineTab('cultural_day')}
+                    className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    🎨 মঙ্গলবারের কালচারাল হাব
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRoutineTab('tiffin_routine')}
+                    className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    🍎 ৫-দিনের পুষ্টিকর টিফিন
+                  </button>
+                </div>
+              </div>
+            ) : filteredPeriods.length === 0 ? (
               <div className="bg-white rounded-3xl border border-slate-200 p-10 text-center space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
                   <Clock className="w-6 h-6" />
@@ -1947,6 +2094,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                           ? 'border-amber-200 bg-amber-50/40'
                           : isOngoing
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                          : period.isCulturalActivity
+                          ? 'border-rose-200 bg-gradient-to-br from-white via-rose-50/20 to-amber-50/20 hover:border-rose-300 shadow-2xs'
                           : 'border-slate-200 hover:border-emerald-300 shadow-2xs'
                       }`}
                     >
@@ -1960,6 +2109,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                                   ? 'bg-rose-600 text-white border border-rose-700'
                                   : period.isBreak
                                   ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : period.isCulturalActivity
+                                  ? 'bg-rose-100 text-rose-900 border border-rose-200'
                                   : 'bg-slate-100 text-slate-800 border border-slate-200'
                               }`}
                             >
@@ -1967,11 +2118,18 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                                 <AlertTriangle className="w-3 h-3 text-amber-200" />
                               ) : period.isBreak ? (
                                 <Coffee className="w-3 h-3 text-amber-700" />
+                              ) : period.isCulturalActivity ? (
+                                <Sparkles className="w-3 h-3 text-rose-600" />
                               ) : (
                                 <Clock className="w-3 h-3 text-emerald-700" />
                               )}
                               <span>{period.periodLabelBn}</span>
                             </span>
+                            {period.isCulturalActivity && (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
+                                <span>🎨 কালচারাল</span>
+                              </span>
+                            )}
                             {selectedDay === 'all' && (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border">
                                 {getDayNameBn(period.day)}

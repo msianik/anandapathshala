@@ -213,25 +213,24 @@ export const DEFAULT_WEEKLY_TIFFIN_MENU: PreSchoolTiffinItem[] = [
 ];
 
 // =========================================================================
-// Storage & CRUD Operations
+// In-Memory Fallbacks + Storage & CRUD Operations
 // =========================================================================
 
+let memoryThemes = [...DEFAULT_CULTURAL_THEMES];
+let memoryBadges = [...DEFAULT_CULTURAL_STAR_BADGES];
+let memoryTiffin = [...DEFAULT_WEEKLY_TIFFIN_MENU];
+
 export function getCulturalEventThemes(): CulturalDayEventTheme[] {
-  if (typeof window === 'undefined') return DEFAULT_CULTURAL_THEMES;
   try {
-    const raw = localStorage.getItem(CULTURAL_THEMES_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(CULTURAL_THEMES_STORAGE_KEY, JSON.stringify(DEFAULT_CULTURAL_THEMES));
-      return DEFAULT_CULTURAL_THEMES;
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(CULTURAL_THEMES_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
     }
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_CULTURAL_THEMES;
-  }
+  } catch {}
+  return memoryThemes;
 }
 
 export function saveCulturalEventTheme(theme: CulturalDayEventTheme): void {
-  if (typeof window === 'undefined') return;
   const list = getCulturalEventThemes();
   const index = list.findIndex((t) => t.id === theme.id);
   if (index >= 0) {
@@ -239,22 +238,25 @@ export function saveCulturalEventTheme(theme: CulturalDayEventTheme): void {
   } else {
     list.push(theme);
   }
-  localStorage.setItem(CULTURAL_THEMES_STORAGE_KEY, JSON.stringify(list));
-  window.dispatchEvent(new CustomEvent(CULTURAL_EVENT_UPDATE_EVENT, { detail: theme }));
+  memoryThemes = list;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CULTURAL_THEMES_STORAGE_KEY, JSON.stringify(list));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CULTURAL_EVENT_UPDATE_EVENT, { detail: theme }));
+    }
+  } catch {}
 }
 
 export function getCulturalStarBadges(): CulturalStarBadgeAward[] {
-  if (typeof window === 'undefined') return DEFAULT_CULTURAL_STAR_BADGES;
   try {
-    const raw = localStorage.getItem(CULTURAL_BADGES_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(CULTURAL_BADGES_STORAGE_KEY, JSON.stringify(DEFAULT_CULTURAL_STAR_BADGES));
-      return DEFAULT_CULTURAL_STAR_BADGES;
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(CULTURAL_BADGES_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
     }
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_CULTURAL_STAR_BADGES;
-  }
+  } catch {}
+  return memoryBadges;
 }
 
 export function awardCulturalStarBadge(
@@ -266,37 +268,49 @@ export function awardCulturalStarBadge(
   };
   const list = getCulturalStarBadges();
   const updated = [newBadge, ...list];
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(CULTURAL_BADGES_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent(CULTURAL_BADGE_UPDATE_EVENT, { detail: newBadge }));
-  }
+  memoryBadges = updated;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CULTURAL_BADGES_STORAGE_KEY, JSON.stringify(updated));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CULTURAL_BADGE_UPDATE_EVENT, { detail: newBadge }));
+    }
+  } catch {}
   return newBadge;
 }
 
 export function deleteCulturalStarBadge(badgeId: string): void {
   const list = getCulturalStarBadges().filter((b) => b.id !== badgeId);
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(CULTURAL_BADGES_STORAGE_KEY, JSON.stringify(list));
-    window.dispatchEvent(new CustomEvent(CULTURAL_BADGE_UPDATE_EVENT, { detail: { deletedId: badgeId } }));
-  }
+  memoryBadges = list;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CULTURAL_BADGES_STORAGE_KEY, JSON.stringify(list));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CULTURAL_BADGE_UPDATE_EVENT, { detail: { deletedId: badgeId } }));
+    }
+  } catch {}
 }
 
 export function getWeeklyTiffinMenu(): PreSchoolTiffinItem[] {
-  if (typeof window === 'undefined') return DEFAULT_WEEKLY_TIFFIN_MENU;
   try {
-    const raw = localStorage.getItem(TIFFIN_MENU_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(TIFFIN_MENU_STORAGE_KEY, JSON.stringify(DEFAULT_WEEKLY_TIFFIN_MENU));
-      return DEFAULT_WEEKLY_TIFFIN_MENU;
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(TIFFIN_MENU_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
     }
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_WEEKLY_TIFFIN_MENU;
-  }
+  } catch {}
+  return memoryTiffin;
 }
 
 export function saveWeeklyTiffinMenu(menu: PreSchoolTiffinItem[]): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TIFFIN_MENU_STORAGE_KEY, JSON.stringify(menu));
-  window.dispatchEvent(new CustomEvent(TIFFIN_MENU_UPDATE_EVENT, { detail: menu }));
+  memoryTiffin = menu;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(TIFFIN_MENU_STORAGE_KEY, JSON.stringify(menu));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(TIFFIN_MENU_UPDATE_EVENT, { detail: menu }));
+    }
+  } catch {}
 }
