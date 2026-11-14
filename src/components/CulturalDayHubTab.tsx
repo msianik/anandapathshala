@@ -17,7 +17,10 @@ import {
   Shirt,
   ShoppingBag,
   Apple,
+  Camera,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { CulturalGalleryModule } from './CulturalGalleryModule';
 import {
   CulturalDayEventTheme,
   CulturalStarBadgeAward,
@@ -53,6 +56,7 @@ export const CulturalDayHubTab: React.FC<CulturalDayHubTabProps> = ({
 }) => {
   const [themes, setThemes] = useState<CulturalDayEventTheme[]>(() => getCulturalEventThemes());
   const [badges, setBadges] = useState<CulturalStarBadgeAward[]>(() => getCulturalStarBadges());
+  const [hubView, setHubView] = useState<'themes' | 'gallery' | 'badges'>('themes');
   const [selectedThemeId, setSelectedThemeId] = useState<string>(() => themes[0]?.id || '');
   const [badgeClassFilter, setBadgeClassFilter] = useState<string>('all');
   const [badgeSearch, setBadgeSearch] = useState<string>('');

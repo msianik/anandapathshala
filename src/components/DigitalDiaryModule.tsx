@@ -25,7 +25,14 @@ import {
   Smartphone,
   Trash2,
   ArrowUpDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Mic,
+  MicOff,
+  Play,
+  Pause,
+  VolumeX,
+  RotateCcw,
+  Radio
 } from 'lucide-react';
 import { CameraCaptureModal } from './CameraCaptureModal';
 
@@ -107,6 +114,181 @@ export const parseActivityPostTimestamp = (post: ActivityPost): number => {
   return 0;
 };
 
+const PRESET_VOICE_NOTES = [
+  {
+    id: 'rhyme_bhor_holo',
+    titleBn: 'ভোর হলো দোর খোলো — কাজী নজরুল ইসলাম (ছড়া আবৃত্তি)',
+    durationSec: 42,
+    speechText: 'ভোর হলো দোর খোলো খুকুমণি ওঠ রে! ওই ডাকে জুঁই-শাখে ফুল-খুকী ছোট রে! রবি মামা দেয় হামা গায়ে রাঙা জামা, খুকুমণি ওঠ রে!',
+  },
+  {
+    id: 'rhyme_chuti',
+    titleBn: 'মেঘের কোলে রোদ হেসেছে, বাদল গেছে টুটি — রবীন্দ্রনাথ ঠাকুর',
+    durationSec: 36,
+    speechText: 'মেঘের কোলে রোদ হেসেছে, বাদল গেছে টুটি। আজ আমাদের ছুটি ও ভাই, আজ আমাদের ছুটি!',
+  },
+  {
+    id: 'sworoborno_guide',
+    titleBn: 'বাংলা স্বরবর্ণ (অ-ঐ) সঠিক উচ্চারণ ও হাত ঘোরানোর অডিও গাইড',
+    durationSec: 40,
+    speechText: 'অ-তে অজগর, আ-তে আম, ই-তে ইঁদুর, ঈ-তে ঈগল। ছোট্ট সোনামণিরা মুখের উচ্চারণের সাথে সাথে ডট লাইনে হাত ঘোরাও।',
+  },
+  {
+    id: 'encouragement_team',
+    titleBn: 'শিক্ষকের উৎসাহবার্তা: মন্টেসরি কাজের প্রশংসা ও টিফিন আদব',
+    durationSec: 30,
+    speechText: 'সবাই খুব সুন্দরভাবে নিজের জিনিস গুছিয়ে রেখেছে এবং টিফিন খাওয়ার আগে হাত ধুয়ে নিয়েছে। আনন্দ পাঠশালার পক্ষ থেকে তোমাদের জন্য অনেক ভালোবাসা!',
+  },
+];
+
+function playKindergartenTune(speed: number = 1): (() => void) {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return () => {};
+    const ctx = new AudioCtx();
+    const notes = [261.63, 293.66, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63];
+    let noteIdx = 0;
+    const interval = setInterval(() => {
+      if (ctx.state === 'closed') {
+        clearInterval(interval);
+        return;
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[noteIdx % notes.length], ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35 / speed);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4 / speed);
+      noteIdx++;
+    }, 400 / speed);
+
+    return () => {
+      clearInterval(interval);
+      try {
+        ctx.close();
+      } catch {}
+    };
+  } catch {
+    return () => {};
+  }
+}
+
+interface VoiceNoteAudioPlayerProps {
+  post: ActivityPost;
+  isPlaying: boolean;
+  onTogglePlay: (postId: string) => void;
+  playbackSec: number;
+  speed: number;
+  onToggleSpeed: () => void;
+}
+
+const VoiceNoteAudioPlayer: React.FC<VoiceNoteAudioPlayerProps> = ({
+  post,
+  isPlaying,
+  onTogglePlay,
+  playbackSec,
+  speed,
+  onToggleSpeed,
+}) => {
+  const duration = post.voiceNoteDurationSec || 42;
+  const currentSec = Math.min(playbackSec, duration);
+  const progressPercent = Math.min(100, Math.round((currentSec / duration) * 100));
+
+  const formatSec = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${toBengaliNumber(m)}:${s < 10 ? '০' : ''}${toBengaliNumber(s)}`;
+  };
+
+  return (
+    <div className="rounded-2xl border-2 border-purple-200/90 bg-gradient-to-r from-purple-50 via-indigo-50/50 to-pink-50/60 p-4 space-y-3 shadow-2xs">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => onTogglePlay(post.id)}
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 ${
+              isPlaying
+                ? 'bg-rose-600 hover:bg-rose-700 text-white ring-4 ring-rose-200 animate-pulse'
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}
+            title={isPlaying ? 'বিরতি দিন' : 'অডিও শুনুন'}
+          >
+            {isPlaying ? (
+              <Pause className="w-5 h-5 fill-white" />
+            ) : (
+              <Play className="w-5 h-5 fill-white ml-0.5" />
+            )}
+          </button>
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 flex items-center gap-1">
+                <Mic className="w-3 h-3 text-purple-700" />
+                <span>ভয়েস ডায়েরি নোট</span>
+              </span>
+              <span className="text-[11px] font-bold text-slate-700">
+                শিক্ষক: {post.teacherNameBn}
+              </span>
+            </div>
+            <h4 className="text-xs font-black text-slate-900 mt-0.5 line-clamp-1">
+              {post.voiceNoteTitleBn || post.titleBn}
+            </h4>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleSpeed}
+            className="px-2 py-1 rounded-lg bg-white border border-purple-200 text-[10px] font-mono font-bold text-purple-800 hover:bg-purple-50 cursor-pointer shadow-2xs"
+            title="প্লেব্যাক স্পিড পরিবর্তন করুন"
+          >
+            {speed === 1 ? '১.০x' : '১.২x'}
+          </button>
+          <span className="text-[11px] font-mono font-bold text-purple-900 bg-white/80 px-2.5 py-0.5 rounded-md border border-purple-200 shadow-2xs">
+            {formatSec(currentSec)} / {formatSec(duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* Dynamic Sound Waveform Equalizer */}
+      <div className="flex items-end gap-1 h-9 px-2.5 py-1 bg-white/75 rounded-xl border border-purple-100/80">
+        {[40, 75, 55, 90, 65, 80, 45, 95, 70, 85, 50, 100, 60, 80, 45, 70, 85, 60, 90, 50, 75, 40].map(
+          (h, idx) => {
+            const isPassed = (idx / 22) * 100 <= progressPercent;
+            return (
+              <div
+                key={idx}
+                className={`flex-1 rounded-full transition-all duration-200 ${
+                  isPassed ? 'bg-purple-600' : 'bg-purple-200'
+                } ${isPlaying ? 'animate-pulse' : ''}`}
+                style={{
+                  height: isPlaying
+                    ? `${Math.max(25, (h * ((idx % 3) + 1.2)) % 100)}%`
+                    : `${h * 0.45}%`,
+                  animationDelay: `${idx * 0.07}s`,
+                }}
+              />
+            );
+          }
+        )}
+      </div>
+
+      {/* Progress Bar Scrubber */}
+      <div className="w-full bg-purple-100 h-1.5 rounded-full overflow-hidden">
+        <div
+          className="bg-gradient-to-r from-purple-600 via-pink-500 to-amber-400 h-full rounded-full transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 interface DigitalDiaryModuleProps {
   activityPosts: ActivityPost[];
   students?: Student[];
@@ -171,6 +353,45 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
   const [hwInstructionsBn, setHwInstructionsBn] = useState('অভিভাবক পাশে বসে শিশুকে বর্ণমালা হাত ঘুরিয়ে লিখতে উৎসাহিত করবেন।');
   const [hwEstimatedMinutes, setHwEstimatedMinutes] = useState<number>(20);
 
+  // Voice Note creation states
+  const [includeVoiceNote, setIncludeVoiceNote] = useState(false);
+  const [voiceNoteTitle, setVoiceNoteTitle] = useState('ভোর হলো দোর খোলো - ছড়া আবৃত্তি ও সুর');
+  const [voiceNoteDuration, setVoiceNoteDuration] = useState(42);
+  const [isRecordingSim, setIsRecordingSim] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  // Playback states
+  const [playbackSeconds, setPlaybackSeconds] = useState<Record<string, number>>({});
+  const [audioSpeed, setAudioSpeed] = useState<number>(1);
+  const stopAudioRef = useRef<(() => void) | null>(null);
+  const playbackIntervalRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (stopAudioRef.current) stopAudioRef.current();
+      if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let recTimer: any = null;
+    if (isRecordingSim) {
+      recTimer = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      if (recordingSeconds > 0) {
+        setVoiceNoteDuration(Math.max(15, recordingSeconds));
+      }
+    }
+    return () => {
+      if (recTimer) clearInterval(recTimer);
+    };
+  }, [isRecordingSim, recordingSeconds]);
+
   // Relevant posts count based on role (for parent: only their child's class)
   const relevantPostsForCount = useMemo(() => {
     if (!isParent) return activityPosts;
@@ -207,13 +428,57 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
 
   const handleToggleAudio = (postId: string) => {
     if (playingAudioId === postId) {
+      if (stopAudioRef.current) stopAudioRef.current();
+      if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setPlayingAudioId(null);
     } else {
+      // Stop previous
+      if (stopAudioRef.current) stopAudioRef.current();
+      if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
       setPlayingAudioId(postId);
-      setTimeout(() => {
-        setPlayingAudioId(null);
-      }, 5000);
+      setPlaybackSeconds((prev) => ({ ...prev, [postId]: 0 }));
+
+      const post = activityPosts.find((p) => p.id === postId);
+      const postDuration = post?.voiceNoteDurationSec || 42;
+
+      stopAudioRef.current = playKindergartenTune(audioSpeed);
+
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && post) {
+        const textToSpeak =
+          post.voiceNoteTitleBn ||
+          (post.activityType === 'rhyme'
+            ? 'ভোর হলো দোর খোলো খুকুমণি ওঠ রে! ওই ডাকে জুঁই-শাখে ফুল-খুকী ছোট রে!'
+            : `${post.titleBn}। ${post.descriptionBn}`);
+        const utter = new SpeechSynthesisUtterance(textToSpeak);
+        utter.rate = audioSpeed;
+        utter.pitch = 1.1;
+        window.speechSynthesis.speak(utter);
+      }
+
+      playbackIntervalRef.current = setInterval(() => {
+        setPlaybackSeconds((prev) => {
+          const current = (prev[postId] || 0) + 1;
+          if (current >= postDuration) {
+            clearInterval(playbackIntervalRef.current);
+            if (stopAudioRef.current) stopAudioRef.current();
+            setPlayingAudioId(null);
+            return { ...prev, [postId]: postDuration };
+          }
+          return { ...prev, [postId]: current };
+        });
+      }, 1000 / audioSpeed);
     }
+  };
+
+  const handleToggleSpeed = () => {
+    setAudioSpeed((prev) => (prev === 1 ? 1.2 : 1));
   };
 
   const handleCommentSubmit = (postId: string, e: React.FormEvent) => {
@@ -287,6 +552,10 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
       photoUrl: newPhotoUrl || undefined,
       fbPostUrl: 'https://www.facebook.com/AnandaPathshalaKushtia',
       snackDetail: !isHomework && newSnackItem ? { itemBn: newSnackItem, intake: newSnackIntake } : undefined,
+      hasVoiceNote: includeVoiceNote,
+      voiceNoteTitleBn: includeVoiceNote ? voiceNoteTitle.trim() : undefined,
+      voiceNoteDurationSec: includeVoiceNote ? voiceNoteDuration : undefined,
+      voiceNoteUrl: includeVoiceNote ? `voice-note-${Date.now()}` : undefined,
       homeworkTask: isHomework
         ? {
             subjectBn: hwSubjectBn.trim() || 'সাধারণ পাঠ',
@@ -336,6 +605,9 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
     setNewTitle('');
     setNewDesc('');
     setNewSnackItem('');
+    setIncludeVoiceNote(false);
+    setIsRecordingSim(false);
+    setRecordingSeconds(0);
   };
 
   return (
@@ -683,6 +955,140 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
               placeholder={newActivityType === 'homework_task' ? 'আজ ক্লাসে যা পড়ানো হয়েছে তার উপর ভিত্তি করে বাড়ি থেকে যে পৃষ্ঠা পূরণ করে আনতে হবে তা বিস্তারিত লিখুন...' : 'শিশুরা কীভাবে অংশ নিয়েছে, কী কী নতুন শব্দ শিখেছে এবং তাদের অভিব্যক্তি কেমন ছিল...'}
               className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+          </div>
+
+          {/* Voice Note Studio Form Section */}
+          <div className="bg-gradient-to-r from-purple-50 via-indigo-50/40 to-pink-50/60 p-4 rounded-2xl border-2 border-purple-200/80 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold shrink-0">
+                  <Mic className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-purple-950 flex items-center gap-1.5">
+                    <span>🎙️ ভয়েস নির্দেশিকা / ছড়া আবৃত্তির অডিও নোট</span>
+                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-purple-200 text-purple-800">
+                      ঐচ্ছিক
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-purple-800">
+                    শিক্ষকের আবৃত্তি, উচ্চারণ গাইড বা শিশুদের কাজের প্রশংসা রেকর্ড করে ডায়েরিতে যুক্ত করুন
+                  </p>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-purple-200 shadow-2xs self-start sm:self-auto">
+                <input
+                  type="checkbox"
+                  checked={includeVoiceNote}
+                  onChange={(e) => setIncludeVoiceNote(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                />
+                <span className="text-xs font-bold text-purple-950">অডিও নোট যুক্ত করুন</span>
+              </label>
+            </div>
+
+            {includeVoiceNote && (
+              <div className="pt-3 border-t border-purple-200 space-y-3 animate-in fade-in">
+                {/* Quick Presets */}
+                <div>
+                  <label className="text-[11px] font-bold text-purple-900 block mb-1">
+                    কুইক ছড়া ও অডিও প্রিসেট নির্বাচন করুন:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {PRESET_VOICE_NOTES.map((preset) => {
+                      const isSelected = voiceNoteTitle === preset.titleBn;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setVoiceNoteTitle(preset.titleBn);
+                            setVoiceNoteDuration(preset.durationSec);
+                          }}
+                          className={`text-left p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                            isSelected
+                              ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                              : 'bg-white hover:bg-purple-100/60 text-slate-800 border-purple-200'
+                          }`}
+                        >
+                          <span className="truncate">{preset.titleBn}</span>
+                          <span className="text-[10px] font-mono shrink-0 opacity-80">
+                            {toBengaliNumber(preset.durationSec)} সে.
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Title and Recording Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-purple-950 block mb-1">
+                      ভয়েস নোটের শিরোনাম:
+                    </label>
+                    <input
+                      type="text"
+                      value={voiceNoteTitle}
+                      onChange={(e) => setVoiceNoteTitle(e.target.value)}
+                      placeholder="যেমন: ভোর হলো দোর খোলো - সুর ও আবৃত্তি নির্দেশিকা"
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-purple-950 block mb-1">
+                      দৈর্ঘ্য (সেকেন্ড):
+                    </label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={300}
+                      value={voiceNoteDuration}
+                      onChange={(e) => setVoiceNoteDuration(Number(e.target.value))}
+                      className="w-full px-3 py-1.5 text-xs bg-white border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Mic Simulation Button */}
+                <div className="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-purple-200">
+                  <div className="flex items-center gap-2">
+                    {isRecordingSim ? (
+                      <div className="w-3 h-3 rounded-full bg-rose-600 animate-ping" />
+                    ) : (
+                      <Radio className="w-4 h-4 text-purple-600" />
+                    )}
+                    <span className="text-xs font-bold text-purple-950">
+                      {isRecordingSim
+                        ? `🔴 ক্লাসরুমে লাইভ ভয়েস রেকর্ড হচ্ছে... (সময়: ${toBengaliNumber(recordingSeconds)} সেকেন্ড)`
+                        : 'স্মার্টফোন বা ল্যাপটপ মাইক্রোফোন দিয়ে সরাসরি শিক্ষকের আবৃত্তি রেকর্ড করুন'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isRecordingSim) {
+                        setIsRecordingSim(false);
+                      } else {
+                        setRecordingSeconds(0);
+                        setIsRecordingSim(true);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                      isRecordingSim
+                        ? 'bg-rose-600 text-white hover:bg-rose-700 animate-pulse'
+                        : 'bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300'
+                    }`}
+                  >
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>{isRecordingSim ? 'রেকর্ডিং সম্পন্ন করুন' : 'রেকর্ড শুরু করুন'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Classroom Photo Selector & Instant Camera Capture */}
@@ -1081,6 +1487,18 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
                 </div>
               )}
 
+              {/* Voice Note Audio Player (For Rhymes, Audio Guidance & Teacher Recitations) */}
+              {(post.hasVoiceNote || post.voiceNoteTitleBn || post.activityType === 'rhyme') && (
+                <VoiceNoteAudioPlayer
+                  post={post}
+                  isPlaying={playingAudioId === post.id}
+                  onTogglePlay={handleToggleAudio}
+                  playbackSec={playbackSeconds[post.id] || 0}
+                  speed={audioSpeed}
+                  onToggleSpeed={handleToggleSpeed}
+                />
+              )}
+
               {/* Visual illustration box (with styled SVG kindergarten craft motif) */}
               <div className="bg-gradient-to-br from-indigo-50/60 via-amber-50/40 to-pink-50/50 rounded-xl p-4 border border-indigo-100/80 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1089,7 +1507,7 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 block">
-                      {post.activityType === 'rhyme' ? 'রেকর্ডকৃত ছড়ার অডিও স্নিপেট' : 'আনন্দ পাঠশালা কুষ্টিয়া ক্লাসরুম স্ন্যাপশট'}
+                      {post.hasVoiceNote ? '🎙️ শিক্ষকের কণ্ঠের ডিজিটাল অডিও ডায়েরি' : post.activityType === 'rhyme' ? 'রেকর্ডকৃত ছড়ার অডিও স্নিপেট' : 'আনন্দ পাঠশালা কুষ্টিয়া ক্লাসরুম স্ন্যাপশট'}
                     </span>
                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
                       <span>ফেসবুক পেজ ও ক্লাসরুম ক্যামেরা দ্বারা সংযুক্ত</span>
@@ -1107,20 +1525,11 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
                   </div>
                 </div>
 
-                {/* Interactive Audio Player Simulation for Rhymes */}
-                {post.activityType === 'rhyme' && (
-                  <button
-                    onClick={() => handleToggleAudio(post.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
-                      playingAudioId === post.id
-                        ? 'bg-purple-600 text-white animate-pulse'
-                        : 'bg-purple-100 hover:bg-purple-200 text-purple-800'
-                    }`}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    {playingAudioId === post.id ? 'বাজছে: "ভোর হলো দোর খোলো..."' : 'ছড়ার অডিও শুনুন (Audio Play)'}
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
+                    {post.activityType === 'rhyme' ? '🎵 ছড়া আবৃত্তি' : post.hasVoiceNote ? '🎙️ অডিও গাইড' : '✨ আনন্দময় মুহূর্ত'}
+                  </span>
+                </div>
               </div>
 
               {/* Snack Intake Card if present */}

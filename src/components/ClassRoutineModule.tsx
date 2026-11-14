@@ -4,6 +4,7 @@ import {
   DayOfWeek,
   HomeworkSubmissionType,
   SchoolClass,
+  SchoolShift,
   UserRole,
   WeeklyClassProgressRecord,
 } from '../types/school';
@@ -11,6 +12,8 @@ import {
   DAYS_OF_WEEK_CONFIG,
   STANDARD_SUBJECTS,
   CLASS_ROOMS,
+  SHIFT_CONFIGS,
+  CLASS_DEFAULT_SHIFTS,
 } from '../data/mockRoutines';
 import {
   getClassRoutines,
@@ -135,6 +138,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
   const [routines, setRoutines] = useState<ClassRoutinePeriod[]>(() => getClassRoutines());
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(initialClass);
+  const [shiftFilter, setShiftFilter] = useState<SchoolShift | 'all'>('all');
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'all' | 'today'>('today');
   const [teacherFilter, setTeacherFilter] = useState<string>('all');
   const [resourceFilter, setResourceFilter] = useState<string>('all');
@@ -1014,6 +1018,100 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
         </div>
       </div>
 
+      {/* 2-Shift School Configuration Banner (Morning 8-11 AM vs Day 11 AM - 2 PM, 3 Hours Each) */}
+      <div className="bg-gradient-to-r from-amber-50 via-sky-50 to-emerald-50 rounded-2xl p-3 sm:p-4 border border-amber-200/80 shadow-2xs space-y-2 print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-amber-600" />
+              <span>স্কুল শিফট সময়সূচি (প্রতি শিফট ৩ ঘণ্টা):</span>
+            </span>
+          </div>
+
+          {/* Shift Toggle Buttons */}
+          <div className="flex items-center gap-1.5 p-1 bg-white/90 rounded-xl border border-slate-200 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setShiftFilter('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                shiftFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🌅 সকল শিফট
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShiftFilter('morning');
+                if (CLASS_DEFAULT_SHIFTS[selectedClass] !== 'morning') {
+                  setSelectedClass('Play');
+                }
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                shiftFilter === 'morning'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                  : 'text-amber-900 hover:bg-amber-100/60'
+              }`}
+            >
+              ☀️ মর্নিং শিফট (সকাল ৮টা - ১১টা)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShiftFilter('day');
+                if (CLASS_DEFAULT_SHIFTS[selectedClass] !== 'day') {
+                  setSelectedClass('KG');
+                }
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                shiftFilter === 'day'
+                  ? 'bg-sky-600 text-white font-black shadow-xs'
+                  : 'text-sky-900 hover:bg-sky-100/60'
+              }`}
+            >
+              🌤️ ডে শিফট (বেলা ১১টা - দুপুর ২টা)
+            </button>
+          </div>
+        </div>
+
+        {/* Shift Details Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+          <div
+            className={`p-2 rounded-xl border flex items-center justify-between ${
+              shiftFilter === 'morning' ||
+              (shiftFilter === 'all' && CLASS_DEFAULT_SHIFTS[selectedClass] === 'morning')
+                ? 'bg-amber-100/70 border-amber-300 text-amber-950 font-bold'
+                : 'bg-white/60 border-slate-200 text-slate-600'
+            }`}
+          >
+            <span className="flex items-center gap-1">
+              <span>☀️ <strong>মর্নিং শিফট:</strong> সকাল ০৮:০০ – বেলা ১১:০০ (৩ ঘণ্টা)</span>
+            </span>
+            <span className="text-[10px] bg-white px-2 py-0.2 rounded-md border border-amber-300">
+              হাতেখড়ি, প্লে, নার্সারি
+            </span>
+          </div>
+
+          <div
+            className={`p-2 rounded-xl border flex items-center justify-between ${
+              shiftFilter === 'day' ||
+              (shiftFilter === 'all' && CLASS_DEFAULT_SHIFTS[selectedClass] === 'day')
+                ? 'bg-sky-100/70 border-sky-300 text-sky-950 font-bold'
+                : 'bg-white/60 border-slate-200 text-slate-600'
+            }`}
+          >
+            <span className="flex items-center gap-1">
+              <span>🌤️ <strong>ডে শিফট:</strong> বেলা ১১:০০ – দুপুর ০২:০০ (৩ ঘণ্টা)</span>
+            </span>
+            <span className="text-[10px] bg-white px-2 py-0.2 rounded-md border border-sky-300">
+              কেজি, শ্রেণি-১, শ্রেণি-২
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Class Selector Cards */}
       <div className="space-y-2 print:hidden">
         <div className="flex items-center justify-between">
@@ -1022,7 +1120,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             শ্রেণি নির্বাচন করুন:
           </span>
           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-            বর্তমান শ্রেণি: {getSchoolClassNameBn(selectedClass)}
+            বর্তমান শ্রেণি: {getSchoolClassNameBn(selectedClass)} ({CLASS_DEFAULT_SHIFTS[selectedClass] === 'morning' ? '☀️ মর্নিং শিফট' : '🌤️ ডে শিফট'})
           </span>
         </div>
 
@@ -1030,6 +1128,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           {CLASS_OPTIONS.map((cls) => {
             const isSelected = isSameSchoolClass(selectedClass, cls.id);
             const classCount = routines.filter((r) => isSameSchoolClass(r.className, cls.id)).length;
+            const clsShift = CLASS_DEFAULT_SHIFTS[cls.id] || 'morning';
 
             return (
               <button
@@ -1043,7 +1142,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-500">{cls.id}</span>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    {clsShift === 'morning' ? '☀️ মর্নিং' : '🌤️ ডে'}
+                  </span>
                   <span className={`text-[10px] font-black font-mono px-2 py-0.2 rounded-full text-white ${cls.badge}`}>
                     {classCount} পিরিয়ড
                   </span>

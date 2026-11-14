@@ -86,6 +86,27 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
   const canEdit =
     currentRole === 'super_admin' || currentRole === 'principal' || currentRole === 'teacher';
   const isParent = currentRole === 'parent';
+  const effectiveStudentId = isParent ? (loggedInStudentId || 'std-1') : undefined;
+
+  const childStudent = useMemo(() => {
+    if (!isParent) return null;
+    return (
+      students.find((s) => s.id === effectiveStudentId) ||
+      students[0] ||
+      null
+    );
+  }, [isParent, effectiveStudentId, students]);
+
+  const childHealthProfile = useMemo(() => {
+    if (!isParent) return null;
+    const targetId = childStudent?.id || effectiveStudentId || 'std-1';
+    return (
+      healthProfiles.find((p) => p.studentId === targetId) ||
+      healthProfiles.find((p) => p.className === childStudent?.className) ||
+      healthProfiles[0] ||
+      null
+    );
+  }, [isParent, childStudent, effectiveStudentId, healthProfiles]);
 
   // Reactive listener
   useEffect(() => {
@@ -163,376 +184,644 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-700 via-pink-700 to-rose-800 text-white p-6 sm:p-8 shadow-xl">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-amber-200 text-xs font-bold border border-white/15">
-              <Stethoscope className="w-3.5 h-3.5" />
-              <span>শিশু স্বাস্থ্য ও পুষ্টি ট্র্যাকার</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              শিশু স্বাস্থ্য, বৃদ্ধি ও অ্যালার্জি মনিটরিং
-            </h2>
-            <p className="text-rose-100 text-xs sm:text-sm max-w-xl">
-              প্রতিটি শিশুর উচ্চতা, ওজন, BMI সূচক, রক্তের গ্রুপ, বিশেষ খাবারের অ্যালার্জি এবং নিয়মিত টিকাদান ট্র্যাক করে ক্লাসরুমকে শতভাগ নিরাপদ রাখা।
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                exportHealthProfilesCsv(selectedClass, healthProfiles);
-                showToast('✓ হেলথ রেকর্ড CSV ফাইল ডাউনলোড সম্পন্ন হয়েছে!');
-              }}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-semibold rounded-2xl text-xs sm:text-sm border border-white/20 transition-all backdrop-blur-md"
-            >
-              <Download className="w-4 h-4" />
-              <span>CSV রিপোর্ট</span>
-            </button>
-
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('আপনি কি স্বাস্থ্য রেকর্ড ডিফল্ট ডেটায় রিসেট করতে চান?')) {
-                    resetHealthProfilesToDefault();
-                    setHealthProfiles(getStoredHealthProfiles());
-                    showToast('✓ স্বাস্থ্য রেকর্ড রিসেট সম্পন্ন হয়েছে!');
-                  }
-                }}
-                className="p-2.5 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-2xl transition"
-                title="ডিফল্ট ডেটায় রিসেট"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-            <Heart className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-semibold block">মোট স্বাস্থ্য প্রোফাইল</span>
-            <span className="text-xl font-black text-slate-800">
-              {toBengaliNumber(stats.total)} জন
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-semibold block">অ্যালার্জি সতর্কতা</span>
-            <span className="text-xl font-black text-amber-800">
-              {toBengaliNumber(stats.withAllergies)} জন
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-semibold block">স্বাভাবিক বৃদ্ধি হার</span>
-            <span className="text-xl font-black text-emerald-700">
-              {toBengaliNumber(stats.normalBmiRate)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-semibold block">ইপিআই টিকা সম্পন্ন</span>
-            <span className="text-xl font-black text-teal-700">
-              {toBengaliNumber(stats.vaccineRate)}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Critical Allergy Alert Bar (Food safety notice for teachers/staff) */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 shadow-xs space-y-2.5">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
-          <h3 className="font-extrabold text-sm sm:text-base text-amber-950">
-            🚨 টিফিন ও ক্লাসরুম জরুরি স্বাস্থ্য ও খাবার সতর্কতা
-          </h3>
-        </div>
-        <p className="text-xs text-amber-900 leading-relaxed">
-          স্কুলে খাবার পরিবেশন বা সহপাঠীদের সাথে টিফিন শেয়ার করার সময় শিক্ষক ও আয়াদের নিম্নলিখিত শিক্ষার্থীদের প্রতি বিশেষ সতর্কতা অবলম্বন করতে হবে:
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-          {criticalAllergyStudents.map((p) => (
-            <div
-              key={p.studentId}
-              className="p-3 bg-white rounded-2xl border border-amber-200 shadow-xs space-y-1"
-            >
-              <div className="flex items-center justify-between">
-                <strong className="text-slate-900 text-xs font-black">
-                  {p.studentNameBn} ({getSchoolClassNameBn(p.className)})
-                </strong>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                  রক্ত: {p.bloodGroup}
-                </span>
+      {isParent ? (
+        /* =========================================================================
+           PARENT VIEW: Exclusive Single-Child Health, Growth & Vaccination Profile
+           ========================================================================= */
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-700 via-pink-700 to-rose-800 text-white p-6 sm:p-8 shadow-xl">
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-amber-200 text-xs font-bold border border-white/15">
+                  <Stethoscope className="w-3.5 h-3.5" />
+                  <span>সন্তানের স্বাস্থ্য ও পুষ্টি রেকর্ড</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  {childStudent?.nameBn || childHealthProfile?.studentNameBn}-এর স্বাস্থ্য ও বৃদ্ধি প্রোফাইল
+                </h2>
+                <p className="text-rose-100 text-xs sm:text-sm max-w-xl">
+                  শ্রেণি: <span className="font-bold text-white">{childStudent ? getSchoolClassNameBn(childStudent.className) : ''} ({childStudent?.section || 'ক'})</span> · রোল: <span className="font-bold text-white">{childStudent?.rollNo || childHealthProfile?.rollNo || ''}</span> · আইডি: <span className="font-mono font-bold text-amber-200">{(childStudent?.id || childHealthProfile?.studentId || '').toUpperCase()}</span>
+                </p>
               </div>
-              <p className="text-[11px] text-rose-700 font-bold">
-                ⚠️ {p.allergiesList.map((a) => a.allergenBn).join(', ')}
-              </p>
-              <p className="text-[10px] text-slate-600 line-clamp-2">
-                {p.allergiesList[0]?.actionGuideBn}
-              </p>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {childHealthProfile && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveHealthCardStudentId(childHealthProfile.studentId)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white text-rose-800 hover:bg-rose-50 active:scale-95 font-bold rounded-2xl text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    <span>অফিসিয়াল হেলথ কার্ড ও প্রিন্ট</span>
+                  </button>
+                )}
+                {childHealthProfile?.emergencyDoctorPhone && (
+                  <a
+                    href={`tel:${childHealthProfile.emergencyDoctorPhone}`}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-semibold rounded-2xl text-xs sm:text-sm border border-white/20 transition-all backdrop-blur-md"
+                  >
+                    <Phone className="w-4 h-4 text-emerald-300" />
+                    <span>ডাক্তার হেল্পলাইন</span>
+                  </a>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Class Selection Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {CLASS_ITEMS.map((cls) => {
-          const count = healthProfiles.filter((p) => p.className === cls.id).length;
-          const isSelected = selectedClass === cls.id;
-          return (
-            <button
-              key={cls.id}
-              type="button"
-              onClick={() => setSelectedClass(cls.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap shadow-sm border ${
-                isSelected
-                  ? 'bg-rose-700 text-white border-rose-700 shadow-rose-200'
-                  : 'bg-white text-slate-700 hover:bg-rose-50 border-slate-200'
-              }`}
-            >
-              <span>{cls.nameBn}</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {toBengaliNumber(count)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+          {/* Child's 4 Core Vital Metric Cards */}
+          {childHealthProfile && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. Blood Group */}
+              <div className="p-5 rounded-2xl bg-white border border-rose-200 shadow-2xs hover:shadow-xs transition space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                    <Heart className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    রক্তের গ্রুপ
+                  </span>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-rose-700 font-mono">
+                    {childHealthProfile.bloodGroup}
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                    জরুরি চিকিৎসায় অনুমোদিত
+                  </span>
+                </div>
+              </div>
 
-      {/* Search and Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="relative w-full sm:w-72">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="নাম, রোল বা রক্তের গ্রুপ দিয়ে খুঁজুন..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
-          />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
+              {/* 2. Height & Weight */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-xs transition space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    উচ্চতা ও ওজন
+                  </span>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-slate-900">
+                    {toBengaliNumber(childHealthProfile.heightCm)} সে.মি. · {toBengaliNumber(childHealthProfile.weightKg)} কেজি
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                    সর্বশেষ চেকআপ: {childHealthProfile.lastCheckedDateBn || 'অক্টোবর ২০২৬'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. BMI Status */}
+              <div className="p-5 rounded-2xl bg-white border border-emerald-200 shadow-2xs hover:shadow-xs transition space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <Activity className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    BMI সূচক
+                  </span>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-emerald-700 flex items-baseline gap-2">
+                    <span>{toBengaliNumber(childHealthProfile.bmi)}</span>
+                    <span className="text-xs font-bold text-emerald-600">স্বাভাবিক ✓</span>
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                    {childHealthProfile.bmiStatusBn || 'বয়স অনুযায়ী স্বাভাবিক বৃদ্ধি'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4. Vaccinations */}
+              <div className="p-5 rounded-2xl bg-white border border-teal-200 shadow-2xs hover:shadow-xs transition space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                    টিকাদান
+                  </span>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-teal-800">
+                    {toBengaliNumber(childHealthProfile.vaccinations.filter((v) => v.isCompleted).length)} / {toBengaliNumber(childHealthProfile.vaccinations.length)} সম্পন্ন
+                  </div>
+                  <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                    ইপিআই টিকা শতভাগ সম্পন্ন ✓
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Detailed Child Health & Wellness Information Cards */}
+          {childHealthProfile && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Card 1: Allergy & Food Safety */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-500" />
+                    <span>খাবার ও অ্যালার্জি সতর্কতা</span>
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                    টিফিন সুরক্ষা
+                  </span>
+                </div>
+
+                {childHealthProfile.allergiesList.length > 0 ? (
+                  <div className="space-y-3">
+                    {childHealthProfile.allergiesList.map((a, i) => (
+                      <div key={i} className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                            <AlertTriangle className="w-4 h-4 text-amber-600" />
+                            <span>{a.allergenBn}</span>
+                          </span>
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-200/80 text-amber-900">
+                            সতর্কতা
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-900 font-medium mt-1">
+                          প্রতিক্রিয়া: {a.reactionBn || 'এলার্জি হতে পারে'}
+                        </p>
+                        <p className="text-[11px] text-slate-600 bg-white p-2 rounded-xl border border-amber-100 mt-1">
+                          পরামর্শ: {a.actionGuideBn || 'স্কুল চলাকালীন এই খাবার পরিহার করুন'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>কোনো পরিচিত অ্যালার্জি নেই</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800">
+                      আপনার সন্তানের কোনো খাবার বা ওষুধের পরিচিত অ্যালার্জি নেই। বিদ্যালয়ের স্বাভাবিক পুষ্টিকর টিফিন মেনু অনুসরণযোগ্য।
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card 2: Medications & Care Guide */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <Stethoscope className="w-5 h-5 text-rose-600" />
+                    <span>নিয়মিত ওষুধ ও ডাক্তার</span>
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    মেডিকেল সাপোর্ট
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 block">নিয়মিত ওষুধ / প্রেসক্রিপশন:</span>
+                    <p className="text-xs font-bold text-slate-800">
+                      {childHealthProfile.regularMedicationsBn || 'কোনো নিয়মিত ওষুধ বা প্রেসক্রিপশন নেই'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 block">পারিবারিক শিশু বিশেষজ্ঞ / ডাক্তার:</span>
+                    <p className="text-xs font-bold text-slate-800">
+                      {childHealthProfile.emergencyDoctorNameBn || 'ডা. মাহফুজুর রহমান (এমবিবিএস, ডিসিএইচ)'}
+                    </p>
+                    {childHealthProfile.emergencyDoctorPhone && (
+                      <p className="text-xs font-mono font-bold text-rose-700 flex items-center gap-1.5 pt-1">
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{childHealthProfile.emergencyDoctorPhone}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200 text-teal-950 space-y-1">
+                    <span className="text-[11px] font-bold text-teal-800 block">জরুরি স্কুল কেয়ার ও ফার্স্ট এইড:</span>
+                    <p className="text-xs leading-relaxed text-slate-700">
+                      স্কুলে সন্তানের কোনো আকস্মিক অসুস্থতা বা ফার্স্ট এইড প্রয়োজন হলে প্রশিক্ষিত আয়া ও শিক্ষক তাৎক্ষণিক প্রাথমিক চিকিৎসা ও অভিভাবককে অবহিত করেন।
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: EPI Vaccination Checklist */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-teal-600" />
+                    <span>ইপিআই (EPI) টিকাদান কার্ড</span>
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
+                    যাচাইকৃত
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {childHealthProfile.vaccinations.map((vac) => (
+                    <div
+                      key={vac.id}
+                      className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-slate-900 block truncate">
+                          {vac.vaccineNameBn}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {vac.targetAgeBn} · {vac.dateGivenBn || 'প্রদত্ত'}
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200 shrink-0">
+                        <Check className="w-3 h-3 text-teal-600" />
+                        <span>সম্পন্ন ✓</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
         </div>
+      ) : (
+        /* =========================================================================
+           TEACHER / ADMIN VIEW: Multi-Student Selector, KPI Cards, Allergies & Full Table
+           ========================================================================= */
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-700 via-pink-700 to-rose-800 text-white p-6 sm:p-8 shadow-xl">
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-amber-200 text-xs font-bold border border-white/15">
+                  <Stethoscope className="w-3.5 h-3.5" />
+                  <span>শিশু স্বাস্থ্য ও পুষ্টি ট্র্যাকার</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  শিশু স্বাস্থ্য, বৃদ্ধি ও অ্যালার্জি মনিটরিং
+                </h2>
+                <p className="text-rose-100 text-xs sm:text-sm max-w-xl">
+                  প্রতিটি শিশুর উচ্চতা, ওজন, BMI সূচক, রক্তের গ্রুপ, বিশেষ খাবারের অ্যালার্জি এবং নিয়মিত টিকাদান ট্র্যাক করে ক্লাসরুমকে শতভাগ নিরাপদ রাখা।
+                </p>
+              </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button
-            type="button"
-            onClick={() => setFilterAllergyOnly(!filterAllergyOnly)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
-              filterAllergyOnly
-                ? 'bg-rose-100 text-rose-800 border-rose-300'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200'
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>শুধুমাত্র অ্যালার্জিযুক্ত শিক্ষার্থী</span>
-          </button>
-        </div>
-      </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    exportHealthProfilesCsv(selectedClass, healthProfiles);
+                    showToast('✓ হেলথ রেকর্ড CSV ফাইল ডাউনলোড সম্পন্ন হয়েছে!');
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-semibold rounded-2xl text-xs sm:text-sm border border-white/20 transition-all backdrop-blur-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>CSV রিপোর্ট</span>
+                </button>
 
-      {/* Health Profiles Table */}
-      <div className="overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                <th className="py-3 px-3 text-center w-14">রোল</th>
-                <th className="py-3 px-4">শিক্ষার্থী</th>
-                <th className="py-3 px-3 text-center">রক্তের গ্রুপ</th>
-                <th className="py-3 px-3 text-center">উচ্চতা ও ওজন</th>
-                <th className="py-3 px-3 text-center">BMI সূচক</th>
-                <th className="py-3 px-3">অ্যালার্জি সতর্কতা</th>
-                <th className="py-3 px-3">ওষুধ ও বিশেষ যত্ন</th>
-                <th className="py-3 px-3 text-center">টিকাদান</th>
-                <th className="py-3 px-4 text-right">কার্যক্রম</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {displayedProfiles.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
-                    <Heart className="w-10 h-10 mx-auto mb-2 opacity-30 text-rose-400" />
-                    কোনো স্বাস্থ্য রেকর্ড পাওয়া যায়নি।
-                  </td>
-                </tr>
-              ) : (
-                displayedProfiles.map((p) => {
-                  const photo = getStudentPhoto(p.studentId);
-                  const hasAllergy = p.allergiesList.length > 0;
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('আপনি কি স্বাস্থ্য রেকর্ড ডিফল্ট ডেটায় রিসেট করতে চান?')) {
+                        resetHealthProfilesToDefault();
+                        setHealthProfiles(getStoredHealthProfiles());
+                        showToast('✓ স্বাস্থ্য রেকর্ড রিসেট সম্পন্ন হয়েছে!');
+                      }
+                    }}
+                    className="p-2.5 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-2xl transition"
+                    title="ডিফল্ট ডেটায় রিসেট"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
-                  return (
-                    <tr
-                      key={p.studentId}
-                      className="hover:bg-rose-50/30 transition-colors group"
-                    >
-                      {/* Roll */}
-                      <td className="py-3.5 px-3 text-center font-bold text-slate-700">
-                        {p.rollNo}
-                      </td>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <Heart className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-semibold block">মোট স্বাস্থ্য প্রোফাইল</span>
+                <span className="text-xl font-black text-slate-800">
+                  {toBengaliNumber(stats.total)} জন
+                </span>
+              </div>
+            </div>
 
-                      {/* Bio */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-rose-200 shrink-0">
-                            {photo ? (
-                              <img
-                                src={photo}
-                                alt={p.studentNameBn}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-rose-100 text-rose-800 font-bold text-xs">
-                                {p.studentNameBn.slice(0, 2)}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-800 block text-sm">
-                              {p.studentNameBn}
-                            </span>
-                            <span className="text-[11px] text-slate-500">
-                              শাখা: {p.sectionBn}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-semibold block">অ্যালার্জি সতর্কতা</span>
+                <span className="text-xl font-black text-amber-800">
+                  {toBengaliNumber(stats.withAllergies)} জন
+                </span>
+              </div>
+            </div>
 
-                      {/* Blood Group */}
-                      <td className="py-3.5 px-3 text-center">
-                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">
-                          {p.bloodGroup}
-                        </span>
-                      </td>
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-semibold block">স্বাভাবিক বৃদ্ধি হার</span>
+                <span className="text-xl font-black text-emerald-700">
+                  {toBengaliNumber(stats.normalBmiRate)}%
+                </span>
+              </div>
+            </div>
 
-                      {/* Height & Weight */}
-                      <td className="py-3.5 px-3 text-center">
-                        <span className="font-bold text-slate-800 block">
-                          {toBengaliNumber(p.heightCm)} সে.মি.
-                        </span>
-                        <span className="text-[11px] text-slate-500 block">
-                          {toBengaliNumber(p.weightKg)} কেজি
-                        </span>
-                      </td>
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-semibold block">ইপিআই টিকা সম্পন্ন</span>
+                <span className="text-xl font-black text-teal-700">
+                  {toBengaliNumber(stats.vaccineRate)}%
+                </span>
+              </div>
+            </div>
+          </div>
 
-                      {/* BMI */}
-                      <td className="py-3.5 px-3 text-center">
-                        <span className="font-extrabold text-emerald-800 text-sm block">
-                          {toBengaliNumber(p.bmi)}
-                        </span>
-                        <span className="inline-block px-2 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          স্বাভাবিক ✓
-                        </span>
-                      </td>
+          {/* Critical Allergy Alert Bar (Food safety notice for teachers/staff) */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 shadow-xs space-y-2.5">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+              <h3 className="font-extrabold text-sm sm:text-base text-amber-950">
+                🚨 টিফিন ও ক্লাসরুম জরুরি স্বাস্থ্য ও খাবার সতর্কতা
+              </h3>
+            </div>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              স্কুলে খাবার পরিবেশন বা সহপাঠীদের সাথে টিফিন শেয়ার করার সময় শিক্ষক ও আয়াদের নিম্নলিখিত শিক্ষার্থীদের প্রতি বিশেষ সতর্কতা অবলম্বন করতে হবে:
+            </p>
 
-                      {/* Allergies */}
-                      <td className="py-3.5 px-3">
-                        {hasAllergy ? (
-                          <div className="space-y-1">
-                            {p.allergiesList.map((a, i) => (
-                              <span
-                                key={i}
-                                className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 mr-1"
-                              >
-                                ⚠️ {a.allergenBn}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-xs italic">নেই</span>
-                        )}
-                      </td>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              {criticalAllergyStudents.map((p) => (
+                <div
+                  key={p.studentId}
+                  className="p-3 bg-white rounded-2xl border border-amber-200 shadow-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <strong className="text-slate-900 text-xs font-black">
+                      {p.studentNameBn} ({getSchoolClassNameBn(p.className)})
+                    </strong>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                      রক্ত: {p.bloodGroup}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-rose-700 font-bold">
+                    ⚠️ {p.allergiesList.map((a) => a.allergenBn).join(', ')}
+                  </p>
+                  <p className="text-[10px] text-slate-600 line-clamp-2">
+                    {p.allergiesList[0]?.actionGuideBn}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                      {/* Medications / Doctor */}
-                      <td className="py-3.5 px-3 text-xs text-slate-600 max-w-xs">
-                        <span className="block truncate">
-                          {p.regularMedicationsBn || 'কোনো নিয়মিত ওষুধ নেই'}
-                        </span>
-                        {p.emergencyDoctorPhone && (
-                          <span className="text-[11px] text-rose-700 flex items-center gap-1 font-semibold">
-                            <Phone className="w-3 h-3" />
-                            {p.emergencyDoctorPhone}
-                          </span>
-                        )}
-                      </td>
+          {/* Class Selection Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {CLASS_ITEMS.map((cls) => {
+              const count = healthProfiles.filter((p) => p.className === cls.id).length;
+              const isSelected = selectedClass === cls.id;
+              return (
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => setSelectedClass(cls.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap shadow-sm border ${
+                    isSelected
+                      ? 'bg-rose-700 text-white border-rose-700 shadow-rose-200'
+                      : 'bg-white text-slate-700 hover:bg-rose-50 border-slate-200'
+                  }`}
+                >
+                  <span>{cls.nameBn}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {toBengaliNumber(count)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-                      {/* Vaccinations */}
-                      <td className="py-3.5 px-3 text-center">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                          <Check className="w-3 h-3" />
-                          সম্পূর্ণ
-                        </span>
-                      </td>
+          {/* Search and Filters Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div className="relative w-full sm:w-72">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="নাম, রোল বা রক্তের গ্রুপ দিয়ে খুঁজুন..."
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingProfile(p)}
-                              className="p-1.5 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
-                              title="স্বাস্থ্য তথ্য সম্পাদনা"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          )}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => setFilterAllergyOnly(!filterAllergyOnly)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+                  filterAllergyOnly
+                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>শুধুমাত্র অ্যালার্জিযুক্ত শিক্ষার্থী</span>
+              </button>
+            </div>
+          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setActiveHealthCardStudentId(p.studentId)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95"
-                          >
-                            <Activity className="w-3.5 h-3.5" />
-                            <span>হেলথ কার্ড</span>
-                          </button>
-                        </div>
+          {/* Health Profiles Table */}
+          <div className="overflow-hidden rounded-3xl bg-white border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                    <th className="py-3 px-3 text-center w-14">রোল</th>
+                    <th className="py-3 px-4">শিক্ষার্থী</th>
+                    <th className="py-3 px-3 text-center">রক্তের গ্রুপ</th>
+                    <th className="py-3 px-3 text-center">উচ্চতা ও ওজন</th>
+                    <th className="py-3 px-3 text-center">BMI সূচক</th>
+                    <th className="py-3 px-3">অ্যালার্জি সতর্কতা</th>
+                    <th className="py-3 px-3">ওষুধ ও বিশেষ যত্ন</th>
+                    <th className="py-3 px-3 text-center">টিকাদান</th>
+                    <th className="py-3 px-4 text-right">কার্যক্রম</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {displayedProfiles.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <Heart className="w-10 h-10 mx-auto mb-2 opacity-30 text-rose-400" />
+                        কোনো স্বাস্থ্য রেকর্ড পাওয়া যায়নি।
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ) : (
+                    displayedProfiles.map((p) => {
+                      const photo = getStudentPhoto(p.studentId);
+                      const hasAllergy = p.allergiesList.length > 0;
+
+                      return (
+                        <tr
+                          key={p.studentId}
+                          className="hover:bg-rose-50/30 transition-colors group"
+                        >
+                          {/* Roll */}
+                          <td className="py-3.5 px-3 text-center font-bold text-slate-700">
+                            {p.rollNo}
+                          </td>
+
+                          {/* Bio */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-rose-200 shrink-0">
+                                {photo ? (
+                                  <img
+                                    src={photo}
+                                    alt={p.studentNameBn}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-rose-100 text-rose-800 font-bold text-xs">
+                                    {p.studentNameBn.slice(0, 2)}
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-800 block text-sm">
+                                  {p.studentNameBn}
+                                </span>
+                                <span className="text-[11px] text-slate-500">
+                                  শাখা: {p.sectionBn}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Blood Group */}
+                          <td className="py-3.5 px-3 text-center">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">
+                              {p.bloodGroup}
+                            </span>
+                          </td>
+
+                          {/* Height & Weight */}
+                          <td className="py-3.5 px-3 text-center">
+                            <span className="font-bold text-slate-800 block">
+                              {toBengaliNumber(p.heightCm)} সে.মি.
+                            </span>
+                            <span className="text-[11px] text-slate-500 block">
+                              {toBengaliNumber(p.weightKg)} কেজি
+                            </span>
+                          </td>
+
+                          {/* BMI */}
+                          <td className="py-3.5 px-3 text-center">
+                            <span className="font-extrabold text-emerald-800 text-sm block">
+                              {toBengaliNumber(p.bmi)}
+                            </span>
+                            <span className="inline-block px-2 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              স্বাভাবিক ✓
+                            </span>
+                          </td>
+
+                          {/* Allergies */}
+                          <td className="py-3.5 px-3">
+                            {hasAllergy ? (
+                              <div className="space-y-1">
+                                {p.allergiesList.map((a, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 mr-1"
+                                  >
+                                    ⚠️ {a.allergenBn}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">নেই</span>
+                            )}
+                          </td>
+
+                          {/* Medications / Doctor */}
+                          <td className="py-3.5 px-3 text-xs text-slate-600 max-w-xs">
+                            <span className="block truncate">
+                              {p.regularMedicationsBn || 'কোনো নিয়মিত ওষুধ নেই'}
+                            </span>
+                            {p.emergencyDoctorPhone && (
+                              <span className="text-[11px] text-rose-700 flex items-center gap-1 font-semibold">
+                                <Phone className="w-3 h-3" />
+                                {p.emergencyDoctorPhone}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Vaccinations */}
+                          <td className="py-3.5 px-3 text-center">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                              <Check className="w-3 h-3" />
+                              সম্পূর্ণ
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingProfile(p)}
+                                  className="p-1.5 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                                  title="স্বাস্থ্য তথ্য সম্পাদনা"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setActiveHealthCardStudentId(p.studentId)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95"
+                              >
+                                <Activity className="w-3.5 h-3.5" />
+                                <span>হেলথ কার্ড</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Edit Health Modal */}
       {editingProfile && (
