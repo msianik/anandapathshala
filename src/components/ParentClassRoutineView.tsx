@@ -273,7 +273,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                         (p) =>
                           p.day === day.id &&
                           p.periodNo === slot.periodNo &&
-                          p.isBreak === slot.isBreak
+                          Boolean(p.isBreak) === Boolean(slot.isBreak)
                       );
 
                       if (isBreak) {
@@ -301,7 +301,12 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                         );
                       }
 
-                      const hasHw = !!(period.homeworkTitleBn || period.homeworkTitle);
+                      const hasHw = !!(
+                        period.homeworkAssignmentBn ||
+                        period.homeworkOrActivityBn ||
+                        period.homeworkTitleBn ||
+                        period.homeworkTitle
+                      );
                       const isSelected = selectedPeriod?.id === period.id;
 
                       return (
@@ -327,7 +332,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                                   isSelected ? 'text-white' : 'text-slate-950'
                                 }`}
                               >
-                                {period.subject}
+                                {period.subject || period.subjectBn}
                               </span>
                               {hasHw && (
                                 <span
@@ -350,7 +355,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                             >
                               <div className="truncate">{period.teacherNameBn}</div>
                               <div className="font-mono text-[9px] opacity-80">
-                                {period.room}
+                                {period.room || period.roomBn}
                               </div>
                             </div>
                           </button>
@@ -422,23 +427,29 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                 <ClipboardList className="w-4 h-4 text-amber-700" />
                 <span>📝 নির্ধারিত বাড়ির কাজ (Homework Assignment):</span>
               </span>
-              {selectedPeriod.homeworkTitleBn || selectedPeriod.homeworkTitle ? (
+              {selectedPeriod.homeworkAssignmentBn ||
+              selectedPeriod.homeworkOrActivityBn ||
+              selectedPeriod.homeworkTitleBn ||
+              selectedPeriod.homeworkTitle ? (
                 <div className="bg-white p-3 rounded-xl border border-amber-200/90 shadow-2xs space-y-1.5 text-xs text-slate-800">
                   <h4 className="font-bold text-slate-950">
-                    {selectedPeriod.homeworkTitleBn || selectedPeriod.homeworkTitle}
+                    {selectedPeriod.homeworkTitleBn ||
+                      selectedPeriod.homeworkTitle ||
+                      'আজকের নির্ধারিত বাড়ির কাজ:'}
                   </h4>
-                  {(selectedPeriod.homeworkDescBn || selectedPeriod.homeworkDesc) && (
-                    <p className="text-slate-600 leading-relaxed">
-                      {selectedPeriod.homeworkDescBn || selectedPeriod.homeworkDesc}
-                    </p>
-                  )}
+                  <p className="text-slate-700 leading-relaxed font-medium">
+                    {selectedPeriod.homeworkAssignmentBn ||
+                      selectedPeriod.homeworkOrActivityBn ||
+                      selectedPeriod.homeworkDescBn ||
+                      selectedPeriod.homeworkDesc}
+                  </p>
                   <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-[11px] text-slate-600">
                     <span>
                       জমা দেওয়ার ধরন: <strong>{getHomeworkSubmissionTypeLabelBn(selectedPeriod.homeworkSubmissionType)}</strong>
                     </span>
-                    {selectedPeriod.homeworkDueDate && (
+                    {(selectedPeriod.homeworkDueDateBn || selectedPeriod.homeworkDueDate) && (
                       <span>
-                        · জমা দেওয়ার তারিখ: <strong className="text-amber-800">{selectedPeriod.homeworkDueDate}</strong>
+                        · জমা দেওয়ার তারিখ: <strong className="text-amber-800">{selectedPeriod.homeworkDueDateBn || selectedPeriod.homeworkDueDate}</strong>
                       </span>
                     )}
                   </div>
@@ -519,7 +530,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                 <span>আজকের ক্লাসের পাঠ পরিকল্পনা:</span>
               </span>
               <p className="text-xs text-slate-800 bg-emerald-50/70 p-3 rounded-xl border border-emerald-200 leading-relaxed font-medium">
-                {selectedPeriod.topicBn || selectedPeriod.topic || 'নিয়মিত পাঠ্যক্রম ও শ্রেণি অনুশীলন।'}
+                {selectedPeriod.topicBn || selectedPeriod.topic || selectedPeriod.lessonPlanSummaryBn || 'নিয়মিত পাঠ্যক্রম ও শ্রেণি অনুশীলন।'}
               </p>
             </div>
 
@@ -529,19 +540,27 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                 <ClipboardList className="w-3.5 h-3.5 text-amber-600" />
                 <span>বাড়ির কাজ (Homework):</span>
               </span>
-              {selectedPeriod.homeworkTitleBn || selectedPeriod.homeworkTitle ? (
+              {selectedPeriod.homeworkAssignmentBn ||
+              selectedPeriod.homeworkOrActivityBn ||
+              selectedPeriod.homeworkTitleBn ||
+              selectedPeriod.homeworkTitle ? (
                 <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs space-y-1">
                   <div className="font-bold text-slate-950">
-                    {selectedPeriod.homeworkTitleBn || selectedPeriod.homeworkTitle}
+                    {selectedPeriod.homeworkTitleBn ||
+                      selectedPeriod.homeworkTitle ||
+                      'আজকের নির্ধারিত বাড়ির কাজ:'}
                   </div>
-                  {(selectedPeriod.homeworkDescBn || selectedPeriod.homeworkDesc) && (
-                    <p className="text-slate-600 leading-relaxed">
-                      {selectedPeriod.homeworkDescBn || selectedPeriod.homeworkDesc}
-                    </p>
+                  <p className="text-slate-700 leading-relaxed font-medium">
+                    {selectedPeriod.homeworkAssignmentBn ||
+                      selectedPeriod.homeworkOrActivityBn ||
+                      selectedPeriod.homeworkDescBn ||
+                      selectedPeriod.homeworkDesc}
+                  </p>
+                  {(selectedPeriod.homeworkDueDateBn || selectedPeriod.homeworkDueDate) && (
+                    <div className="text-[11px] text-amber-900 pt-1 border-t border-amber-200/60 font-medium">
+                      জমা: {selectedPeriod.homeworkDueDateBn || selectedPeriod.homeworkDueDate}
+                    </div>
                   )}
-                  <div className="text-[11px] text-amber-900 pt-1 border-t border-amber-200/60 font-medium">
-                    জমা: {getHomeworkSubmissionTypeLabelBn(selectedPeriod.homeworkSubmissionType)}
-                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
