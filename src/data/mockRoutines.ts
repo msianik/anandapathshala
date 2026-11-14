@@ -44,6 +44,50 @@ export const SHIFT_CONFIGS: Record<SchoolShift, ShiftTimingConfig> = {
   },
 };
 
+/**
+ * আনন্দ পাঠশালায় অধিক শিক্ষার্থী থাকায় সকল শ্রেণিতে উভয় শিফট (মর্নিং ও ডে) পরিচালিত হয়।
+ */
+export const AVAILABLE_SHIFTS_PER_CLASS: Record<SchoolClass, SchoolShift[]> = {
+  HateKhori: ['morning', 'day'],
+  Play: ['morning', 'day'],
+  Nursery: ['morning', 'day'],
+  KG: ['morning', 'day'],
+  'Class-1': ['morning', 'day'],
+  'Class-2': ['morning', 'day'],
+  Playgroup: ['morning', 'day'],
+  'KG-1': ['morning', 'day'],
+  'KG-2': ['morning', 'day'],
+};
+
+export interface SectionConfig {
+  id: string;
+  nameBn: string;
+  codeBn: string;
+  flowerNameBn: string;
+  icon: string;
+}
+
+/**
+ * আনন্দ পাঠশালা প্রি-স্কুল ক্লাসের ফুলভিত্তিক নান্দনিক শাখাসমূহ
+ */
+export const STANDARD_SECTIONS: SectionConfig[] = [
+  { id: 'golap', nameBn: 'গোলাপ শাখা (ক)', codeBn: 'ক', flowerNameBn: 'গোলাপ', icon: '🌹' },
+  { id: 'shapla', nameBn: 'শাপলা শাখা (খ)', codeBn: 'খ', flowerNameBn: 'শাপলা', icon: '🪷' },
+  { id: 'padma', nameBn: 'পদ্ম শাখা (গ)', codeBn: 'গ', flowerNameBn: 'পদ্ম', icon: '🌸' },
+  { id: 'tulip', nameBn: 'টিউলিপ শাখা (ঘ)', codeBn: 'ঘ', flowerNameBn: 'টিউলিপ', icon: '🌷' },
+  { id: 'surjamukhi', nameBn: 'সূর্যমুখী শাখা', codeBn: 'ঙ', flowerNameBn: 'সূর্যমুখী', icon: '🌻' },
+  { id: 'beli', nameBn: 'বেলি শাখা', codeBn: 'চ', flowerNameBn: 'বেলি', icon: '🌼' },
+];
+
+export function getSectionNameBn(sectionIdOrName?: string): string {
+  if (!sectionIdOrName) return 'গোলাপ শাখা (ক)';
+  const found = STANDARD_SECTIONS.find(
+    (s) => s.id === sectionIdOrName || s.nameBn === sectionIdOrName || s.codeBn === sectionIdOrName
+  );
+  if (found) return found.nameBn;
+  return sectionIdOrName.includes('শাখা') ? sectionIdOrName : `${sectionIdOrName} শাখা`;
+}
+
 export const CLASS_DEFAULT_SHIFTS: Record<SchoolClass, SchoolShift> = {
   HateKhori: 'morning',
   Play: 'morning',
@@ -165,11 +209,11 @@ export const CLASS_ROOMS: Record<SchoolClass, string> = {
 };
 
 /**
- * আনন্দ পাঠশালা বাস্তবসম্মত সাপ্তাহিক ক্লাস রুটিন
+ * আনন্দ পাঠশালা বাস্তবসম্মত সাপ্তাহিক বেস ক্লাস রুটিন
  * সপ্তাহে ৫ দিন পরিচালিত: রবিবার - বৃহস্পতিবার (সাপ্তাহিক ছুটি: শুক্র ও শনি)
  * প্রতি মঙ্গলবার: "কালচারাল ডে (Cultural Day)" বিশেষ কার্যক্রম
  */
-export const INITIAL_CLASS_ROUTINES: ClassRoutinePeriod[] = [
+const BASE_CLASS_ROUTINES: ClassRoutinePeriod[] = [
   // =========================================================================
   // 1. হাতেখড়ি (HateKhori / Pre-Play)
   // =========================================================================
@@ -2501,3 +2545,70 @@ export const INITIAL_CLASS_ROUTINES: ClassRoutinePeriod[] = [
     topicBn: 'সাপ্তাহিক সেরা শিক্ষার্থী স্টার ও পুরস্কার বিতরণ',
   },
 ];
+
+/**
+ * Dual Shift Timings Configuration (৩ ঘণ্টা করে শিফট)
+ * Morning: সকাল ০৮:০০ - বেলা ১১:০০
+ * Day: বেলা ১১:০০ - দুপুর ০২:০০
+ */
+const MORNING_SHIFT_SLOTS: Record<number, { startTime: string; endTime: string; label: string }> = {
+  1: { startTime: '08:10 AM', endTime: '08:45 AM', label: '১ম পিরিয়ড' },
+  2: { startTime: '08:45 AM', endTime: '09:20 AM', label: '২য় পিরিয়ড' },
+  3: { startTime: '09:20 AM', endTime: '09:45 AM', label: 'টিফিন বিরতি' },
+  4: { startTime: '09:45 AM', endTime: '10:20 AM', label: '৩য় পিরিয়ড' },
+  5: { startTime: '10:20 AM', endTime: '10:55 AM', label: '৪র্থ পিরিয়ড' },
+};
+
+const DAY_SHIFT_SLOTS: Record<number, { startTime: string; endTime: string; label: string }> = {
+  1: { startTime: '11:10 AM', endTime: '11:45 AM', label: '১ম পিরিয়ড' },
+  2: { startTime: '11:45 AM', endTime: '12:20 PM', label: '২য় পিরিয়ড' },
+  3: { startTime: '12:20 PM', endTime: '12:45 PM', label: 'টিফিন বিরতি' },
+  4: { startTime: '12:45 PM', endTime: '01:20 PM', label: '৩য় পিরিয়ড' },
+  5: { startTime: '01:20 PM', endTime: '01:55 PM', label: '৪র্থ পিরিয়ড' },
+};
+
+const MORNING_BASE_CLASSES = new Set<SchoolClass>(['HateKhori', 'Play', 'Nursery', 'Playgroup']);
+
+/**
+ * আনন্দ পাঠশালা প্রি-স্কুল রুটিন জেনারেটর:
+ * প্রতিটি শ্রেণিতে উভয় শিফট (মর্নিং ও ডে) এবং ক্লাসের শাখার নাম (গোলাপ শাখা ও শাপলা শাখা) নিশ্চিত করে।
+ */
+export const INITIAL_CLASS_ROUTINES: ClassRoutinePeriod[] = (() => {
+  // ১. প্রাথমিক শাখা: গোলাপ শাখা (ক)
+  const primaryRoutines: ClassRoutinePeriod[] = BASE_CLASS_ROUTINES.map((p) => {
+    const isMorning = MORNING_BASE_CLASSES.has(p.className);
+    const shift: SchoolShift = isMorning ? 'morning' : 'day';
+    const slots = isMorning ? MORNING_SHIFT_SLOTS : DAY_SHIFT_SLOTS;
+    const slot = slots[p.periodNo] || { startTime: p.startTime, endTime: p.endTime, label: p.periodLabelBn };
+
+    return {
+      ...p,
+      shift,
+      section: 'golap',
+      sectionBn: 'গোলাপ শাখা (ক)',
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      periodLabelBn: p.isBreak ? 'টিফিন বিরতি' : slot.label,
+    };
+  });
+
+  // ২. সমান্তরাল প্যারালাল শিফট ও শাখা: শাপলা শাখা (খ)
+  const secondaryRoutines: ClassRoutinePeriod[] = primaryRoutines.map((p) => {
+    const targetShift: SchoolShift = p.shift === 'morning' ? 'day' : 'morning';
+    const slots = targetShift === 'morning' ? MORNING_SHIFT_SLOTS : DAY_SHIFT_SLOTS;
+    const slot = slots[p.periodNo] || { startTime: p.startTime, endTime: p.endTime, label: p.periodLabelBn };
+
+    return {
+      ...p,
+      id: p.id.replace('rtn-', 'rtn-sec-') + (targetShift === 'morning' ? '-morn' : '-day'),
+      shift: targetShift,
+      section: 'shapla',
+      sectionBn: 'শাপলা শাখা (খ)',
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      periodLabelBn: p.isBreak ? 'টিফিন বিরতি' : slot.label,
+    };
+  });
+
+  return [...primaryRoutines, ...secondaryRoutines];
+})();

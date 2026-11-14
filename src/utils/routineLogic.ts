@@ -3,6 +3,7 @@ import {
   DayOfWeek,
   HomeworkSubmissionType,
   SchoolClass,
+  SchoolShift,
   WeeklyClassProgressRecord,
 } from '../types/school';
 import {
@@ -11,11 +12,15 @@ import {
   INITIAL_CLASS_ROUTINES,
   SCHOOL_RESOURCES,
   SchoolResourceItem,
+  STANDARD_SECTIONS,
+  SectionConfig,
+  getSectionNameBn,
+  AVAILABLE_SHIFTS_PER_CLASS,
 } from '../data/mockRoutines';
 import { getSchoolClassNameBn, isSameSchoolClass } from './schoolLogic';
 
-export { DAYS_OF_WEEK_CONFIG, SCHOOL_RESOURCES };
-export type { DayConfig, SchoolResourceItem };
+export { DAYS_OF_WEEK_CONFIG, SCHOOL_RESOURCES, STANDARD_SECTIONS, getSectionNameBn, AVAILABLE_SHIFTS_PER_CLASS };
+export type { DayConfig, SchoolResourceItem, SectionConfig };
 
 /**
  * Find school resource definition by id
@@ -64,7 +69,7 @@ export function inferDefaultResourcesForSubject(subjectBn?: string): string[] {
   return [];
 }
 
-const ROUTINES_STORAGE_KEY = 'ananda_school_class_routines_v1';
+const ROUTINES_STORAGE_KEY = 'ananda_school_class_routines_v2';
 export const ROUTINE_UPDATE_EVENT = 'ananda-routines-updated';
 
 export const HOMEWORK_SUBMISSION_TYPES: {
@@ -606,9 +611,19 @@ export function normalizeRoutinePeriod(period: ClassRoutinePeriod): ClassRoutine
   const roomBn = period.roomBn || period.room || 'রুম ১০১';
   const topicBn = period.topicBn ?? period.topic ?? '';
 
+  const resolvedShift: SchoolShift =
+    period.shift || (startMin < 11 * 60 ? 'morning' : 'day');
+
+  const resolvedSection = period.section || 'golap';
+  const resolvedSectionBn =
+    period.sectionBn || getSectionNameBn(resolvedSection);
+
   if (period.isBreak) {
     return {
       ...period,
+      shift: resolvedShift,
+      section: resolvedSection,
+      sectionBn: resolvedSectionBn,
       subjectBn,
       subject: subjectBn,
       roomBn,
@@ -640,6 +655,9 @@ export function normalizeRoutinePeriod(period: ClassRoutinePeriod): ClassRoutine
 
   return {
     ...period,
+    shift: resolvedShift,
+    section: resolvedSection,
+    sectionBn: resolvedSectionBn,
     subjectBn,
     subject: subjectBn,
     roomBn,
@@ -911,16 +929,20 @@ export function getDayNameBn(day: DayOfWeek): string {
 }
 
 /**
- * Returns periods for a specific class and optionally day
+ * Returns periods for a specific class, optionally filtered by day, shift, and section
  */
 export function getPeriodsForClass(
   routines: ClassRoutinePeriod[],
   className: SchoolClass | string,
-  day?: DayOfWeek
+  day?: DayOfWeek,
+  shift?: SchoolShift | 'all',
+  section?: string
 ): ClassRoutinePeriod[] {
   return routines
     .filter((r) => isSameSchoolClass(r.className, className))
     .filter((r) => (!day ? true : r.day === day))
+    .filter((r) => (!shift || shift === 'all' ? true : r.shift === shift))
+    .filter((r) => (!section || section === 'all' ? true : r.section === section || r.sectionBn?.includes(section)))
     .sort((a, b) => a.periodNo - b.periodNo);
 }
 
@@ -1021,6 +1043,8 @@ export function exportClassRoutineToCsv(
 
   const headers = [
     'বার (Day)',
+    'শিফট (Shift)',
+    'শাখা (Section)',
     'পিরিয়ড (Period)',
     'সময় (Time)',
     'শ্রেণি (Class)',
@@ -1040,6 +1064,8 @@ export function exportClassRoutineToCsv(
 
   targetPeriods.forEach((p) => {
     const dayBn = getDayNameBn(p.day);
+    const shiftBn = p.shift === 'day' ? 'ডে শিফট (১১:০০ - ০২:০০)' : 'মর্নিং শিফট (০৮:০০ - ১১:০০)';
+    const sectionBn = p.sectionBn || p.section || 'গোলাপ শাখা (ক)';
     const hwText = p.homeworkAssignmentBn || p.homeworkOrActivityBn || '—';
     const hwType = p.isBreak ? '—' : getHomeworkSubmissionTypeLabelBn(p.homeworkSubmissionType);
     const bookedRes =
@@ -1048,6 +1074,8 @@ export function exportClassRoutineToCsv(
       '—';
     const row = [
       dayBn,
+      shiftBn,
+      sectionBn,
       p.periodLabelBn,
       `${p.startTime} - ${p.endTime}`,
       getSchoolClassNameBn(p.className),

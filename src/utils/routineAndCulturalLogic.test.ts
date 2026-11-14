@@ -3,6 +3,8 @@ import {
   DAYS_OF_WEEK_CONFIG,
   ACTIVE_SCHOOL_DAYS,
   INITIAL_CLASS_ROUTINES,
+  STANDARD_SECTIONS,
+  AVAILABLE_SHIFTS_PER_CLASS,
 } from '../data/mockRoutines';
 import {
   isWeekendDay,
@@ -61,26 +63,57 @@ describe('Anando Pathshala 5-Day School Routine & Cultural Day Logic Tests', () 
     expect(fridayPeriods.length).toBe(0);
     expect(saturdayPeriods.length).toBe(0);
 
-    // For all 6 classes, Sunday and Tuesday must have 5 periods each
+    // For all 6 classes, Sunday and Tuesday must have 5 periods each in Morning and Day shifts
     const classes = ['HateKhori', 'Play', 'Nursery', 'KG', 'Class-1', 'Class-2'] as const;
     classes.forEach((cls) => {
+      // Total periods across both shifts: 10 (5 morning + 5 day)
       const sunPeriods = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'sunday');
-      const tuePeriods = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'tuesday');
-      expect(sunPeriods.length).toBe(5);
-      expect(tuePeriods.length).toBe(5);
+      expect(sunPeriods.length).toBe(10);
 
-      // In Tuesday routine, non-break periods must be cultural activities
-      const nonBreakTue = tuePeriods.filter((p) => !p.isBreak);
+      // Morning shift: 5 periods with section info
+      const mornSun = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'sunday', 'morning');
+      expect(mornSun.length).toBe(5);
+      expect(mornSun[0].shift).toBe('morning');
+      expect(mornSun[0].sectionBn).toBeDefined();
+
+      // Day shift: 5 periods with section info
+      const daySun = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'sunday', 'day');
+      expect(daySun.length).toBe(5);
+      expect(daySun[0].shift).toBe('day');
+      expect(daySun[0].sectionBn).toBeDefined();
+
+      // Tuesday Cultural Day: 5 periods in both morning and day shifts
+      const mornTue = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'tuesday', 'morning');
+      const dayTue = getPeriodsForClass(INITIAL_CLASS_ROUTINES, cls, 'tuesday', 'day');
+      expect(mornTue.length).toBe(5);
+      expect(dayTue.length).toBe(5);
+
+      // In Tuesday routine, non-break periods must be cultural activities in both shifts
+      const nonBreakTue = [...mornTue, ...dayTue].filter((p) => !p.isBreak);
       nonBreakTue.forEach((p) => {
         expect(p.isCulturalActivity).toBe(true);
         expect(p.culturalCategory).toBeDefined();
       });
 
       // Tuesday must also have a tiffin break period
-      const breakPeriod = tuePeriods.find((p) => p.isBreak);
+      const breakPeriod = mornTue.find((p) => p.isBreak);
       expect(breakPeriod).toBeDefined();
       expect(breakPeriod?.subjectBn).toContain('টিফিন');
     });
+  });
+
+  it('supports sections and both shifts for all classes', () => {
+    expect(STANDARD_SECTIONS.length).toBeGreaterThanOrEqual(6);
+    expect(AVAILABLE_SHIFTS_PER_CLASS.Play).toContain('morning');
+    expect(AVAILABLE_SHIFTS_PER_CLASS.Play).toContain('day');
+
+    const golapPeriods = getPeriodsForClass(INITIAL_CLASS_ROUTINES, 'Play', 'sunday', 'morning', 'golap');
+    expect(golapPeriods.length).toBe(5);
+    expect(golapPeriods[0].sectionBn).toContain('গোলাপ');
+
+    const shaplaPeriods = getPeriodsForClass(INITIAL_CLASS_ROUTINES, 'Play', 'sunday', 'day', 'shapla');
+    expect(shaplaPeriods.length).toBe(5);
+    expect(shaplaPeriods[0].sectionBn).toContain('শাপলা');
   });
 
   it('manages Cultural Day weekly themes and event calendar', () => {

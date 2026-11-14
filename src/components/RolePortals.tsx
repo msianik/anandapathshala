@@ -1718,8 +1718,16 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
   const todayDay = getTodayDayOfWeek();
   const isFriday = isFridayToday();
-  const childTodayPeriods = getPeriodsForClass(allRoutines, childClass, todayDay);
-  const childWeeklyPeriodsForSelectedDay = getPeriodsForClass(allRoutines, childClass, selectedChildDayTab);
+  const childTargetSection = myChild.section?.includes('খ') || myChild.section?.includes('শাপলা') ? 'shapla' : 'golap';
+  const childTodayPeriods = React.useMemo(() => {
+    const matched = getPeriodsForClass(allRoutines, childClass, todayDay, undefined, childTargetSection);
+    return matched.length > 0 ? matched : getPeriodsForClass(allRoutines, childClass, todayDay);
+  }, [allRoutines, childClass, todayDay, childTargetSection]);
+
+  const childWeeklyPeriodsForSelectedDay = React.useMemo(() => {
+    const matched = getPeriodsForClass(allRoutines, childClass, selectedChildDayTab, undefined, childTargetSection);
+    return matched.length > 0 ? matched : getPeriodsForClass(allRoutines, childClass, selectedChildDayTab);
+  }, [allRoutines, childClass, selectedChildDayTab, childTargetSection]);
 
   const daysUntilDue = unpaidInvoice ? getDaysUntilDueDate(unpaidInvoice.dueDate) : null;
   const isFeeDueSoon =

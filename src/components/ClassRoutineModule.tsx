@@ -14,6 +14,10 @@ import {
   CLASS_ROOMS,
   SHIFT_CONFIGS,
   CLASS_DEFAULT_SHIFTS,
+  STANDARD_SECTIONS,
+  SectionConfig,
+  getSectionNameBn,
+  AVAILABLE_SHIFTS_PER_CLASS,
 } from '../data/mockRoutines';
 import {
   getClassRoutines,
@@ -139,6 +143,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const [routines, setRoutines] = useState<ClassRoutinePeriod[]>(() => getClassRoutines());
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(initialClass);
   const [shiftFilter, setShiftFilter] = useState<SchoolShift | 'all'>('all');
+  const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'all' | 'today'>('today');
   const [teacherFilter, setTeacherFilter] = useState<string>('all');
   const [resourceFilter, setResourceFilter] = useState<string>('all');
@@ -200,10 +205,13 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const [formData, setFormData] = useState({
     className: initialClass,
     day: 'sunday' as DayOfWeek,
+    shift: 'morning' as SchoolShift,
+    section: 'golap',
+    sectionBn: 'গোলাপ শাখা (ক)',
     periodNo: 1,
     periodLabelBn: '১ম পিরিয়ড',
-    startTime: '09:00 AM',
-    endTime: '09:40 AM',
+    startTime: '08:10 AM',
+    endTime: '08:45 AM',
     subjectBn: 'বাংলা ভাষা ও বর্ণমালা',
     teacherId: 'tch-2',
     teacherNameBn: 'ফাতেমা আক্তার',
@@ -485,6 +493,14 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
         return r.day === effectiveDay;
       })
       .filter((r) => {
+        if (shiftFilter === 'all') return true;
+        return r.shift === shiftFilter;
+      })
+      .filter((r) => {
+        if (sectionFilter === 'all') return true;
+        return r.section === sectionFilter || r.sectionBn?.includes(sectionFilter);
+      })
+      .filter((r) => {
         if (teacherFilter === 'all') return true;
         return (
           r.teacherId === teacherFilter ||
@@ -523,6 +539,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
     routines,
     selectedClass,
     effectiveDay,
+    shiftFilter,
+    sectionFilter,
     teacherFilter,
     resourceFilter,
     showOnlyHomeworkFilter,
@@ -663,22 +681,39 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
   // Open Add Modal
   const handleOpenAdd = () => {
-    const defaultDay = effectiveDay === 'all' || effectiveDay === 'friday' || effectiveDay === 'saturday' ? 'sunday' : effectiveDay;
+    const defaultDay =
+      effectiveDay === 'all' || effectiveDay === 'friday' || effectiveDay === 'saturday'
+        ? 'sunday'
+        : effectiveDay;
+    const initialShift: SchoolShift = shiftFilter !== 'all' ? shiftFilter : 'morning';
+    const initialSectionId = sectionFilter !== 'all' ? sectionFilter : 'golap';
+    const initialSectionName = getSectionNameBn(initialSectionId);
+
     const existingInClassDay = routines.filter(
-      (r) => isSameSchoolClass(r.className, selectedClass) && r.day === defaultDay
+      (r) =>
+        isSameSchoolClass(r.className, selectedClass) &&
+        r.day === defaultDay &&
+        r.shift === initialShift &&
+        (r.section === initialSectionId || r.sectionBn?.includes(initialSectionId))
     );
-    const nextPeriodNo = existingInClassDay.length + 1;
+    const nextPeriodNo = Math.min(10, existingInClassDay.length + 1);
     const defaultRoom = CLASS_ROOMS[selectedClass] || 'রুম ১০১';
+
+    const defaultStartTime = initialShift === 'morning' ? '08:10 AM' : '11:10 AM';
+    const defaultEndTime = initialShift === 'morning' ? '08:45 AM' : '11:45 AM';
 
     setEditingPeriod(null);
     setAllowOverlapOverride(false);
     setFormData({
       className: selectedClass,
       day: defaultDay,
+      shift: initialShift,
+      section: initialSectionId,
+      sectionBn: initialSectionName,
       periodNo: nextPeriodNo,
       periodLabelBn: `${nextPeriodNo}ম পিরিয়ড`,
-      startTime: '09:00 AM',
-      endTime: '09:40 AM',
+      startTime: defaultStartTime,
+      endTime: defaultEndTime,
       subjectBn: 'বাংলা ভাষা ও বর্ণমালা',
       teacherId: 'tch-2',
       teacherNameBn: 'ফাতেমা আক্তার',
@@ -703,9 +738,17 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
     setEditingPeriod(period);
     setAllowOverlapOverride(false);
     const hw = period.homeworkAssignmentBn || period.homeworkOrActivityBn || '';
+    const resolvedShift: SchoolShift =
+      period.shift || (parseTimeToMinutes(period.startTime) < 11 * 60 ? 'morning' : 'day');
+    const resolvedSection = period.section || 'golap';
+    const resolvedSectionBn = period.sectionBn || getSectionNameBn(resolvedSection);
+
     setFormData({
       className: period.className,
       day: period.day,
+      shift: resolvedShift,
+      section: resolvedSection,
+      sectionBn: resolvedSectionBn,
       periodNo: period.periodNo,
       periodLabelBn: period.periodLabelBn,
       startTime: period.startTime,
@@ -753,6 +796,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
     })}`;
     const hwText = (formData.homeworkAssignmentBn || formData.homeworkOrActivityBn || '').trim();
     const bookedResBn = getResourceNamesBn(formData.resources);
+    const finalSectionBn = formData.sectionBn || getSectionNameBn(formData.section);
 
     if (editingPeriod) {
       const updated = routines.map((r) =>
@@ -760,6 +804,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           ? {
               ...r,
               ...formData,
+              shift: formData.shift,
+              section: formData.section,
+              sectionBn: finalSectionBn,
               resources: formData.resources,
               bookedResourcesBn: bookedResBn,
               subject: formData.subjectBn,
@@ -786,6 +833,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
       const newPeriod: ClassRoutinePeriod = {
         id: `rtn-${Date.now()}`,
         ...formData,
+        shift: formData.shift,
+        section: formData.section,
+        sectionBn: finalSectionBn,
         resources: formData.resources,
         bookedResourcesBn: bookedResBn,
         subject: formData.subjectBn,
@@ -1043,12 +1093,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShiftFilter('morning');
-                if (CLASS_DEFAULT_SHIFTS[selectedClass] !== 'morning') {
-                  setSelectedClass('Play');
-                }
-              }}
+              onClick={() => setShiftFilter('morning')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 shiftFilter === 'morning'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
@@ -1059,12 +1104,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShiftFilter('day');
-                if (CLASS_DEFAULT_SHIFTS[selectedClass] !== 'day') {
-                  setSelectedClass('KG');
-                }
-              }}
+              onClick={() => setShiftFilter('day')}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 shiftFilter === 'day'
                   ? 'bg-sky-600 text-white font-black shadow-xs'
@@ -1076,12 +1116,53 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           </div>
         </div>
 
+        {/* Section Selector Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-amber-200/60">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-black text-slate-700 flex items-center gap-1 shrink-0">
+              <span>🌸 ক্লাসের শাখা (Section):</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSectionFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                sectionFilter === 'all'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'bg-white hover:bg-emerald-50 text-slate-700 border border-slate-200'
+              }`}
+            >
+              সকল শাখা
+            </button>
+            {STANDARD_SECTIONS.map((sec) => {
+              const isSelected = sectionFilter === sec.id;
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => setSectionFilter(sec.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/20'
+                      : 'bg-white hover:bg-emerald-50 text-emerald-950 border border-emerald-200'
+                  }`}
+                >
+                  <span>{sec.icon}</span>
+                  <span>{sec.nameBn}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-[11px] font-bold text-slate-600 shrink-0">
+            ফিল্টারকৃত পিরিয়ড: <span className="font-mono text-emerald-700 font-black">{filteredPeriods.length}টি</span>
+          </div>
+        </div>
+
         {/* Shift Details Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
           <div
             className={`p-2 rounded-xl border flex items-center justify-between ${
-              shiftFilter === 'morning' ||
-              (shiftFilter === 'all' && CLASS_DEFAULT_SHIFTS[selectedClass] === 'morning')
+              shiftFilter === 'morning' || shiftFilter === 'all'
                 ? 'bg-amber-100/70 border-amber-300 text-amber-950 font-bold'
                 : 'bg-white/60 border-slate-200 text-slate-600'
             }`}
@@ -1089,15 +1170,14 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             <span className="flex items-center gap-1">
               <span>☀️ <strong>মর্নিং শিফট:</strong> সকাল ০৮:০০ – বেলা ১১:০০ (৩ ঘণ্টা)</span>
             </span>
-            <span className="text-[10px] bg-white px-2 py-0.2 rounded-md border border-amber-300">
-              হাতেখড়ি, প্লে, নার্সারি
+            <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-amber-300">
+              সকল শ্রেণি (হাতেখড়ি–শ্রেণি ২)
             </span>
           </div>
 
           <div
             className={`p-2 rounded-xl border flex items-center justify-between ${
-              shiftFilter === 'day' ||
-              (shiftFilter === 'all' && CLASS_DEFAULT_SHIFTS[selectedClass] === 'day')
+              shiftFilter === 'day' || shiftFilter === 'all'
                 ? 'bg-sky-100/70 border-sky-300 text-sky-950 font-bold'
                 : 'bg-white/60 border-slate-200 text-slate-600'
             }`}
@@ -1105,10 +1185,17 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             <span className="flex items-center gap-1">
               <span>🌤️ <strong>ডে শিফট:</strong> বেলা ১১:০০ – দুপুর ০২:০০ (৩ ঘণ্টা)</span>
             </span>
-            <span className="text-[10px] bg-white px-2 py-0.2 rounded-md border border-sky-300">
-              কেজি, শ্রেণি-১, শ্রেণি-২
+            <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-sky-300">
+              সকল শ্রেণি (হাতেখড়ি–শ্রেণি ২)
             </span>
           </div>
+        </div>
+
+        <div className="bg-white/80 p-2 rounded-xl border border-amber-200/60 text-[11px] text-slate-700 flex items-center gap-2">
+          <span className="text-amber-600 shrink-0">ℹ️</span>
+          <span>
+            <strong>আনন্দ পাঠশালা নীতি:</strong> প্লে-গ্রুপসহ প্রতিটি শ্রেণিতে অনেক শিক্ষার্থী থাকায় দুই শিফটেই (মর্নিং ও ডে) সমান্তরাল শ্রেণি ও শাখা পরিচালিত হয়।
+          </span>
         </div>
       </div>
 
@@ -1119,8 +1206,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             <GraduationCap className="w-4 h-4 text-emerald-700" />
             শ্রেণি নির্বাচন করুন:
           </span>
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-            বর্তমান শ্রেণি: {getSchoolClassNameBn(selectedClass)} ({CLASS_DEFAULT_SHIFTS[selectedClass] === 'morning' ? '☀️ মর্নিং শিফট' : '🌤️ ডে শিফট'})
+          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+            বর্তমান শ্রেণি: {getSchoolClassNameBn(selectedClass)} · উভয় শিফট ও শাখা কার্যকর ✓
           </span>
         </div>
 
@@ -1767,6 +1854,14 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800">
                                     {period.periodLabelBn} ({period.startTime} - {period.endTime})
                                   </span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
+                                    {period.shift === 'day' ? '🌤️ ডে' : '☀️ মর্নিং'}
+                                  </span>
+                                  {(period.sectionBn || period.section) && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                      🌸 {period.sectionBn || `শাখা: ${period.section}`}
+                                    </span>
+                                  )}
                                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
                                     {period.subjectBn}
                                   </h4>
@@ -2226,6 +2321,20 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                               )}
                               <span>{period.periodLabelBn}</span>
                             </span>
+                            <span
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-lg border flex items-center gap-1 ${
+                                period.shift === 'day'
+                                  ? 'bg-sky-50 text-sky-950 border-sky-300'
+                                  : 'bg-amber-50 text-amber-950 border-amber-300'
+                              }`}
+                            >
+                              <span>{period.shift === 'day' ? '🌤️ ডে শিফট' : '☀️ মর্নিং শিফট'}</span>
+                            </span>
+                            {(period.sectionBn || period.section) && (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-950 border border-emerald-300 flex items-center gap-1">
+                                <span>🌸 {period.sectionBn || `শাখা: ${period.section}`}</span>
+                              </span>
+                            )}
                             {period.isCulturalActivity && (
                               <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
                                 <span>🎨 কালচারাল</span>
@@ -2726,7 +2835,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                   <span className="text-[11px] font-bold text-indigo-700 block">
                     {getSchoolClassNameBn(lessonPlanModalPeriod.className)} ·{' '}
                     {getDayNameBn(lessonPlanModalPeriod.day)} · {lessonPlanModalPeriod.periodLabelBn} (
-                    {lessonPlanModalPeriod.startTime} - {lessonPlanModalPeriod.endTime})
+                    {lessonPlanModalPeriod.startTime} - {lessonPlanModalPeriod.endTime}) ·{' '}
+                    {lessonPlanModalPeriod.shift === 'day' ? '🌤️ ডে শিফট' : '☀️ মর্নিং শিফট'} ·{' '}
+                    🌸 {lessonPlanModalPeriod.sectionBn || 'গোলাপ শাখা (ক)'}
                   </span>
                   <h3 className="text-base sm:text-lg font-black text-slate-900">
                     📝 দৈনিক পাঠ পরিকল্পনা সংযোজন — {lessonPlanModalPeriod.subjectBn}
@@ -2997,7 +3108,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                   <span className="text-[11px] font-bold text-amber-800 block">
                     {getSchoolClassNameBn(homeworkModalPeriod.className)} ·{' '}
                     {getDayNameBn(homeworkModalPeriod.day)} · {homeworkModalPeriod.periodLabelBn} (
-                    {homeworkModalPeriod.startTime} - {homeworkModalPeriod.endTime})
+                    {homeworkModalPeriod.startTime} - {homeworkModalPeriod.endTime}) ·{' '}
+                    {homeworkModalPeriod.shift === 'day' ? '🌤️ ডে শিফট' : '☀️ মর্নিং শিফট'} ·{' '}
+                    🌸 {homeworkModalPeriod.sectionBn || 'গোলাপ শাখা (ক)'}
                   </span>
                   <h3 className="text-base sm:text-lg font-black text-slate-900">
                     📚 বাড়ির কাজ নির্ধারণ (Assign Homework) — {homeworkModalPeriod.subjectBn}
@@ -3155,7 +3268,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                   </h3>
                   <p className="text-xs text-slate-500">
                     শিক্ষক: {viewingLessonPlanPeriod.teacherNameBn} · সময়:{' '}
-                    {viewingLessonPlanPeriod.startTime} - {viewingLessonPlanPeriod.endTime}
+                    {viewingLessonPlanPeriod.startTime} - {viewingLessonPlanPeriod.endTime} ·{' '}
+                    {viewingLessonPlanPeriod.shift === 'day' ? '🌤️ ডে শিফট' : '☀️ মর্নিং শিফট'} ·{' '}
+                    🌸 {viewingLessonPlanPeriod.sectionBn || 'গোলাপ শাখা (ক)'}
                   </p>
                 </div>
               </div>
@@ -3354,6 +3469,108 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Shift & Section Selection */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-gradient-to-r from-amber-50/60 to-emerald-50/60 rounded-2xl border border-amber-200/70">
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>শিফট (Shift):</span>
+                  </label>
+                  <select
+                    value={formData.shift}
+                    onChange={(e) => {
+                      const newShift = e.target.value as SchoolShift;
+                      const defaultStart = newShift === 'morning' ? '08:10 AM' : '11:10 AM';
+                      const defaultEnd = newShift === 'morning' ? '08:45 AM' : '11:45 AM';
+                      setFormData({
+                        ...formData,
+                        shift: newShift,
+                        startTime: defaultStart,
+                        endTime: defaultEnd,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="morning">☀️ মর্নিং শিফট (০৮:০০ - ১১:০০)</option>
+                    <option value="day">🌤️ ডে শিফট (১১:০০ - ০২:০০)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1 flex items-center gap-1">
+                    <span>🌸 শাখা (Section):</span>
+                  </label>
+                  <select
+                    value={formData.section}
+                    onChange={(e) => {
+                      const secId = e.target.value;
+                      const secName = getSectionNameBn(secId);
+                      setFormData({
+                        ...formData,
+                        section: secId,
+                        sectionBn: secName,
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {STANDARD_SECTIONS.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.icon} {sec.nameBn}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 3-Hour Shift Quick Time Slot Presets */}
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+                <span className="font-bold text-slate-700 flex items-center justify-between">
+                  <span>⏱️ {formData.shift === 'morning' ? 'মর্নিং শিফট (সকাল ৮-১১টা)' : 'ডে শিফট (বেলা ১১-২টা)'} দ্রুত সময় স্লট:</span>
+                  <span className="text-[10px] text-slate-500 font-normal">ক্লিক করে প্রিসেট সিলেক্ট করুন</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(formData.shift === 'morning'
+                    ? [
+                        { periodNo: 1, label: '১ম পিরিয়ড', start: '08:10 AM', end: '08:45 AM', isBreak: false },
+                        { periodNo: 2, label: '২য় পিরিয়ড', start: '08:45 AM', end: '09:20 AM', isBreak: false },
+                        { periodNo: 3, label: 'টিফিন বিরতি', start: '09:20 AM', end: '09:45 AM', isBreak: true },
+                        { periodNo: 4, label: '৩য় পিরিয়ড', start: '09:45 AM', end: '10:20 AM', isBreak: false },
+                        { periodNo: 5, label: '৪র্থ পিরিয়ড', start: '10:20 AM', end: '10:55 AM', isBreak: false },
+                      ]
+                    : [
+                        { periodNo: 1, label: '১ম পিরিয়ড', start: '11:10 AM', end: '11:45 AM', isBreak: false },
+                        { periodNo: 2, label: '২য় পিরিয়ড', start: '11:45 AM', end: '12:20 PM', isBreak: false },
+                        { periodNo: 3, label: 'টিফিন বিরতি', start: '12:20 PM', end: '12:45 PM', isBreak: true },
+                        { periodNo: 4, label: '৩য় পিরিয়ড', start: '12:45 PM', end: '01:20 PM', isBreak: false },
+                        { periodNo: 5, label: '৪র্থ পিরিয়ড', start: '01:20 PM', end: '01:55 PM', isBreak: false },
+                      ]
+                  ).map((slot) => (
+                    <button
+                      key={slot.label}
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          periodNo: slot.periodNo,
+                          periodLabelBn: slot.label,
+                          startTime: slot.start,
+                          endTime: slot.end,
+                          isBreak: slot.isBreak,
+                          subjectBn: slot.isBreak ? 'টিফিন বিরতি ও ফ্রি প্লে' : formData.subjectBn,
+                        })
+                      }
+                      className={`px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition ${
+                        formData.startTime === slot.start && formData.endTime === slot.end
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
+                          : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      {slot.label} ({slot.start}-{slot.end})
+                    </button>
+                  ))}
                 </div>
               </div>
 
