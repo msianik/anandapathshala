@@ -2084,37 +2084,75 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="p-5 rounded-2xl bg-white/10 border border-white/15 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-slate-800 border border-white/15 text-slate-300 flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5 text-indigo-300" />
+            ) : upcoming ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-800 to-blue-800 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-400/30">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 text-[11px] font-black uppercase tracking-wider">
+                      পরবর্তী আসন্ন ক্লাস · পিরিয়ড #{upcoming.periodNo}
+                    </span>
+                    <span className="text-xs text-indigo-200 font-medium">
+                      শুরু হবে: <strong>{upcoming.startTime}</strong> (সময়সীমা: {upcoming.startTime} - {upcoming.endTime})
+                    </span>
                   </div>
-                  <div>
-                    <h4 className="text-base font-bold text-white">
-                      বর্তমানে কোনো ক্লাস নেই
-                    </h4>
-                    <p className="text-xs text-indigo-200 mt-0.5">
-                      {allCompleted
-                        ? 'আজকের সকল নির্ধারিত ক্লাস ও কার্যক্রম সফলভাবে সম্পন্ন হয়েছে।'
-                        : upcoming
-                        ? `পরবর্তী ক্লাস: ${upcoming.subject} (শুরু হবে: ${upcoming.startTime})`
-                        : 'আজকে এই মুহূর্তে কোনো ক্লাস নির্ধারিত নেই। নিচে সম্পূর্ণ রুটিন দেখুন।'}
+
+                  <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {upcoming.subject}
+                  </h4>
+
+                  <div className="flex items-center gap-4 text-xs sm:text-sm text-indigo-100 flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4 text-indigo-300" />
+                      <span>শিক্ষক: <strong className="text-white">{upcoming.teacherNameBn}</strong></span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-indigo-300" />
+                      <span>কক্ষ: <strong className="text-white">{upcoming.room}</strong></span>
+                    </span>
+                  </div>
+
+                  {(upcoming.topicBn || upcoming.topic) && (
+                    <p className="text-xs text-indigo-100 bg-black/25 p-2.5 rounded-xl border border-white/10">
+                      📖 <strong>নির্ধারিত পাঠ:</strong> {upcoming.topicBn || upcoming.topic}
                     </p>
-                  </div>
+                  )}
                 </div>
-                {upcoming && (
+
+                <div className="shrink-0 flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedPeriodForDetail(upcoming)}
-                    className="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>পরবর্তী ক্লাসের প্রস্তুতি দেখুন</span>
-                    <span>→</span>
+                    <BookOpen className="w-4 h-4" />
+                    <span>পাঠ পরিকল্পনা ও বিস্তারিত</span>
                   </button>
-                )}
+                </div>
               </div>
-            )}
+            ) : allCompleted ? (
+              <div className="p-4 rounded-2xl bg-white/10 border border-white/15 text-xs text-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white">
+                      ✓ আজকের সকল নির্ধারিত ক্লাস ও কার্যক্রম সফলভাবে সম্পন্ন হয়েছে
+                    </h4>
+                    <p className="text-[11px] text-indigo-200 mt-0.5">
+                      আজকের ক্লাসের সারসংক্ষেপ ও বাড়ির কাজ দেখার জন্য নিচে ২ নম্বর সেকশনে চোখ রাখুন।
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowChildWeeklyModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs transition cursor-pointer self-start sm:self-auto"
+                >
+                  আগামীকালের রুটিন দেখুন →
+                </button>
+              </div>
+            ) : null}
 
             {/* পাশাপাশি আজকের দৈনিক ক্লাস রুটিনসমূহ */}
             <div className="pt-4 border-t border-indigo-700/50 space-y-3">
