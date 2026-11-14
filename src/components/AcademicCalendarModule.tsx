@@ -4,6 +4,7 @@ import {
   AcademicEventCategory,
   UserRole,
   PortalAccount,
+  Student,
 } from '../types/school';
 import {
   generateMonthCalendarGrid,
@@ -57,6 +58,8 @@ interface AcademicCalendarModuleProps {
   loggedInAccount?: PortalAccount | null;
   onNavigateTab?: (tab: string) => void;
   onSendBroadcastNotification?: (title: string, body: string, category: string) => void;
+  students?: Student[];
+  loggedInStudentId?: string;
 }
 
 export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
@@ -64,8 +67,46 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
   loggedInAccount,
   onNavigateTab,
   onSendBroadcastNotification,
+  students,
+  loggedInStudentId,
 }) => {
   const { events, addEvent, editEvent, removeEvent, resetAll } = useAcademicEvents();
+
+  const isParent = currentRole === 'parent';
+
+  // Determine child student & class for parent role
+  const childStudent = useMemo(() => {
+    if (!isParent) return null;
+    const targetId = loggedInStudentId || loggedInAccount?.studentId || 'std-1';
+    return (
+      students?.find((s) => s.id === targetId) ||
+      (students && students.length > 0 ? students[0] : null)
+    );
+  }, [isParent, loggedInStudentId, loggedInAccount?.studentId, students]);
+
+  const childClassBn = useMemo(() => {
+    if (!childStudent && !loggedInAccount?.assignedClass) return 'নার্সারি';
+    const cls = childStudent?.className || loggedInAccount?.assignedClass || 'Nursery';
+    switch (cls) {
+      case 'HateKhori':
+        return 'হাতেখড়ি';
+      case 'Playgroup':
+      case 'Play':
+        return 'প্লে';
+      case 'Nursery':
+        return 'নার্সারি';
+      case 'KG-1':
+      case 'KG-2':
+      case 'KG':
+        return 'কেজি';
+      case 'Class-1':
+        return '১ম শ্রেণি';
+      case 'Class-2':
+        return '২য় শ্রেণি';
+      default:
+        return String(cls);
+    }
+  }, [childStudent, loggedInAccount?.assignedClass]);
 
   // Role permissions: Viewing is open to all, editing requires admin or director with notice/event permission
   const dirPerm =
@@ -162,17 +203,34 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
   // Filtered Events
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
-      // Category filter
-      if (selectedCategory !== 'all' && ev.category !== selectedCategory) {
-        return false;
-      }
-
-      // Class filter
-      if (selectedClassFilter !== 'all') {
-        const matchesClass =
+      // 1. If Parent: Strictly filter to events applicable to child's class
+      if (isParent) {
+        const matchesChildClass =
+          ev.category === 'holiday' ||
           ev.targetClassesBn.includes('সকল') ||
-          ev.targetClassesBn.includes(selectedClassFilter);
-        if (!matchesClass) return false;
+          ev.targetClassesBn.includes('সবাই') ||
+          ev.targetClassesBn.includes('বিদ্যালয়') ||
+          ev.targetClassesBn.includes('স্কুল') ||
+          ev.targetClassesBn.includes(childClassBn) ||
+          (childClassBn === 'কেজি' && (ev.targetClassesBn.includes('কেজি-১') || ev.targetClassesBn.includes('কেজি-২') || ev.targetClassesBn.includes('KG'))) ||
+          (childStudent?.className && ev.targetClassesBn.toLowerCase().includes(childStudent.className.toLowerCase()));
+
+        if (!matchesChildClass) {
+          return false;
+        }
+      } else {
+        // Teacher/Admin Class filter
+        if (selectedClassFilter !== 'all') {
+          const matchesClass =
+            ev.targetClassesBn.includes('সকল') ||
+            ev.targetClassesBn.includes(selectedClassFilter);
+          if (!matchesClass) return false;
+        }
+
+        // Category filter (active for teachers/admins)
+        if (selectedCategory !== 'all' && ev.category !== selectedCategory) {
+          return false;
+        }
       }
 
       // Text search
@@ -190,19 +248,20 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
 
       return true;
     });
-  }, [events, selectedCategory, selectedClassFilter, searchQuery]);
+  }, [events, isParent, childClassBn, childStudent?.className, selectedCategory, selectedClassFilter, searchQuery]);
 
   // Statistics
   const stats = useMemo(() => {
-    const total = events.length;
-    const holidays = events.filter((e) => e.category === 'holiday').length;
-    const exams = events.filter((e) => e.category === 'exam').length;
-    const meetings = events.filter((e) => e.category === 'meeting').length;
-    const culturalAndSports = events.filter(
+    const list = isParent ? filteredEvents : events;
+    const total = list.length;
+    const holidays = list.filter((e) => e.category === 'holiday').length;
+    const exams = list.filter((e) => e.category === 'exam').length;
+    const meetings = list.filter((e) => e.category === 'meeting').length;
+    const culturalAndSports = list.filter(
       (e) => e.category === 'cultural' || e.category === 'sports' || e.category === 'event'
     ).length;
     return { total, holidays, exams, meetings, culturalAndSports };
-  }, [events]);
+  }, [isParent, filteredEvents, events]);
 
   // Month Calendar Grid Data
   const monthData = useMemo(() => {
@@ -438,17 +497,23 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
                   ? '👑 অ্যাডমিন ও অধ্যক্ষ কনসোল (লাইভ সিঙ্ক ও CRUD)'
                   : currentRole === 'teacher'
                   ? '👩‍🏫 শিক্ষক রোস্টার ও পরীক্ষার সময়সূচি'
-                  : '👨‍👧 অভিভাবক ও সন্তান দিনপঞ্জি'}
+                  : `👨‍👧 ${childStudent?.nameBn || 'সন্তান'}-এর দিনপঞ্জি (${childClassBn} শ্রেণি)`}
               </span>
             </div>
 
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
               <CalendarDays className="w-7 h-7 text-emerald-400 shrink-0" />
-              <span>আনন্দ পাঠশালা একাডেমি ইভেন্ট, পরীক্ষা ও ছুটির ক্যালেন্ডার</span>
+              <span>
+                {isParent
+                  ? `${childStudent?.nameBn || 'সন্তান'}-এর একাডেমিক ক্যালেন্ডার ও দিনপঞ্জি`
+                  : 'আনন্দ পাঠশালা একাডেমি ইভেন্ট, পরীক্ষা ও ছুটির ক্যালেন্ডার'}
+              </span>
             </h2>
 
             <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-              শিখন মূল্যায়ন, সরকারি ও প্রাতিষ্ঠানিক ছুটি, অভিভাবক সমাবেশ (PTM) এবং ক্যাম্পাসের সাংস্কৃতিক ও বিজ্ঞান মেলার রিয়েল-টাইম তথ্য।
+              {isParent
+                ? `${childClassBn} শ্রেণির শিখন মূল্যায়ন, পরীক্ষা, অভিভাবক সমাবেশ (PTM) এবং প্রাতিষ্ঠানিক ছুটির রিয়েল-টাইম তথ্য।`
+                : 'শিখন মূল্যায়ন, সরকারি ও প্রাতিষ্ঠানিক ছুটি, অভিভাবক সমাবেশ (PTM) এবং ক্যাম্পাসের সাংস্কৃতিক ও বিজ্ঞান মেলার রিয়েল-টাইম তথ্য।'}
             </p>
           </div>
 
@@ -556,7 +621,7 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
       {/* 2. FILTER & VIEW MODE CONTROL TOOLBAR                                    */}
       {/* ========================================================================= */}
       <section className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {/* View mode buttons */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start sm:self-auto">
             <button
@@ -599,130 +664,145 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
             </button>
           </div>
 
-          {/* Search bar & Class filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl justify-end">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ইভেন্ট, পরীক্ষা বা ছুটির নাম দিয়ে খুঁজুন..."
-                className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+          {/* If Parent: Dedicated Class Scope Pill (NO filter option) */}
+          {isParent ? (
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-emerald-900 text-xs font-bold self-start sm:self-auto">
+              <GraduationCap className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>
+                {childStudent?.nameBn || 'আপনার সন্তান'}-এর শ্রেণি: <span className="text-emerald-800 font-black">{childClassBn}</span>-এর নির্ধারিত ক্যালেন্ডার
+              </span>
+              <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+                {toBengaliDigits(filteredEvents.length)} টি ইভেন্ট
+              </span>
             </div>
+          ) : (
+            /* If Teacher/Admin: Search Bar & Class Filter Dropdown */
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 max-w-xl justify-end">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ইভেন্ট, পরীক্ষা বা ছুটির নাম দিয়ে খুঁজুন..."
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-            <select
-              value={selectedClassFilter}
-              onChange={(e) => setSelectedClassFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              <select
+                value={selectedClassFilter}
+                onChange={(e) => setSelectedClassFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">সকল শ্রেণির ইভেন্ট</option>
+                <option value="হাতেখড়ি">হাতেখড়ি (Pre-Play)</option>
+                <option value="প্লে">প্লে (Play)</option>
+                <option value="নার্সারি">নার্সারি (Nursery)</option>
+                <option value="কেজি">কেজি (KG)</option>
+                <option value="১ম শ্রেণি">১ম শ্রেণি (Class 1)</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Category Filter Pills (Only for Teachers / Admins; HIDDEN for parents) */}
+        {!isParent && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-xs">
+            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
+              <Filter className="w-3 h-3" />
+              <span>ফিল্টার:</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs ${
+                selectedCategory === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
             >
-              <option value="all">সকল শ্রেণির ইভেন্ট</option>
-              <option value="হাতেখড়ি">হাতেখড়ি (Pre-Play)</option>
-              <option value="প্লে">প্লে (Play)</option>
-              <option value="নার্সারি">নার্সারি (Nursery)</option>
-              <option value="কেজি">কেজি (KG)</option>
-              <option value="১ম শ্রেণি">১ম শ্রেণি (Class 1)</option>
-            </select>
+              সকল ইভেন্ট ({events.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('holiday')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                selectedCategory === 'holiday'
+                  ? 'bg-rose-600 text-white shadow-2xs'
+                  : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+              }`}
+            >
+              <span>🏖️ স্কুল ছুটি</span>
+              <span className="text-[10px] font-mono opacity-80">({stats.holidays})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('exam')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                selectedCategory === 'exam'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200'
+              }`}
+            >
+              <span>📝 পরীক্ষা ও মূল্যায়ন</span>
+              <span className="text-[10px] font-mono opacity-80">({stats.exams})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('meeting')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                selectedCategory === 'meeting'
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+            >
+              <span>👨‍👩‍👧‍👦 অভিভাবক সমাবেশ</span>
+              <span className="text-[10px] font-mono opacity-80">({stats.meetings})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('cultural')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                selectedCategory === 'cultural'
+                  ? 'bg-purple-700 text-white shadow-2xs'
+                  : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
+              }`}
+            >
+              <span>🎨 মেলা ও উৎসব</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('sports')}
+              className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                selectedCategory === 'sports'
+                  ? 'bg-teal-700 text-white shadow-2xs'
+                  : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200'
+              }`}
+            >
+              <span>⚽ খেলাধুলা</span>
+            </button>
+
+            {/* Result counter */}
+            <span className="ml-auto text-[11px] font-medium text-slate-500">
+              প্রদর্শিত: <strong>{toBengaliDigits(filteredEvents.length)}</strong> টি ইভেন্ট
+            </span>
           </div>
-        </div>
-
-        {/* Category Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-xs">
-          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
-            <Filter className="w-3 h-3" />
-            <span>ফিল্টার:</span>
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs ${
-              selectedCategory === 'all'
-                ? 'bg-slate-900 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            সকল ইভেন্ট ({events.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('holiday')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-              selectedCategory === 'holiday'
-                ? 'bg-rose-600 text-white shadow-2xs'
-                : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
-            }`}
-          >
-            <span>🏖️ স্কুল ছুটি</span>
-            <span className="text-[10px] font-mono opacity-80">({stats.holidays})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('exam')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-              selectedCategory === 'exam'
-                ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200'
-            }`}
-          >
-            <span>📝 পরীক্ষা ও মূল্যায়ন</span>
-            <span className="text-[10px] font-mono opacity-80">({stats.exams})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('meeting')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-              selectedCategory === 'meeting'
-                ? 'bg-emerald-700 text-white shadow-2xs'
-                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-            }`}
-          >
-            <span>👨‍👩‍👧‍👦 অভিভাবক সমাবেশ</span>
-            <span className="text-[10px] font-mono opacity-80">({stats.meetings})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('cultural')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-              selectedCategory === 'cultural'
-                ? 'bg-purple-700 text-white shadow-2xs'
-                : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
-            }`}
-          >
-            <span>🎨 মেলা ও উৎসব</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSelectedCategory('sports')}
-            className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-              selectedCategory === 'sports'
-                ? 'bg-teal-700 text-white shadow-2xs'
-                : 'bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200'
-            }`}
-          >
-            <span>⚽ খেলাধুলা</span>
-          </button>
-
-          {/* Result counter */}
-          <span className="ml-auto text-[11px] font-medium text-slate-500">
-            প্রদর্শিত: <strong>{toBengaliDigits(filteredEvents.length)}</strong> টি ইভেন্ট
-          </span>
-        </div>
+        )}
       </section>
 
       {/* ========================================================================= */}

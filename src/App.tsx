@@ -942,6 +942,8 @@ export default function App() {
                         };
                         dispatchRealTimeFcmNotification(notif);
                       }}
+                      students={students}
+                      loggedInStudentId={loggedInAccount?.studentId}
                     />
                   )}
 
