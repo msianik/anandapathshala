@@ -217,7 +217,56 @@ export const CulturalDayHubTab: React.FC<CulturalDayHubTabProps> = ({
         </div>
       </div>
 
-      {/* Monthly Themes Selector & Active Theme Details */}
+      {/* Sub-view Navigation Pills */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+        <button
+          type="button"
+          onClick={() => setHubView('themes')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            hubView === 'themes'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'text-slate-700 hover:bg-white/80'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          <span>🎨 মঙ্গলবারের থিম ও সৃজনশীল রুটিন</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setHubView('gallery')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            hubView === 'gallery'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'text-slate-700 hover:bg-white/80'
+          }`}
+        >
+          <Camera className="w-3.5 h-3.5" />
+          <span>📸 কালচারাল ফটো গ্যালারি</span>
+          <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-rose-100 text-rose-800 font-bold">
+            নতুন
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setHubView('badges')}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            hubView === 'badges'
+              ? 'bg-rose-600 text-white shadow-xs'
+              : 'text-slate-700 hover:bg-white/80'
+          }`}
+        >
+          <Award className="w-3.5 h-3.5" />
+          <span>⭐ স্টার অ্যাপ্রিসিয়েশন ব্যাজ ({badges.length})</span>
+        </button>
+      </div>
+
+      {hubView === 'gallery' ? (
+        <CulturalGalleryModule currentRole={currentRole} canEdit={canEdit} />
+      ) : (
+        <>
+          {hubView === 'themes' && (
+            <>
+              {/* Monthly Themes Selector & Active Theme Details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: 4 Weekly Themes List */}
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-2xs space-y-4">
@@ -443,6 +492,30 @@ export const CulturalDayHubTab: React.FC<CulturalDayHubTabProps> = ({
         </div>
       </div>
 
+      {/* Cultural Photo Gallery Teaser Banner */}
+      <div className="rounded-3xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shrink-0">
+            📸
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-white">কালচারাল ফটো ও এক্টিভিটি গ্যালারি</h4>
+            <p className="text-xs text-white/90">
+              মঙ্গলবারের ড্রয়িং, নরম ক্লে আর্ট, পুতুলনাচ এবং ছড়া পরিবেশনার রঙিন ছবিগুলো দেখুন
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHubView('gallery')}
+          className="px-4 py-2 rounded-xl bg-white text-rose-950 hover:bg-rose-50 text-xs font-black transition cursor-pointer shadow-sm shrink-0"
+        >
+          গ্যালারি ওপেন করুন →
+        </button>
+      </div>
+      </>
+      )}
+
       {/* Cultural Star Badges Showcase */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xs space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -557,6 +630,8 @@ export const CulturalDayHubTab: React.FC<CulturalDayHubTabProps> = ({
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Award Badge Modal */}
       {isAwardModalOpen && (

@@ -1174,18 +1174,6 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
             </div>
           </div>
 
-          {/* Child's 6-Month Payment Status Bar Chart (Locked to Parent's Child) */}
-          <ChildFeeHistoryBarChart
-            invoices={roleScopedInvoices}
-            students={roleScopedStudents}
-            currentRole={currentRole}
-            loggedInAccount={loggedInAccount}
-            selectedStudentId={ownParentStudent.id}
-            onPayInvoice={handleStartPayment}
-            onViewReceipt={(inv) => setReceiptInvoice(inv)}
-            onOpenDownloadReportModal={handleOpenDownloadReportModal}
-          />
-
           {/* Child's Month-by-Month Payment Status Filter & Cards */}
           <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1223,6 +1211,15 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                 পরিশোধিত ও রসিদ ({toBengaliNumber(roleScopedInvoices.filter((i) => i.status === 'paid').length)})
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleOpenDownloadReportModal}
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1.5 cursor-pointer ml-auto"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>বার্ষিক ফি স্টেটমেন্ট</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

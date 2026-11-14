@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   SchoolClass,
+  SchoolShift,
   AdmissionApplication,
   FacebookGalleryItem,
   TeacherMember,
@@ -56,6 +57,8 @@ import { PublicStatsBar } from './PublicStatsBar';
 import { AdmissionAgeCalculator } from './AdmissionAgeCalculator';
 import { ParentTestimonials } from './ParentTestimonials';
 import { PhotoGallery } from './PhotoGallery';
+import { OnlineAdmissionModule } from './OnlineAdmissionModule';
+import { submitNewAdmissionApplication } from '../utils/admissionLogic';
 
 interface PublicWebsiteProps {
   onEnterPortal: (tab?: string) => void;
@@ -241,6 +244,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
   const [dob, setDob] = useState('2023-01-01');
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [applyingClass, setApplyingClass] = useState<SchoolClass>('HateKhori');
+  const [preferredShift, setPreferredShift] = useState<SchoolShift>('morning');
   const [bloodGroup, setBloodGroup] = useState<string>('');
   const [fatherNameBn, setFatherNameBn] = useState('');
   const [motherNameBn, setMotherNameBn] = useState('');
@@ -256,6 +260,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isAdmissionFormOpen, setIsAdmissionFormOpen] = useState<boolean>(false);
+  const [isPublicAdmissionModalOpen, setIsPublicAdmissionModalOpen] = useState<boolean>(false);
 
   const handleNavClick = (href: string) => {
     setIsMobileMenuOpen(false);
@@ -347,6 +352,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
       dateOfBirth: dob,
       gender,
       applyingClass,
+      preferredShift,
       fatherNameBn: fatherNameBn.trim(),
       motherNameBn: motherNameBn.trim(),
       guardianNameBn: finalGuardian,
@@ -361,6 +367,25 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
       submittedAt: 'আজ, ০৮ নভেম্বর ২০২৬',
       status: 'pending',
     };
+
+    submitNewAdmissionApplication({
+      studentNameBn: applicantNameBn.trim(),
+      studentNameEn: applicantNameEn.trim() || applicantNameBn.trim(),
+      dateOfBirth: dob,
+      gender,
+      bloodGroup: bloodGroup.trim() || undefined,
+      applyingClass,
+      preferredShift,
+      fatherNameBn: fatherNameBn.trim(),
+      fatherPhone: guardianPhone.trim(),
+      fatherOccupation: '',
+      motherNameBn: motherNameBn.trim(),
+      motherPhone: guardianPhone.trim(),
+      motherOccupation: '',
+      presentAddressBn: addressBn.trim(),
+      previousSchoolBn: previousSchoolBn.trim() || undefined,
+      emergencyContact: guardianPhone.trim(),
+    });
 
     onAddAdmission(newApp);
     setSubmittedApp(newApp);
@@ -1439,16 +1464,27 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
                 </div>
               </div>
 
-              {/* Close / Collapse Button */}
-              <button
-                type="button"
-                onClick={() => setIsAdmissionFormOpen(false)}
-                className="self-start md:self-auto px-4 py-2 bg-white/95 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 hover:border-rose-300 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                title="ভর্তি ফরম আড়াল করুন"
-              >
-                <X className="w-4 h-4 text-rose-500" />
-                <span>ফরম আড়াল করুন</span>
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsPublicAdmissionModalOpen(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="অফিসিয়াল ভর্তি আবেদন মডাল খুলুন"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>স্মার্ট ভর্তি পোর্টাল উইন্ডো</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAdmissionFormOpen(false)}
+                  className="px-4 py-2 bg-white/95 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 hover:border-rose-300 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="ভর্তি ফরম আড়াল করুন"
+                >
+                  <X className="w-4 h-4 text-rose-500" />
+                  <span>ফরম আড়াল করুন</span>
+                </button>
+              </div>
             </div>
 
             {/* Selected Class Highlight Banner */}
@@ -1505,6 +1541,14 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
               <div>
                 <span className="text-slate-500 block text-[11px]">যোগাযোগ নম্বর:</span>
                 <span className="font-bold text-slate-900">{submittedApp.guardianPhone}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[11px]">পছন্দের শিফট:</span>
+                <span className="font-bold text-amber-800">
+                  {submittedApp.preferredShift === 'morning'
+                    ? '☀️ মর্নিং শিফট (সকাল ০৮:০০ - ১১:০০, ৩ ঘণ্টা)'
+                    : '🌤️ ডে শিফট (বেলা ১১:০০ - দুপুর ০২:০০, ৩ ঘণ্টা)'}
+                </span>
               </div>
             </div>
 
@@ -1652,6 +1696,48 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* পছন্দের স্কুল শিফট (৩ ঘণ্টা) */}
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                    পছন্দের স্কুল শিফট (৩ ঘণ্টা): <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreferredShift('morning')}
+                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        preferredShift === 'morning'
+                          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-400/40 text-amber-950 shadow-2xs'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-xs font-black flex items-center gap-1">
+                        <span>☀️ মর্নিং শিফট</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        সকাল ০৮:০০ - ১১:০০
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreferredShift('day')}
+                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        preferredShift === 'day'
+                          ? 'border-sky-500 bg-sky-50 ring-2 ring-sky-400/40 text-sky-950 shadow-2xs'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-xs font-black flex items-center gap-1">
+                        <span>🌤️ ডে শিফট</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        বেলা ১১:০০ - দুপুর ০২:০০
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* রক্তের গ্রুপ */}
@@ -2122,6 +2208,14 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Smart Online Admission Modal (Public Mode) */}
+      {isPublicAdmissionModalOpen && (
+        <OnlineAdmissionModule
+          currentRole="public"
+          isPublicMode={true}
+          onClosePublicModal={() => setIsPublicAdmissionModalOpen(false)}
+        />
       )}
     </div>
   );

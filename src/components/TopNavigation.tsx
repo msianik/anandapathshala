@@ -31,6 +31,8 @@ import {
   FileCheck2,
   HeartPulse,
   Megaphone,
+  GraduationCap,
+  Camera,
 } from 'lucide-react';
 import { PWAInstallButton } from './MobileAppShell';
 import {
@@ -72,12 +74,14 @@ const PILLAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }
 const ITEM_ICON_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
   overview: { icon: UserCheck, color: 'text-emerald-600' },
   students: { icon: Users, color: 'text-amber-600' },
+  admissions: { icon: GraduationCap, color: 'text-emerald-700' },
   idcards: { icon: IdCard, color: 'text-teal-700' },
   health: { icon: HeartPulse, color: 'text-rose-600' },
   routine: { icon: Clock, color: 'text-indigo-600' },
   calendar: { icon: CalendarDays, color: 'text-purple-600' },
   results: { icon: FileCheck2, color: 'text-indigo-700' },
   skills: { icon: Award, color: 'text-amber-500' },
+  gallery: { icon: Camera, color: 'text-rose-500' },
   attendance: { icon: CalendarCheck, color: 'text-emerald-600' },
   staff: { icon: UserCheck, color: 'text-teal-700' },
   pickup: { icon: ShieldCheck, color: 'text-teal-600' },

@@ -62,6 +62,8 @@ const AcademicCalendarModule = lazy(() => import('./components/AcademicCalendarM
 const ExamResultsModule = lazy(() => import('./components/ExamResultsModule').then(m => ({ default: m.ExamResultsModule })));
 const ChildHealthModule = lazy(() => import('./components/ChildHealthModule').then(m => ({ default: m.ChildHealthModule })));
 const NoticeBoard = lazy(() => import('./components/NoticeBoard').then(m => ({ default: m.NoticeBoard })));
+const OnlineAdmissionModule = lazy(() => import('./components/OnlineAdmissionModule').then(m => ({ default: m.OnlineAdmissionModule })));
+const CulturalGalleryModule = lazy(() => import('./components/CulturalGalleryModule').then(m => ({ default: m.CulturalGalleryModule })));
 import { ModuleSubNavPills } from './components/ModuleSubNavPills';
 import { FcmNotificationCenter } from './components/FcmNotificationCenter';
 import { LoginModal } from './components/LoginModal';
@@ -908,6 +910,25 @@ export default function App() {
                       students={students}
                       currentRole={currentRole}
                       loggedInAccount={loggedInAccount}
+                      onNavigateTab={setCurrentTab}
+                    />
+                  )}
+
+                  {currentTab === 'admissions' && (
+                    <OnlineAdmissionModule
+                      currentRole={currentRole}
+                    />
+                  )}
+
+                  {currentTab === 'gallery' && (
+                    <CulturalGalleryModule
+                      currentRole={currentRole}
+                      canEdit={
+                        currentRole === 'super_admin' ||
+                        currentRole === 'principal' ||
+                        currentRole === 'director' ||
+                        currentRole === 'teacher'
+                      }
                       onNavigateTab={setCurrentTab}
                     />
                   )}

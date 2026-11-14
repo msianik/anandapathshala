@@ -19,6 +19,8 @@ import {
   Package,
   Cloud,
   ChevronRight,
+  GraduationCap,
+  Camera,
 } from 'lucide-react';
 
 interface ModuleSubNavPillsProps {
@@ -31,12 +33,14 @@ interface ModuleSubNavPillsProps {
 const TAB_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   overview: UserCheck,
   students: Users,
+  admissions: GraduationCap,
   idcards: IdCard,
   health: HeartPulse,
   routine: Clock,
   calendar: CalendarDays,
   results: FileCheck2,
   skills: Award,
+  gallery: Camera,
   attendance: CalendarCheck,
   staff: UserCheck,
   pickup: ShieldCheck,

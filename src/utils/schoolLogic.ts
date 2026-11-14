@@ -1939,13 +1939,19 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       defaultTab: 'students',
       iconName: 'Users',
       color: 'text-amber-600',
-      itemIds: ['students', 'idcards', 'health'],
+      itemIds: ['students', 'admissions', 'idcards', 'health'],
       items: [
         {
           id: 'students',
           labelBn: 'শিক্ষার্থী তালিকা ও ভর্তি',
           shortLabelBn: 'তালিকা',
           descriptionBn: 'ক্লাস ভিত্তিক ছাত্র-ছাত্রীর পূর্ণাঙ্গ প্রোফাইল ও ভর্তি',
+        },
+        {
+          id: 'admissions',
+          labelBn: 'অনলাইন ভর্তি আবেদন',
+          shortLabelBn: 'ভর্তি আবেদন',
+          descriptionBn: 'নতুন শিক্ষার্থীর অনলাইন আবেদন, শিফট নির্বাচন ও ইন্টারভিউ শিডিউল',
         },
         {
           id: 'idcards',
@@ -1968,7 +1974,7 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       defaultTab: 'routine',
       iconName: 'BookOpen',
       color: 'text-indigo-600',
-      itemIds: ['routine', 'calendar', 'results', 'skills'],
+      itemIds: ['routine', 'calendar', 'results', 'skills', 'gallery'],
       items: [
         {
           id: 'routine',
@@ -1993,6 +1999,12 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
           labelBn: 'হোলিস্টিক স্কিল কার্ড',
           shortLabelBn: 'স্কিল',
           descriptionBn: 'শিশুদের সামাজিক আচরণ ও সৃজনশীল মেধা মূল্যায়ন',
+        },
+        {
+          id: 'gallery',
+          labelBn: 'কালচারাল ফটো গ্যালারি',
+          shortLabelBn: 'কালচারাল গ্যালারি',
+          descriptionBn: 'মঙ্গলবার কালচারাল ডে ও ক্যাম্পাসের রঙিন মুহূর্ত',
         },
       ],
     },
@@ -2129,12 +2141,13 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
         defaultTab: 'routine',
         iconName: 'BookOpen',
         color: 'text-indigo-600',
-        itemIds: ['routine', 'calendar', 'results', 'skills'],
+        itemIds: ['routine', 'calendar', 'results', 'skills', 'gallery'],
         items: [
           { id: 'routine', labelBn: 'ক্লাস রুটিন', shortLabelBn: 'রুটিন', descriptionBn: 'আজকের পাঠদান ও সাপ্তাহিক সময়সূচি' },
           { id: 'calendar', labelBn: 'অ্যাকাডেমিক ক্যালেন্ডার', shortLabelBn: 'ক্যালেন্ডার', descriptionBn: 'স্কুল ইভেন্ট, পরীক্ষা ও ছুটির তালিকা' },
           { id: 'results', labelBn: 'ফলাফল ও মার্কশিট', shortLabelBn: 'ফলাফল', descriptionBn: 'নম্বর এন্ট্রি ও প্রোগ্রেস রিপোর্ট কার্ড' },
           { id: 'skills', labelBn: 'স্কিল মূল্যায়ন', shortLabelBn: 'স্কিল', descriptionBn: 'শিশুদের আচরণ ও মেধা পর্যবেক্ষণ' },
+          { id: 'gallery', labelBn: 'কালচারাল গ্যালারি', shortLabelBn: 'গ্যালারি', descriptionBn: 'মঙ্গলবার কালচারাল ডে ও ক্যাম্পাসের রঙিন মুহূর্ত' },
         ],
       },
       {
