@@ -51,6 +51,8 @@ export interface ClassRoutinePeriod {
   className: SchoolClass;
   day: DayOfWeek;
   shift?: SchoolShift; // 'morning' | 'day' (৩ ঘণ্টা করে শিফট)
+  section?: string; // যেমন: "golap", "shapla", "A", "B"
+  sectionBn?: string; // যেমন: "গোলাপ (ক)", "শাপলা (খ)", "পদ্ম (গ)"
   periodNo: number; // 1, 2, 3, 4, 5
   periodLabelBn: string; // যেমন: "১ম পিরিয়ড", "টিফিন বিরতি"
   startTime: string; // "09:00 AM" বা "০৯:০০"

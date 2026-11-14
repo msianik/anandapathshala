@@ -59,7 +59,7 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filteredNotifications = notifications.filter((n) => {
-    if (filterType === 'all') return true;
+    if (currentRole === 'parent' || filterType === 'all') return true;
     return n.type === filterType;
   });
 
@@ -181,14 +181,18 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold">
-                        FCM রিয়েল-টাইম শিক্ষক নোটিফিকেশন সেন্টার
+                        {currentRole === 'parent'
+                          ? 'অভিভাবক নোটিফিকেশন সেন্টার'
+                          : 'FCM রিয়েল-টাইম শিক্ষক নোটিফিকেশন সেন্টার'}
                       </h3>
                       <span className="bg-emerald-400/20 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold px-2 py-0.5 rounded-full">
                         LIVE
                       </span>
                     </div>
                     <p className="text-xs text-emerald-100/90">
-                      Firebase Cloud Messaging (FCM) · নতুন ভর্তি আবেদন ও জরুরি পিক-আপ অ্যালার্ট
+                      {currentRole === 'parent'
+                        ? 'আপনার সন্তানের রিয়েল-টাইম স্কুল আপডেট ও গুরুত্বপূর্ণ বার্তা'
+                        : 'Firebase Cloud Messaging (FCM) · নতুন ভর্তি আবেদন ও জরুরি পিক-আপ অ্যালার্ট'}
                     </p>
                   </div>
                 </div>
@@ -231,115 +235,139 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
               </div>
             </div>
 
-            {/* Instant Real-Time FCM Dispatch Bar (For Teachers / Gate Staff / Admins) */}
-            <div className="bg-amber-50/90 border-b border-amber-200/80 px-5 py-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-amber-950">
-                  ⚡ তাৎক্ষণিক রিয়েল-টাইম FCM পুশ টেস্ট ট্রিগার (भूमিকা: {currentRole}):
-                </span>
-                {unreadCount > 0 && (
+            {/* Instant Real-Time FCM Dispatch Bar (For Teachers / Gate Staff / Admins only) */}
+            {currentRole !== 'parent' && (
+              <div className="bg-amber-50/90 border-b border-amber-200/80 px-5 py-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-950">
+                    ⚡ তাৎক্ষণিক রিয়েল-টাইম FCM পুশ টেস্ট ট্রিগার (ভুমিকা: {currentRole}):
+                  </span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={onMarkAllRead}
+                      className="text-[11px] font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>সবগুলো পঠিত করুন ({unreadCount})</span>
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
-                    onClick={onMarkAllRead}
-                    className="text-[11px] font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                    onClick={onTriggerUrgentPickupTest}
+                    className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    <span>সবগুলো পঠিত করুন ({unreadCount})</span>
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>জরুরি পিক-আপ পুশ</span>
                   </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  onClick={onTriggerUrgentPickupTest}
-                  className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>জরুরি পিক-আপ পুশ</span>
-                </button>
-                <button
-                  onClick={onTriggerAdmissionTest}
-                  className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>নতুন ভর্তি পুশ</span>
-                </button>
-                {onTriggerFeeReminderTest && (
                   <button
-                    onClick={onTriggerFeeReminderTest}
-                    className="px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                    onClick={onTriggerAdmissionTest}
+                    className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                   >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>৩-দিন ফি পুশ টেস্ট</span>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>নতুন ভর্তি পুশ</span>
                   </button>
-                )}
+                  {onTriggerFeeReminderTest && (
+                    <button
+                      onClick={onTriggerFeeReminderTest}
+                      className="px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>৩-দিন ফি পুশ টেস্ট</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Filter Tabs */}
-            <div className="px-5 py-2.5 border-b border-slate-200 flex items-center justify-between gap-2 bg-slate-50 overflow-x-auto">
-              <div className="flex items-center gap-1.5 flex-nowrap shrink-0">
+            {/* Parent Unread Notifications Simple Action Bar */}
+            {currentRole === 'parent' && unreadCount > 0 && (
+              <div className="bg-slate-50 border-b border-slate-200 px-5 py-2.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-600">
+                  মোট নোটিফিকেশন: {notifications.length}টি (অপঠিত: {unreadCount}টি)
+                </span>
                 <button
-                  onClick={() => setFilterType('all')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    filterType === 'all'
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-600 hover:bg-slate-200/70'
-                  }`}
+                  onClick={onMarkAllRead}
+                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  সব ({notifications.length})
-                </button>
-                <button
-                  onClick={() => setFilterType('fee_due_reminder')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    filterType === 'fee_due_reminder'
-                      ? 'bg-amber-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  💳 ফি স্মারক (
-                  {notifications.filter((n) => n.type === 'fee_due_reminder').length})
-                </button>
-                <button
-                  onClick={() => setFilterType('urgent_pickup')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    filterType === 'urgent_pickup'
-                      ? 'bg-rose-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  🚨 পিক-আপ (
-                  {notifications.filter((n) => n.type === 'urgent_pickup').length})
-                </button>
-                <button
-                  onClick={() => setFilterType('admission_application')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    filterType === 'admission_application'
-                      ? 'bg-emerald-700 text-white'
-                      : 'text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  🎓 ভর্তি (
-                  {notifications.filter((n) => n.type === 'admission_application').length})
-                </button>
-                <button
-                  onClick={() => setFilterType('inventory_low_stock')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    filterType === 'inventory_low_stock'
-                      ? 'bg-rose-700 text-white'
-                      : 'text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  📦 লো-স্টক (
-                  {notifications.filter((n) => n.type === 'inventory_low_stock').length})
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span>সবগুলো পঠিত করুন</span>
                 </button>
               </div>
-            </div>
+            )}
+
+            {/* Filter Tabs (Staff / Admin only - hidden for parent) */}
+            {currentRole !== 'parent' && (
+              <div className="px-5 py-2.5 border-b border-slate-200 flex items-center justify-between gap-2 bg-slate-50 overflow-x-auto">
+                <div className="flex items-center gap-1.5 flex-nowrap shrink-0">
+                  <button
+                    onClick={() => setFilterType('all')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      filterType === 'all'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    সব ({notifications.length})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('fee_due_reminder')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      filterType === 'fee_due_reminder'
+                        ? 'bg-amber-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    💳 ফি স্মারক (
+                    {notifications.filter((n) => n.type === 'fee_due_reminder').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('urgent_pickup')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      filterType === 'urgent_pickup'
+                        ? 'bg-rose-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    🚨 পিক-আপ (
+                    {notifications.filter((n) => n.type === 'urgent_pickup').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('admission_application')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      filterType === 'admission_application'
+                        ? 'bg-emerald-700 text-white'
+                        : 'text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    🎓 ভর্তি (
+                    {notifications.filter((n) => n.type === 'admission_application').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterType('inventory_low_stock')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      filterType === 'inventory_low_stock'
+                        ? 'bg-rose-700 text-white'
+                        : 'text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    📦 লো-স্টক (
+                    {notifications.filter((n) => n.type === 'inventory_low_stock').length})
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Notification Feed List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {filteredNotifications.length === 0 ? (
                 <div className="py-12 text-center space-y-2 text-slate-400">
                   <Bell className="w-8 h-8 mx-auto opacity-50" />
-                  <p className="text-xs">এই ক্যাটাগরিতে কোনো নোটিফিকেশন নেই।</p>
+                  <p className="text-xs">
+                    {currentRole === 'parent'
+                      ? 'আপাতত কোনো নোটিফিকেশন নেই।'
+                      : 'এই ক্যাটাগরিতে কোনো নোটিফিকেশন নেই।'}
+                  </p>
                 </div>
               ) : (
                 filteredNotifications.map((notif) => {
