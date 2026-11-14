@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   SchoolClass,
   SchoolShift,
@@ -57,7 +57,7 @@ import { PublicStatsBar } from './PublicStatsBar';
 import { AdmissionAgeCalculator } from './AdmissionAgeCalculator';
 import { ParentTestimonials } from './ParentTestimonials';
 import { PhotoGallery } from './PhotoGallery';
-import { OnlineAdmissionModule } from './OnlineAdmissionModule';
+const OnlineAdmissionModule = lazy(() => import('./OnlineAdmissionModule').then(m => ({ default: m.OnlineAdmissionModule })));
 import { submitNewAdmissionApplication } from '../utils/admissionLogic';
 
 interface PublicWebsiteProps {
@@ -2211,11 +2211,13 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
       )}
       {/* Smart Online Admission Modal (Public Mode) */}
       {isPublicAdmissionModalOpen && (
-        <OnlineAdmissionModule
-          currentRole="public"
-          isPublicMode={true}
-          onClosePublicModal={() => setIsPublicAdmissionModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <OnlineAdmissionModule
+            currentRole="public"
+            isPublicMode={true}
+            onClosePublicModal={() => setIsPublicAdmissionModalOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

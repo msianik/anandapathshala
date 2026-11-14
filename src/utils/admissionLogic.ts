@@ -136,7 +136,7 @@ export function submitNewAdmissionApplication(
 ): AdmissionApplication {
   const current = getAdmissionApplications();
   const serialNo = current.length + 1;
-  const applicationNo = `AP-2026-${String(serialNo).padStart(3, '0')}`;
+  const applicationNo = `AP-2027-${String(serialNo).padStart(3, '0')}`;
 
   const newApp: AdmissionApplication = {
     ...data,
