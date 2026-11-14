@@ -1934,36 +1934,31 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
           <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 rounded-3xl border-2 border-indigo-400/50 p-5 sm:p-6 shadow-lg text-white space-y-4 relative overflow-hidden">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-700/50 pb-3.5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-xs shrink-0">
-                  ১
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-300" />
+                    <span>বর্তমান ক্লাস</span>
+                  </h3>
+                  {ongoing ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white flex items-center gap-1.5 animate-pulse shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-white" />
+                      <span>🟢 চলমান: {ongoing.subject}</span>
+                    </span>
+                  ) : ongoingBreak ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-xs">
+                      <Coffee className="w-3.5 h-3.5 text-slate-950" />
+                      <span>টিফিন বিরতি চলছে</span>
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-700/80 text-slate-200 border border-slate-600">
+                      বর্তমানে কোনো ক্লাস নেই
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-amber-300" />
-                      <span>বর্তমান ক্লাস</span>
-                    </h3>
-                    {ongoing ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white flex items-center gap-1.5 animate-pulse shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        <span>🟢 চলমান: {ongoing.subject}</span>
-                      </span>
-                    ) : ongoingBreak ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-xs">
-                        <Coffee className="w-3.5 h-3.5 text-slate-950" />
-                        <span>টিফিন বিরতি চলছে</span>
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-700/80 text-slate-200 border border-slate-600">
-                        বর্তমানে কোনো ক্লাস নেই
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-indigo-200 mt-0.5">
-                    রিয়েল-টাইম ক্লাস ট্র্যাকার — শ্রেণিকক্ষে বর্তমানে চলমান ক্লাসের তাৎক্ষণিক তথ্য
-                  </p>
-                </div>
+                <p className="text-xs text-indigo-200 mt-0.5">
+                  রিয়েল-টাইম ক্লাস ট্র্যাকার — শ্রেণিকক্ষে বর্তমানে চলমান ক্লাসের তাৎক্ষণিক তথ্য
+                </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -1980,7 +1975,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 <div>
                   <p className="font-bold text-white">আজ শুক্রবার — আনন্দ পাঠশালার সাপ্তাহিক ছুটি</p>
                   <p className="text-[11px] text-indigo-200 mt-0.5">
-                    আগামী শনিবার সকাল ০৯:০০টা থেকে নিয়মিত ক্লাস যথারীতি শুরু হবে। নিচে ২ নম্বর সেকশনে সম্পূর্ণ রুটিন দেখতে পারেন।
+                    আগামী শনিবার সকাল ০৯:০০টা থেকে নিয়মিত ক্লাস যথারীতি শুরু হবে। নিচে সম্পূর্ণ রুটিন দেখতে পারেন।
                   </p>
                 </div>
               </div>
@@ -2140,7 +2135,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                       ✓ আজকের সকল নির্ধারিত ক্লাস ও কার্যক্রম সফলভাবে সম্পন্ন হয়েছে
                     </h4>
                     <p className="text-[11px] text-indigo-200 mt-0.5">
-                      আজকের ক্লাসের সারসংক্ষেপ ও বাড়ির কাজ দেখার জন্য নিচে ২ নম্বর সেকশনে চোখ রাখুন।
+                      আজকের ক্লাসের সারসংক্ষেপ ও বাড়ির কাজ দেখার জন্য নিচের সেকশনে চোখ রাখুন।
                     </p>
                   </div>
                 </div>
@@ -2289,23 +2284,18 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       ======================================================== */}
       <div className="bg-white rounded-3xl border-2 border-emerald-300 p-6 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-700 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
-              ২
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                📅 {myChild.nameBn}-এর সাপ্তাহিক অগ্রগতি ও বাড়ির কাজ
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                {getDayNameBn(todayDay)}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900">
-                  📅 ২. {myChild.nameBn}-এর সাপ্তাহিক অগ্রগতি ও বাড়ির কাজ
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  {getDayNameBn(todayDay)}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                শ্রেণি: <strong>{getSchoolClassNameBn(childClass)}</strong> ({myChild.section}) · রোল: {myChild.rollNo} · হোমটাস্ক ও মূল্যায়ন ট্র্যাকার
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              শ্রেণি: <strong>{getSchoolClassNameBn(childClass)}</strong> ({myChild.section}) · রোল: {myChild.rollNo} · হোমটাস্ক ও মূল্যায়ন ট্র্যাকার
+            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
