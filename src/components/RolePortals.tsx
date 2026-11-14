@@ -1681,7 +1681,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     childInvoices.find((inv) => inv.status !== 'paid') ||
     allChildInvoices.find((inv) => inv.status !== 'paid');
   const childDiaryPosts = activityPosts.filter(
-    (p) => p.className === myChild.className || p.className === 'Playgroup'
+    (p) => isSameSchoolClass(p.className, myChild.className)
   );
 
   const [parentPickupNote, setParentPickupNote] = useState('');

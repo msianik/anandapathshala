@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ActivityPost, SchoolClass, ActivityType, ChildMood, UserRole, FcmNotification } from '../types/school';
+import { ActivityPost, SchoolClass, ActivityType, ChildMood, UserRole, FcmNotification, Student } from '../types/school';
 import { ALL_SCHOOL_CLASSES, isSameSchoolClass, getSchoolClassNameBn, toBengaliNumber } from '../utils/schoolLogic';
 import { 
   BookOpen, 
@@ -109,23 +109,39 @@ export const parseActivityPostTimestamp = (post: ActivityPost): number => {
 
 interface DigitalDiaryModuleProps {
   activityPosts: ActivityPost[];
+  students?: Student[];
   onAddPost: (post: ActivityPost) => void;
   onLikePost: (postId: string) => void;
   onAddComment: (postId: string, text: string, authorBn: string, roleBn: string) => void;
   currentRole: UserRole;
   onSendHomeworkNotification?: (notif: FcmNotification) => void;
   loggedInTeacherNameBn?: string;
+  loggedInStudentId?: string;
 }
 
 export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
   activityPosts,
+  students,
   onAddPost,
   onLikePost,
   onAddComment,
   currentRole,
   onSendHomeworkNotification,
   loggedInTeacherNameBn,
+  loggedInStudentId,
 }) => {
+  const isParent = currentRole === 'parent';
+
+  // Determine child student & class for parent role
+  const childStudent = useMemo(() => {
+    if (!isParent) return null;
+    const targetId = loggedInStudentId || 'std-1';
+    return (
+      students?.find((s) => s.id === targetId) ||
+      (students && students.length > 0 ? students[0] : null)
+    );
+  }, [isParent, loggedInStudentId, students]);
+
   const [selectedClass, setSelectedClass] = useState<string>('All');
   const [selectedFilterType, setSelectedFilterType] = useState<'all' | 'activities' | 'homework'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -155,10 +171,26 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
   const [hwInstructionsBn, setHwInstructionsBn] = useState('অভিভাবক পাশে বসে শিশুকে বর্ণমালা হাত ঘুরিয়ে লিখতে উৎসাহিত করবেন।');
   const [hwEstimatedMinutes, setHwEstimatedMinutes] = useState<number>(20);
 
+  // Relevant posts count based on role (for parent: only their child's class)
+  const relevantPostsForCount = useMemo(() => {
+    if (!isParent) return activityPosts;
+    const targetClass = childStudent?.className || 'Nursery';
+    return activityPosts.filter((p) => isSameSchoolClass(p.className, targetClass));
+  }, [activityPosts, isParent, childStudent?.className]);
+
   const filteredAndSortedPosts = useMemo(() => {
     const list = activityPosts.filter((p) => {
-      const classMatch = selectedClass === 'All' ? true : isSameSchoolClass(p.className, selectedClass);
-      if (!classMatch) return false;
+      if (isParent) {
+        // Strictly filter to the child student's class
+        const targetClass = childStudent?.className || 'Nursery';
+        if (!isSameSchoolClass(p.className, targetClass)) {
+          return false;
+        }
+      } else {
+        const classMatch = selectedClass === 'All' ? true : isSameSchoolClass(p.className, selectedClass);
+        if (!classMatch) return false;
+      }
+
       if (selectedFilterType === 'homework') return p.activityType === 'homework_task';
       if (selectedFilterType === 'activities') return p.activityType !== 'homework_task';
       return true;
@@ -169,7 +201,7 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
       const timeB = parseActivityPostTimestamp(b);
       return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
     });
-  }, [activityPosts, selectedClass, selectedFilterType, sortOrder]);
+  }, [activityPosts, isParent, childStudent?.className, selectedClass, selectedFilterType, sortOrder]);
 
   const filteredPosts = filteredAndSortedPosts;
 
@@ -189,7 +221,10 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
     const text = commentInputs[postId]?.trim();
     if (!text) return;
 
-    const authorBn = currentRole === 'teacher' ? (loggedInTeacherNameBn || 'রোকেয়া পারভীন (শিক্ষক)') : 'ফারহানা আফরোজ (অভিভাবক)';
+    const parentAuthorName = childStudent
+      ? `${childStudent.guardianNameBn || 'অভিভাবক'} (${childStudent.nameBn}-এর অভিভাবক)`
+      : 'ফারহানা আফরোজ (অভিভাবক)';
+    const authorBn = currentRole === 'teacher' ? (loggedInTeacherNameBn || 'রোকেয়া পারভীন (শিক্ষক)') : parentAuthorName;
     const roleBn = currentRole === 'teacher' ? 'শিক্ষক' : 'অভিভাবক';
 
     onAddComment(postId, text, authorBn, roleBn);
@@ -310,26 +345,38 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="bg-indigo-400/30 text-indigo-100 px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
-              কেজি ও প্লে স্কুলের বিশেষ মডিউল #২
+              {isParent ? 'সন্তানের ডিজিটাল ডায়েরি' : 'কেজি ও প্লে স্কুলের বিশেষ মডিউল #২'}
             </span>
             <span className="text-white/60 text-xs">·</span>
-            <span className="text-white/90 text-xs font-medium">প্রতিদিনের লাইভ ক্লাসরুম ডায়রি ও হোমওয়ার্ক</span>
+            <span className="text-white/90 text-xs font-medium">
+              {isParent && childStudent
+                ? `${childStudent.nameBn} (${getSchoolClassNameBn(childStudent.className)} - রোল: ${childStudent.rollNo})`
+                : 'প্রতিদিনের লাইভ ক্লাসরুম ডায়রি ও হোমওয়ার্ক'}
+            </span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">ডিজিটাল ডায়রি ও হোমওয়ার্ক ফিড</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isParent && childStudent
+              ? `${childStudent.nameBn}-এর ডিজিটাল ডায়েরি ও হোমওয়ার্ক ফিড`
+              : 'ডিজিটাল ডায়রি ও হোমওয়ার্ক ফিড'}
+          </h2>
           <p className="text-indigo-100/90 text-sm max-w-2xl mt-1">
-            ছোট শিশুদের প্রতিদিনের আনন্দের গল্প, ছড়া গান, ড্রয়িং, পুষ্টিকর খাবার এবং শিক্ষকদের দেওয়া বাড়ির কাজ (Homework/Task) সরাসরি অভিভাবকদের কাছে তাৎক্ষণিক পুশ নোটিফিকেশনে পৌঁছে যায়।
+            {isParent && childStudent
+              ? `আপনার সন্তান ${childStudent.nameBn} (${getSchoolClassNameBn(childStudent.className)})-এর ক্লাসরুমের দৈনিক অ্যাক্টিভিটি, টিফিন, আনন্দের মুহূর্ত এবং শিক্ষকদের দেওয়া বাড়ির কাজ (Homework)।`
+              : 'ছোট শিশুদের প্রতিদিনের আনন্দের গল্প, ছড়া গান, ড্রয়িং, পুষ্টিকর খাবার এবং শিক্ষকদের দেওয়া বাড়ির কাজ (Homework/Task) সরাসরি অভিভাবকদের কাছে তাৎক্ষণিক পুশ নোটিফিকেশনে পৌঁছে যায়।'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setIsCreatingPost(!isCreatingPost)}
-            className="px-4 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-indigo-600" />
-            {isCreatingPost ? 'বাতিল' : 'নতুন ডায়রি / হোমওয়ার্ক পোস্ট'}
-          </button>
-        </div>
+        {!isParent && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsCreatingPost(!isCreatingPost)}
+              className="px-4 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-indigo-600" />
+              {isCreatingPost ? 'বাতিল' : 'নতুন ডায়রি / হোমওয়ার্ক পোস্ট'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Success Notification Banner */}
@@ -363,7 +410,7 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              সকল পোস্ট ({activityPosts.length})
+              সকল পোস্ট ({toBengaliNumber(relevantPostsForCount.length)})
             </button>
             <button
               type="button"
@@ -375,7 +422,7 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
               }`}
             >
               <BookMarked className="w-3.5 h-3.5" />
-              <span>হোমওয়ার্ক / টাস্ক ({activityPosts.filter((p) => p.activityType === 'homework_task').length})</span>
+              <span>হোমওয়ার্ক / টাস্ক ({toBengaliNumber(relevantPostsForCount.filter((p) => p.activityType === 'homework_task').length)})</span>
             </button>
             <button
               type="button"
@@ -386,7 +433,7 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              ক্লাসরুম অ্যাক্টিভিটি ({activityPosts.filter((p) => p.activityType !== 'homework_task').length})
+              ক্লাসরুম অ্যাক্টিভিটি ({toBengaliNumber(relevantPostsForCount.filter((p) => p.activityType !== 'homework_task').length)})
             </button>
           </div>
 
@@ -414,37 +461,53 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
           </div>
         </div>
 
-        {/* Class Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-slate-100">
-          <span className="text-xs text-slate-500 font-semibold mr-1 shrink-0">শ্রেণি:</span>
-          <button
-            onClick={() => setSelectedClass('All')}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              selectedClass === 'All'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            সকল শ্রেণি
-          </button>
-          {ALL_SCHOOL_CLASSES.map((cls) => (
+        {/* Class Filter / Child Class Indicator */}
+        {isParent ? (
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-semibold shrink-0">সন্তানের শ্রেণি:</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold shadow-2xs">
+                <span>🎒 {childStudent ? getSchoolClassNameBn(childStudent.className) : 'নার্সারি'}</span>
+                <span className="text-indigo-400">·</span>
+                <span className="text-slate-600 font-normal">রোল: {childStudent?.rollNo || '০১'}</span>
+              </span>
+            </div>
+            <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md font-medium border border-emerald-200/60 flex items-center gap-1">
+              <span>✓ শুধুমাত্র আপনার সন্তানের শ্রেণির ডায়েরি ও হোমওয়ার্ক প্রদর্শিত হচ্ছে</span>
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-slate-100">
+            <span className="text-xs text-slate-500 font-semibold mr-1 shrink-0">শ্রেণি:</span>
             <button
-              key={cls.id}
-              onClick={() => setSelectedClass(cls.id)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-                selectedClass === cls.id
-                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
+              onClick={() => setSelectedClass('All')}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                selectedClass === 'All'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              {cls.nameBn}
+              সকল শ্রেণি
             </button>
-          ))}
-        </div>
+            {ALL_SCHOOL_CLASSES.map((cls) => (
+              <button
+                key={cls.id}
+                onClick={() => setSelectedClass(cls.id)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                  selectedClass === cls.id
+                    ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {cls.nameBn}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Create New Post Form */}
-      {isCreatingPost && (
+      {/* Create New Post Form (Teachers & Admins Only) */}
+      {!isParent && isCreatingPost && (
         <form onSubmit={handleCreatePostSubmit} className="bg-white rounded-2xl border-2 border-indigo-200 p-6 shadow-md space-y-4 animate-in fade-in zoom-in-95">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -852,7 +915,11 @@ export const DigitalDiaryModule: React.FC<DigitalDiaryModuleProps> = ({
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 shadow-2xs">
             <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <p className="font-bold text-slate-700">কোনো পোস্ট পাওয়া যায়নি</p>
-            <p className="text-xs text-slate-400 mt-1">নির্বাচিত ফিল্টারের অধীনে কোনো ডায়রি বা হোমওয়ার্ক পোস্ট নেই।</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {isParent
+                ? `আপনার সন্তান ${childStudent?.nameBn || ''}-এর শ্রেণির জন্য এই মুহূর্তে কোনো ডায়রি বা হোমওয়ার্ক পোস্ট নেই।`
+                : 'নির্বাচিত ফিল্টারের অধীনে কোনো ডায়রি বা হোমওয়ার্ক পোস্ট নেই।'}
+            </p>
           </div>
         ) : (
           filteredAndSortedPosts.map((post) => {

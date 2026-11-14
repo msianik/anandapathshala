@@ -990,12 +990,14 @@ export default function App() {
                   {currentTab === 'diary' && (
                     <DigitalDiaryModule
                       activityPosts={activityPosts}
+                      students={students}
                       onAddPost={handleAddPost}
                       onLikePost={handleLikePost}
                       onAddComment={handleAddComment}
                       currentRole={currentRole}
                       onSendHomeworkNotification={dispatchRealTimeFcmNotification}
                       loggedInTeacherNameBn={loggedInAccount?.nameBn}
+                      loggedInStudentId={loggedInAccount?.studentId}
                     />
                   )}
 
