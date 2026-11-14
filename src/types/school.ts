@@ -20,6 +20,17 @@ export type SchoolClass =
   | 'KG-1'
   | 'KG-2';
 
+export type SchoolShift = 'morning' | 'day';
+
+export interface ShiftTimingConfig {
+  shift: SchoolShift;
+  nameBn: string; // "মর্নিং শিফট" | "ডে শিফট"
+  timeRangeBn: string; // "সকাল ০৮:০০ - ১১:০০" | "বেলা ১১:০০ - দুপুর ০২:০০"
+  startTime: string; // "08:00 AM" | "11:00 AM"
+  endTime: string; // "11:00 AM" | "02:00 PM"
+  durationHours: number; // 3
+}
+
 export type DayOfWeek =
   | 'sunday'
   | 'monday'
@@ -39,6 +50,7 @@ export interface ClassRoutinePeriod {
   id: string;
   className: SchoolClass;
   day: DayOfWeek;
+  shift?: SchoolShift; // 'morning' | 'day' (৩ ঘণ্টা করে শিফট)
   periodNo: number; // 1, 2, 3, 4, 5
   periodLabelBn: string; // যেমন: "১ম পিরিয়ড", "টিফিন বিরতি"
   startTime: string; // "09:00 AM" বা "০৯:০০"
@@ -272,8 +284,54 @@ export interface ActivityPost {
     intake: 'full' | 'half' | 'few_bites' | 'none';
   };
   homeworkTask?: HomeworkTaskDetail;
+  /** শিক্ষকের ভয়েস নির্দেশিকা / ছড়া আবৃত্তির অডিও নোট */
+  hasVoiceNote?: boolean;
+  voiceNoteUrl?: string;
+  voiceNoteTitleBn?: string;
+  voiceNoteDurationSec?: number;
   likes: number;
   comments: ActivityComment[];
+}
+
+export interface AdmissionApplication {
+  id: string;
+  applicationNo: string; // e.g. "AP-2026-001"
+  studentNameBn: string;
+  studentNameEn: string;
+  dateOfBirth: string; // "YYYY-MM-DD"
+  gender: 'male' | 'female';
+  bloodGroup?: string;
+  applyingClass: SchoolClass;
+  preferredShift: SchoolShift; // 'morning' (০৮:০০-১১:০০) | 'day' (১১:০০-০২:০০)
+  fatherNameBn: string;
+  fatherPhone: string;
+  fatherOccupation?: string;
+  motherNameBn: string;
+  motherPhone: string;
+  motherOccupation?: string;
+  presentAddressBn: string;
+  previousSchoolBn?: string;
+  emergencyContact: string;
+  status: 'pending' | 'interview_scheduled' | 'admitted' | 'rejected';
+  submittedAtBn: string;
+  interviewDateBn?: string;
+  interviewTimeBn?: string;
+  interviewNotesBn?: string;
+  adminRemarksBn?: string;
+}
+
+export interface CulturalGalleryItem {
+  id: string;
+  titleBn: string;
+  albumCategory: 'tuesday_cultural' | 'art_craft' | 'rhymes_music' | 'drama_play' | 'campus_fest';
+  categoryLabelBn: string;
+  dateBn: string;
+  imageUrl: string;
+  captionBn: string;
+  className?: SchoolClass | 'all';
+  likesCount: number;
+  featured?: boolean;
+  photographerNameBn?: string;
 }
 
 export interface FacebookGalleryItem {

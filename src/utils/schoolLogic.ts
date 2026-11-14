@@ -1804,12 +1804,6 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
         descriptionBn: 'অনুমোদিত অভিভাবক ও কিউআর পিক-আপ কার্ড',
       },
       {
-        id: 'idcards',
-        labelBn: 'আইডি কার্ড',
-        shortLabelBn: 'আইডি কার্ড',
-        descriptionBn: 'সন্তানের ডিজিটাল আইডি ও কিউআর গেট-পাস কার্ড',
-      },
-      {
         id: 'fees',
         labelBn: 'বেতন/ফি',
         shortLabelBn: 'বেতন/ফি',
@@ -2231,11 +2225,10 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
         defaultTab: 'pickup',
         iconName: 'ShieldCheck',
         color: 'text-teal-600',
-        itemIds: ['pickup', 'diary', 'idcards', 'health'],
+        itemIds: ['pickup', 'diary', 'health'],
         items: [
           { id: 'pickup', labelBn: 'গেট পাস', shortLabelBn: 'গেট পাস', descriptionBn: 'ডিজিটাল গেট পাস ও প্রবেশ-প্রস্থান রেকর্ড' },
           { id: 'diary', labelBn: 'ডিজিটাল ডায়েরি', shortLabelBn: 'ডায়েরি', descriptionBn: 'আজকের ক্লাসের কাজ, টিফিন ও ছবি' },
-          { id: 'idcards', labelBn: 'ডিজিটাল আইডি কার্ড', shortLabelBn: 'আইডি কার্ড', descriptionBn: 'সন্তানের স্মার্ট স্টুডেন্ট আইডি' },
           { id: 'health', labelBn: 'স্বাস্থ্য ও বৃদ্ধি', shortLabelBn: 'স্বাস্থ্য', descriptionBn: 'শিশুর উচ্চতা, ওজন, BMI ও অ্যালার্জি প্রোফাইল' },
         ],
       },
