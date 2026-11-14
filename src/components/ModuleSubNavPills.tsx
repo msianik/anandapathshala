@@ -54,6 +54,7 @@ const TAB_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> 
 
 const PILLAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   pillar_overview: UserCheck,
+  pillar_routine: Clock,
   pillar_students: Users,
   pillar_academics: BookOpen,
   pillar_operations: ShieldCheck,

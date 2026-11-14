@@ -1762,6 +1762,12 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
         descriptionBn: 'সন্তানের লাইভ স্ট্যাটাস ও সারসংক্ষেপ ড্যাশবোর্ড',
       },
       {
+        id: 'routine',
+        labelBn: 'রুটিন',
+        shortLabelBn: 'রুটিন',
+        descriptionBn: 'সন্তানের সাপ্তাহিক ও দৈনিক ক্লাস রুটিন',
+      },
+      {
         id: 'calendar',
         labelBn: 'একাডেমিক ক্যালেন্ডার',
         shortLabelBn: 'ক্যালেন্ডার',
@@ -2216,6 +2222,16 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
         color: 'text-amber-600',
         itemIds: ['overview'],
         items: [{ id: 'overview', labelBn: 'সন্তানের হোম ড্যাশবোর্ড', shortLabelBn: 'হোম', descriptionBn: 'সন্তানের লাইভ স্ট্যাটাস ও সারসংক্ষেপ' }],
+      },
+      {
+        id: 'pillar_routine',
+        labelBn: 'রুটিন',
+        shortLabelBn: 'রুটিন',
+        defaultTab: 'routine',
+        iconName: 'Clock',
+        color: 'text-indigo-600',
+        itemIds: ['routine'],
+        items: [{ id: 'routine', labelBn: 'ক্লাস রুটিন', shortLabelBn: 'রুটিন', descriptionBn: 'সন্তানের সাপ্তাহিক ও দৈনিক ক্লাস রুটিন' }],
       },
       {
         id: 'pillar_academics',

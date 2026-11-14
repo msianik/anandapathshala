@@ -297,8 +297,9 @@ test('getRoleNavMetadata returns role-specific full and compact single-line menu
   assert.equal(teacherNav[0].id, 'overview');
 
   const parentNav = getRoleNavMetadata('parent');
-  assert.equal(parentNav.length, 9);
+  assert.equal(parentNav.length, 10);
   assert.equal(parentNav[0].shortLabelBn, 'সন্তান');
+  assert.equal(parentNav[1].id, 'routine');
 
   const accountantNav = getRoleNavMetadata('accountant');
   assert.equal(accountantNav.length, 6);
@@ -452,8 +453,9 @@ test('getGroupedNavPillars returns simplified, non-repetitive core pillars', () 
 
   // Parent pillars
   const parentPillars = getGroupedNavPillars('parent');
-  assert.equal(parentPillars.length, 6);
+  assert.equal(parentPillars.length, 7);
   assert.equal(parentPillars[0].labelBn, 'আমার সন্তান');
+  assert.equal(parentPillars[1].labelBn, 'রুটিন');
   assert.ok(parentPillars.some((p) => p.id === 'pillar_chat'));
   assert.ok(parentPillars.some((p) => p.id === 'pillar_notices'));
 });
