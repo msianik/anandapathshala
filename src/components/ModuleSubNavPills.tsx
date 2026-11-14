@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { UserRole } from '../types/school';
-import { getRoleNavMetadata } from '../utils/schoolLogic';
+import { getGroupedNavPillars } from '../utils/schoolLogic';
 import {
   Users,
   IdCard,
@@ -28,67 +28,35 @@ interface ModuleSubNavPillsProps {
   className?: string;
 }
 
-interface SubNavGroup {
-  id: string;
-  categoryLabelBn: string;
-  categoryIcon: React.ComponentType<{ className?: string }>;
-  accentColor: string;
-  tabs: {
-    id: string;
-    labelBn: string;
-    icon: React.ComponentType<{ className?: string }>;
-    descriptionBn: string;
-  }[];
-}
+const TAB_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  overview: UserCheck,
+  students: Users,
+  idcards: IdCard,
+  health: HeartPulse,
+  routine: Clock,
+  calendar: CalendarDays,
+  results: FileCheck2,
+  skills: Award,
+  attendance: CalendarCheck,
+  staff: UserCheck,
+  pickup: ShieldCheck,
+  diary: BookOpen,
+  messages: MessageSquare,
+  notices: Megaphone,
+  fees: CreditCard,
+  inventory: Package,
+  workspace: Cloud,
+};
 
-const SUB_NAV_GROUPS: SubNavGroup[] = [
-  {
-    id: 'students_group',
-    categoryLabelBn: 'শিক্ষার্থী ও পরিবার',
-    categoryIcon: Users,
-    accentColor: 'amber',
-    tabs: [
-      { id: 'students', labelBn: 'শিক্ষার্থী তালিকা', icon: Users, descriptionBn: 'ক্লাস ভিত্তিক ছাত্র-ছাত্রীর তালিকা ও তথ্য' },
-      { id: 'idcards', labelBn: 'স্মার্ট আইডি কার্ড', icon: IdCard, descriptionBn: 'ডাইনামিক কিউআর আইডি কার্ড জেনারেটর' },
-      { id: 'health', labelBn: 'স্বাস্থ্য ও অ্যালার্জি', icon: HeartPulse, descriptionBn: 'শিশুর উচ্চতা, ওজন, BMI ও অ্যালার্জি ট্র্যাকার' },
-    ],
-  },
-  {
-    id: 'academics_group',
-    categoryLabelBn: 'একাডেমিক বিভাগ',
-    categoryIcon: BookOpen,
-    accentColor: 'indigo',
-    tabs: [
-      { id: 'routine', labelBn: 'ক্লাস রুটিন', icon: Clock, descriptionBn: 'ক্লাস ভিত্তিক সাপ্তাহিক পিরিয়ড ও সময়সূচি' },
-      { id: 'calendar', labelBn: 'অ্যাকাডেমিক ক্যালেন্ডার', icon: CalendarDays, descriptionBn: 'স্কুল ইভেন্ট, পরীক্ষা ও ছুটির দিনপঞ্জি' },
-      { id: 'results', labelBn: 'ফলাফল ও মার্কশিট', icon: FileCheck2, descriptionBn: 'টার্ম পরীক্ষা, নম্বর ও প্রিন্ট-রেডি রিপোর্ট কার্ড' },
-      { id: 'skills', labelBn: 'হোলিস্টিক স্কিল কার্ড', icon: Award, descriptionBn: 'আচরণ ও মেধা পর্যবেক্ষণ প্রগ্রেস কার্ড' },
-    ],
-  },
-  {
-    id: 'operations_group',
-    categoryLabelBn: 'দৈনিক স্কুল পরিচালনা',
-    categoryIcon: CalendarCheck,
-    accentColor: 'teal',
-    tabs: [
-      { id: 'attendance', labelBn: 'শিক্ষার্থী হাজিরা', icon: CalendarCheck, descriptionBn: 'ডিজিটাল ক্লাসরুম হাজিরা ও SMS' },
-      { id: 'staff', labelBn: 'শিক্ষক ও স্টাফ', icon: UserCheck, descriptionBn: 'শিক্ষক ডিরেক্টরি, সার্ভিস কার্ড, স্টাফ হাজিরা ও ছুটি' },
-      { id: 'pickup', labelBn: 'গেট-পাস ও পিক-আপ', icon: ShieldCheck, descriptionBn: 'কিউআর ভেরিফিকেশন ও নিরাপদ স্কুল প্রস্থান' },
-      { id: 'diary', labelBn: 'ডিজিটাল ডায়েরি', icon: BookOpen, descriptionBn: 'আজকের ক্লাসের কাজ, টিফিন ও হোমওয়ার্ক' },
-    ],
-  },
-  {
-    id: 'finance_group',
-    categoryLabelBn: 'হিসাব ও সম্পদ',
-    categoryIcon: CreditCard,
-    accentColor: 'emerald',
-    tabs: [
-      { id: 'fees', labelBn: 'বেতন ও ৩-পার্ট ভাউচার', icon: CreditCard, descriptionBn: 'টিউশন ফি, ইনভয়েস ও ৩-পার্ট ক্যাশ ভাউচার' },
-      { id: 'inventory', labelBn: 'স্কুল অ্যাসেট ও উপকরণ', icon: Package, descriptionBn: 'মন্টেসরি উপকরণ ও সরঞ্জাম ইনভেন্টরি ট্র্যাকার' },
-      { id: 'workspace', labelBn: 'গুগল ড্রাইভ ক্লাউড', icon: Cloud, descriptionBn: 'Google Drive, Sheets ও ক্লাউড ওয়ার্কস্পেস' },
-    ],
-  },
-];
+const PILLAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  pillar_overview: UserCheck,
+  pillar_students: Users,
+  pillar_academics: BookOpen,
+  pillar_operations: ShieldCheck,
+  pillar_chat: MessageSquare,
+  pillar_notices: Megaphone,
+  pillar_finance: CreditCard,
+};
 
 export const ModuleSubNavPills: React.FC<ModuleSubNavPillsProps> = ({
   currentTab,
@@ -96,22 +64,24 @@ export const ModuleSubNavPills: React.FC<ModuleSubNavPillsProps> = ({
   currentRole,
   className = '',
 }) => {
-  // Find which group contains this tab
-  const activeGroup = SUB_NAV_GROUPS.find((group) =>
-    group.tabs.some((t) => t.id === currentTab)
-  );
+  const pillars = useMemo(() => {
+    return getGroupedNavPillars(currentRole || 'parent');
+  }, [currentRole]);
 
-  if (!activeGroup) return null;
+  // Find the active pillar that contains currentTab
+  const activePillar = useMemo(() => {
+    return pillars.find((p) => p.itemIds.includes(currentTab));
+  }, [pillars, currentTab]);
 
-  const visibleTabs = useMemo(() => {
-    if (!currentRole) return activeGroup.tabs;
-    const navItems = getRoleNavMetadata(currentRole);
-    return activeGroup.tabs.filter((t) => navItems.some((n) => n.id === t.id));
-  }, [activeGroup, currentRole]);
+  // If no pillar or only 1 tab in this pillar, don't show sub-nav pills
+  if (!activePillar || activePillar.items.length <= 1) {
+    return null;
+  }
 
-  if (visibleTabs.length <= 1) return null;
-
-  const CategoryIcon = activeGroup.categoryIcon;
+  const CategoryIcon =
+    activePillar.iconName === 'ShieldCheck'
+      ? ShieldCheck
+      : PILLAR_ICON_MAP[activePillar.id] || BookOpen;
 
   return (
     <div
@@ -124,15 +94,15 @@ export const ModuleSubNavPills: React.FC<ModuleSubNavPillsProps> = ({
           <CategoryIcon className="w-3.5 h-3.5" />
         </div>
         <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
-          <span>{activeGroup.categoryLabelBn}</span>
+          <span>{activePillar.labelBn}</span>
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         </div>
       </div>
 
       {/* Sibling Tabs Pills */}
       <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 sm:justify-end">
-        {visibleTabs.map((tab) => {
-          const TabIcon = tab.icon;
+        {activePillar.items.map((tab) => {
+          const TabIcon = TAB_ICON_MAP[tab.id] || BookOpen;
           const isActive = tab.id === currentTab;
 
           return (
