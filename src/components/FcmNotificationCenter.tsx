@@ -10,8 +10,6 @@ import {
   X,
   ArrowRight,
   Radio,
-  Smartphone,
-  CheckCircle2,
   Send,
   Phone,
   CreditCard,
@@ -202,36 +200,6 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
-
-              {/* FCM Connection & Device Registration Status Box */}
-              <div className="bg-black/30 rounded-xl p-3 border border-white/15 space-y-2 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 font-semibold text-amber-200">
-                    <Smartphone className="w-3.5 h-3.5" />
-                    <span>FCM Sender ID: 597589396096</span>
-                  </span>
-                  <button
-                    onClick={onEnableFcmPush}
-                    className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-[11px] transition-colors flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>
-                      {fcmStatus?.permission === 'granted'
-                        ? 'FCM টোকেন সক্রিয় ✓'
-                        : 'ব্রাউজার পুশ সক্রিয় করুন'}
-                    </span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-200 leading-relaxed">
-                  {fcmStatus?.statusMessageBn ||
-                    'FCM রিয়েল-টাইম ক্লাউড লিসেনার সক্রিয় আছে। নতুন ভর্তি বা জরুরি পিক-আপের সাথে সাথে তাৎক্ষণিক অ্যালার্ট আসবে।'}
-                </p>
-                {fcmStatus?.token && (
-                  <div className="text-[10px] font-mono text-emerald-300 bg-black/40 px-2 py-1 rounded truncate">
-                    Token: {fcmStatus.token}
-                  </div>
-                )}
               </div>
             </div>
 
