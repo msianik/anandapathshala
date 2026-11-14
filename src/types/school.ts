@@ -21,12 +21,13 @@ export type SchoolClass =
   | 'KG-2';
 
 export type DayOfWeek =
-  | 'saturday'
   | 'sunday'
   | 'monday'
   | 'tuesday'
   | 'wednesday'
-  | 'thursday';
+  | 'thursday'
+  | 'friday'
+  | 'saturday';
 
 export type HomeworkSubmissionType =
   | 'written_notebook'
@@ -79,6 +80,48 @@ export interface ClassRoutinePeriod {
   lessonPlanUpdatedByBn?: string;
   durationMinutes?: number;
   isBreak?: boolean;
+  /** মঙ্গলবারের কালচারাল ডে স্পেশাল কার্যক্রম ফ্ল্যাগ */
+  isCulturalActivity?: boolean;
+  /** কালচারাল কার্যক্রমের ধরন */
+  culturalCategory?: 'recitation_music' | 'art_craft' | 'drama_play' | 'storytelling' | 'movement_dance';
+}
+
+export interface CulturalDayEventTheme {
+  id: string;
+  monthKey: string; // e.g. 'nov-2026'
+  weekNo: number; // 1, 2, 3, 4
+  dateStrBn: string; // যেমন: "৪ নভেম্বর ২০২৬"
+  titleBn: string; // যেমন: "ঋতু উৎসব ও প্রকৃতির সুর"
+  themeBn: string; // যেমন: "হৈমন্তী আনন্দ ও বর্ণিল পাতা"
+  descriptionBn: string;
+  targetFocusBn: string; // যেমন: "সমবেত ছড়া আবৃত্তি ও রঙিন পাতার কোলাজ"
+  recommendedDressBn: string; // যেমন: "বাসন্তী বা উজ্জ্বল হলুদ পোশাক"
+  materialsToBringBn: string; // যেমন: "রং পেন্সিল, ক্লিপবোর্ড ও প্রাকৃতিক পাতা"
+  specialSnackBn: string; // যেমন: "হোমমেড স্মাইলি প্যানকেক ও কলা"
+  icon: string;
+}
+
+export interface CulturalStarBadgeAward {
+  id: string;
+  studentId: string;
+  studentNameBn: string;
+  className: SchoolClass;
+  badgeType: 'budding_artist' | 'melody_star' | 'storyteller' | 'stage_star' | 'team_star';
+  badgeTitleBn: string; // যেমন: "🎨 ছোট্ট শিল্পী (Budding Artist)"
+  activityNoteBn: string; // যেমন: "ক্লে মডেলিংয়ে চমৎকার নৌকা ও ফল তৈরি করেছে"
+  awardedDateBn: string; // যেমন: "০৪ নভেম্বর ২০২৬"
+  awardedByTeacherNameBn: string;
+}
+
+export interface PreSchoolTiffinItem {
+  id: string;
+  day: DayOfWeek;
+  dayBn: string;
+  menuTitleBn: string;
+  itemsBn: string[];
+  nutritionBenefitBn: string;
+  parentPreparationTipBn: string;
+  isCulturalSpecial?: boolean;
 }
 
 export interface WeeklyClassProgressRecord {

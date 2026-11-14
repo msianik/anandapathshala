@@ -728,195 +728,100 @@ export const PickupModule: React.FC<PickupModuleProps> = ({
               </div>
             </div>
 
-            {/* Right: Authorized Whitelist Guardians & Teacher FCM Alert (7 cols) */}
+            {/* Right: Security Guidelines & Teacher FCM Alert (7 cols) */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+              {/* Instant Teacher FCM Alert for Gate Arrival */}
+              <div id="urgent-pickup-box" className="bg-white rounded-2xl border border-rose-200 p-5 sm:p-6 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-100 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-900 flex items-center gap-2">
+                      <BellRing className="w-4 h-4 text-rose-600" />
+                      <span>🚨 আপনি কি গেটে পৌঁছেছেন? শ্রেণি-শিক্ষককে দ্রুত অ্যালার্ট পাঠান</span>
+                    </h4>
+                    <p className="text-xs text-rose-700 mt-0.5">
+                      স্কুলের গেটে পৌঁছালে শ্রেণি-শিক্ষককে তাৎক্ষণিক পুশ নোটিফিকেশন পাঠান যেন সন্তানকে দ্রুত প্রস্তুত করে গেটে পাঠানো হয়।
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 shrink-0 self-start border border-rose-200">
+                    FCM Instant Alert
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+                  <input
+                    type="text"
+                    value={urgentNoteBn}
+                    onChange={(e) => setUrgentNoteBn(e.target.value)}
+                    placeholder="যেমন: গেট ১-এ দাঁড়িয়ে আছি, বৃষ্টি শুরু হচ্ছে..."
+                    className="flex-1 px-3.5 py-2.5 text-xs bg-rose-50/40 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 text-slate-800 placeholder-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDispatchUrgentPickupFcm}
+                    className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-98"
+                  >
+                    <BellRing className="w-4 h-4" />
+                    <span>শিক্ষককে জরুরি FCM অ্যালার্ট পাঠান</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Digital Gate Pass Instructions & Security Framework */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                      অনুমোদিত পিক-আপ অভিভাবক তালিকা (Authorized Whitelist)
+                      ডিজিটাল গেট পাস ব্যবহারের নিয়মাবলী ও নিরাপত্তা
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      স্কুল ছুটির সময় শিশুকে শুধুমাত্র এই নিবন্ধিত ব্যক্তিদের হাতে তুলে দেওয়া যাবে।
+                      আনন্দ পাঠশালায় প্রতিটি শিশুর প্রবেশ ও প্রস্থান শতভাগ সুরক্ষিত ও স্বয়ংক্রিয়।
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    সুরক্ষিত পলিসি
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <LogIn className="w-4 h-4 text-emerald-600" />
+                      <span>১. স্কুলে প্রবেশের নিয়ম (In-Time)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      প্রতিদিন সকালে প্রধান গেটের সিকিউরিটি স্ক্যানারে শিক্ষার্থীর ডিজিটাল আইডি বা গেট পাস প্রদর্শন করলে স্বয়ংক্রিয়ভাবে প্রবেশ লগ ও উপস্থিতির এসএমএস সিস্টেমে রেকর্ড হয়।
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setIsAddingPerson(!isAddingPerson)}
-                    className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-1.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    {isAddingPerson ? 'বাতিল' : 'নতুন অভিভাবক যোগ'}
-                  </button>
-                </div>
-
-                {/* Add new person drawer/form */}
-                {isAddingPerson && (
-                  <form onSubmit={handleSaveNewPickupPerson} className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-3">
-                    <h4 className="text-xs font-bold text-emerald-900">অনুমোদিত নতুন পিক-আপ ব্যক্তির তথ্য</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[11px] font-medium text-slate-700 block mb-1">পূর্ণ নাম (বাংলায়):</label>
-                        <input
-                          type="text"
-                          required
-                          value={newNameBn}
-                          onChange={(e) => setNewNameBn(e.target.value)}
-                          placeholder="যেমন: মো. কামরুল ইসলাম"
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-medium text-slate-700 block mb-1">সম্পর্ক (Relation):</label>
-                        <select
-                          value={newRelationBn}
-                          onChange={(e) => setNewRelationBn(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
-                          <option value="বাবা">বাবা</option>
-                          <option value="মা">মা</option>
-                          <option value="দাদা / নানা">দাদা / নানা</option>
-                          <option value="দাদি / নানি">দাদি / নানি</option>
-                          <option value="মামা / চাচা">মামা / চাচা</option>
-                          <option value="খালা / ফুফু">খালা / ফুফু</option>
-                          <option value="অনুমোদিত ড্রাইভার">অনুমোদিত ড্রাইভার</option>
-                          <option value="পারিবারিক প্রতিনিধি">পারিবারিক প্রতিনিধি</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-medium text-slate-700 block mb-1">মোবাইল নম্বর:</label>
-                        <input
-                          type="text"
-                          required
-                          value={newPhone}
-                          onChange={(e) => setNewPhone(e.target.value)}
-                          placeholder="যেমন: ০১৭১১-০০০০০০"
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-medium text-slate-700 block mb-1">জাতীয় পরিচয়পত্র (NID) নম্বর:</label>
-                        <input
-                          type="text"
-                          value={newNid}
-                          onChange={(e) => setNewNid(e.target.value)}
-                          placeholder="NID নম্বর"
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        />
-                      </div>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <LogOut className="w-4 h-4 text-teal-600" />
+                      <span>২. স্কুল ছুটির পর প্রস্থান (Out-Time)</span>
                     </div>
-                    <div className="flex justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingPerson(false)}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg"
-                      >
-                        বাতিল
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg"
-                      >
-                        তালিকাভুক্ত করুন
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Authorized Person Cards */}
-                <div className="space-y-3">
-                  {currentStudent.authorizedPickups.map((person) => {
-                    const isSelected = selectedPersonId === person.id;
-                    return (
-                      <div
-                        key={person.id}
-                        onClick={() => setSelectedPersonId(person.id)}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-50/40 shadow-xs ring-2 ring-emerald-500/20'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${person.avatarBg}`}>
-                              {person.avatarIcon}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-bold text-slate-900">{person.nameBn}</h4>
-                                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                                  {person.relationBn}
-                                </span>
-                                {person.isPrimary && (
-                                  <span className="text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded">
-                                    প্রধান অভিভাবক
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 mt-2">
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="font-mono text-slate-700">{person.phone}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="font-mono text-slate-600 text-[11px]">NID: {person.nid}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isSelected ? (
-                              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                                <Check className="w-4 h-4" />
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full border border-slate-300" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Instant Teacher FCM Alert for Pickup */}
-                <div id="urgent-pickup-box" className="p-4 rounded-xl bg-rose-50/75 border border-rose-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h4 className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
-                        <BellRing className="w-4 h-4 text-rose-600" />
-                        <span>🚨 আপনি কি গেটে পৌঁছেছেন? শ্রেণি-শিক্ষককে দ্রুত অ্যালার্ট পাঠান</span>
-                      </h4>
-                      <p className="text-[11px] text-rose-700 mt-0.5">
-                        গেট ১/২-এ পৌঁছালে শিক্ষককে তাৎক্ষণিক পুশ নোটিফিকেশন পাঠান যেন সন্তানকে দ্রুত প্রস্তুত করে গেটে পাঠানো হয়।
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-rose-200/80 text-rose-900 shrink-0 self-start">
-                      FCM Instant Alert
-                    </span>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      ছুটির পর গেট অফিসারের কাছে এই ডিজিটাল গেট পাস কিউআর কোড দেখালে তিনি স্ক্যান করে শিক্ষার্থীকে হস্তান্তর করবেন এবং অভিভাবকের মোবাইলে রিয়েল-টাইম কনফার্মেশন যাবে।
+                    </p>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <input
-                      type="text"
-                      value={urgentNoteBn}
-                      onChange={(e) => setUrgentNoteBn(e.target.value)}
-                      placeholder="যেমন: গেট ১-এ দাঁড়িয়ে আছি, বৃষ্টি শুরু হচ্ছে..."
-                      className="flex-1 px-3 py-2 text-xs bg-white border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleDispatchUrgentPickupFcm}
-                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <BellRing className="w-3.5 h-3.5" />
-                      <span>শিক্ষককে জরুরি FCM অ্যালার্ট পাঠান</span>
-                    </button>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      <span>৩. লাইভ ট্র্যাকিং ও ক্লাউড ডাটা</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      আপনার সন্তান ঠিক কোন সময়ে স্কুলে প্রবেশ করেছে এবং কোন সময়ে ক্যাম্পাস ত্যাগ করেছে, তা উপরের লাইভ স্ট্যাটাস ও দৈনিক হিস্ট্রি টেবিল থেকে যেকোনো সময় দেখতে পারবেন।
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <Phone className="w-4 h-4 text-cyan-600" />
+                      <span>৪. জরুরি গেট সহায়তা</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      স্কুল চলাকালীন বা ছুটির সময় কোনো জরুরি সহায়তার জন্য গেট সিকিউরিটি ডেস্ক বা স্কুল হেল্পলাইনে সরাসরি যোগাযোগ করা যাবে: <span className="font-mono font-bold text-slate-800">{currentStudent.emergencyPhone}</span>।
+                    </p>
                   </div>
                 </div>
               </div>

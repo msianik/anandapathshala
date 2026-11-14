@@ -2960,7 +2960,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
             className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs active:scale-98"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>গেট-পাস কার্ড ও পিক-আপ তালিকা দেখুন</span>
+            <span>ডিজিটাল গেট-পাস দেখুন</span>
           </button>
         </div>
       </div>

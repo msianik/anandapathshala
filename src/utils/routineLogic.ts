@@ -837,8 +837,6 @@ export function resetClassRoutines(): ClassRoutinePeriod[] {
 export function getTodayDayOfWeek(): DayOfWeek {
   const dayIndex = new Date().getDay();
   switch (dayIndex) {
-    case 6:
-      return 'saturday';
     case 0:
       return 'sunday';
     case 1:
@@ -850,10 +848,34 @@ export function getTodayDayOfWeek(): DayOfWeek {
     case 4:
       return 'thursday';
     case 5:
-    default:
-      // Friday is holiday; default to Saturday for previewing next school day routine
+      return 'friday';
+    case 6:
       return 'saturday';
+    default:
+      return 'sunday';
   }
+}
+
+/**
+ * Checks if a given day is a weekend holiday (Friday or Saturday)
+ */
+export function isWeekendDay(day: DayOfWeek): boolean {
+  return day === 'friday' || day === 'saturday';
+}
+
+/**
+ * Checks if a given day is Tuesday (কালচারাল ডে)
+ */
+export function isCulturalDay(day: DayOfWeek): boolean {
+  return day === 'tuesday';
+}
+
+/**
+ * Checks if today is a weekend holiday (Friday or Saturday - স্কুল বন্ধ)
+ */
+export function isWeekendToday(): boolean {
+  const day = new Date().getDay();
+  return day === 5 || day === 6;
 }
 
 /**
@@ -864,11 +886,28 @@ export function isFridayToday(): boolean {
 }
 
 /**
+ * Checks if today is Saturday (সাপ্তাহিক ছুটি)
+ */
+export function isSaturdayToday(): boolean {
+  return new Date().getDay() === 6;
+}
+
+/**
+ * Get effective day to display: if today is weekend, defaults to 'sunday'
+ */
+export function getEffectiveDisplayDay(day: DayOfWeek = getTodayDayOfWeek()): DayOfWeek {
+  if (isWeekendDay(day)) {
+    return 'sunday';
+  }
+  return day;
+}
+
+/**
  * Returns Bengali day name
  */
 export function getDayNameBn(day: DayOfWeek): string {
   const found = DAYS_OF_WEEK_CONFIG.find((d) => d.id === day);
-  return found ? found.nameBn : 'শনিবার';
+  return found ? found.nameBn : 'রবিবার';
 }
 
 /**
@@ -907,12 +946,13 @@ export function getPeriodsForTeacher(
     .sort((a, b) => {
       // Sort by day order, then periodNo
       const dayOrder: Record<DayOfWeek, number> = {
-        saturday: 1,
-        sunday: 2,
-        monday: 3,
-        tuesday: 4,
-        wednesday: 5,
-        thursday: 6,
+        sunday: 1,
+        monday: 2,
+        tuesday: 3,
+        wednesday: 4,
+        thursday: 5,
+        friday: 6,
+        saturday: 7,
       };
       if (a.day !== b.day) return dayOrder[a.day] - dayOrder[b.day];
       return a.periodNo - b.periodNo;
@@ -928,7 +968,7 @@ export function getPeriodLiveStatus(
 ): 'ongoing' | 'upcoming' | 'completed' {
   if (checkDayMatch) {
     const today = getTodayDayOfWeek();
-    if (period.day !== today || isFridayToday()) {
+    if (period.day !== today || isWeekendToday()) {
       return 'upcoming';
     }
   }
@@ -1111,7 +1151,7 @@ function createDefaultWeeklyRecord(
     ? classPeriods.map((p) => p.id)
     : weekKey === 'nov-2026-w2'
     ? []
-    : classPeriods.filter((p) => ['saturday', 'sunday', 'monday', 'tuesday'].includes(p.day)).map((p) => p.id);
+    : classPeriods.filter((p) => ['sunday', 'monday', 'tuesday'].includes(p.day)).map((p) => p.id);
 
   const totalCount = classPeriods.length || 1;
   const completionPercentage = isCompletedByDefault
