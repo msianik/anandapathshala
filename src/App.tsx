@@ -58,6 +58,7 @@ const SchoolAssetsModule = lazy(() => import('./components/SchoolAssetsModule').
 const StudentDirectoryModule = lazy(() => import('./components/StudentDirectoryModule').then(m => ({ default: m.StudentDirectoryModule })));
 const StudentIdCardModule = lazy(() => import('./components/StudentIdCardModule').then(m => ({ default: m.StudentIdCardModule })));
 const ClassRoutineModule = lazy(() => import('./components/ClassRoutineModule').then(m => ({ default: m.ClassRoutineModule })));
+const ParentClassRoutineView = lazy(() => import('./components/ParentClassRoutineView').then(m => ({ default: m.ParentClassRoutineView })));
 const AcademicCalendarModule = lazy(() => import('./components/AcademicCalendarModule').then(m => ({ default: m.AcademicCalendarModule })));
 const ExamResultsModule = lazy(() => import('./components/ExamResultsModule').then(m => ({ default: m.ExamResultsModule })));
 const ChildHealthModule = lazy(() => import('./components/ChildHealthModule').then(m => ({ default: m.ChildHealthModule })));
@@ -927,15 +928,17 @@ export default function App() {
                   )}
 
                   {currentTab === 'routine' && (
-                    <ClassRoutineModule
-                      currentRole={currentRole}
-                      initialClass={
-                        currentRole === 'parent' && loggedInAccount?.studentId
-                          ? students.find((s) => s.id === loggedInAccount.studentId)?.className
-                          : undefined
-                      }
-                      readOnly={currentRole === 'parent'}
-                    />
+                    currentRole === 'parent' && loggedInAccount ? (
+                      <ParentClassRoutineView
+                        account={loggedInAccount}
+                        students={students}
+                        onNavigateTab={setCurrentTab}
+                      />
+                    ) : (
+                      <ClassRoutineModule
+                        currentRole={currentRole}
+                      />
+                    )
                   )}
 
                   {currentTab === 'calendar' && (
