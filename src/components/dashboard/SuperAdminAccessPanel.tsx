@@ -1013,10 +1013,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     )}
                   </div>
                   <input
-                    type="url"
+                    type="text"
                     value={newAvatarUrl}
                     onChange={(e) => setNewAvatarUrl(e.target.value)}
-                    placeholder="অথবা সরাসরি ছবির URL দিন..."
+                    placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন..."
                     className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
                   />
                 </div>
@@ -1269,10 +1269,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     )}
                   </div>
                   <input
-                    type="url"
+                    type="text"
                     value={editingAccount.avatarUrl || ''}
                     onChange={(e) => setEditingAccount({ ...editingAccount, avatarUrl: e.target.value })}
-                    placeholder="অথবা সরাসরি ছবির URL দিন..."
+                    placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন..."
                     className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
                   />
                 </div>

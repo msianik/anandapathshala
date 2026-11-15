@@ -1400,13 +1400,13 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       </div>
                     </div>
 
-                    {/* URL Option */}
+                    {/* URL / Path Option */}
                     <div>
                       <input
-                        type="url"
+                        type="text"
                         value={formData.photoUrl}
                         onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                        placeholder="অথবা সরাসরি ছবির ওয়েব লিঙ্ক (URL) দিন..."
+                        placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন..."
                         className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-700 focus:outline-none focus:border-emerald-500"
                       />
                     </div>

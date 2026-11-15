@@ -598,10 +598,10 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                         )}
                       </div>
                       <input
-                        type="url"
+                        type="text"
                         value={formData.photoUrl}
                         onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                        placeholder="অথবা সরাসরি ছবির ওয়েব লিঙ্ক (URL) দিন..."
+                        placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন..."
                         className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
                       />
                     </div>
