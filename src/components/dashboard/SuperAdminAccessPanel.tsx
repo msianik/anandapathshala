@@ -29,6 +29,8 @@ import {
   UserPlus,
   ChevronDown,
   ChevronUp,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import {
   DirectorAccessPermission,
@@ -128,7 +130,33 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const [newRoleTitleBn, setNewRoleTitleBn] = useState('');
   const [newAssignedClass, setNewAssignedClass] = useState<SchoolClass>('Nursery');
   const [newCanFullEdit, setNewCanFullEdit] = useState(false);
+  const [newAvatarUrl, setNewAvatarUrl] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  const handleUserPhotoUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: 'new' | 'edit'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('⚠️ ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        if (target === 'new') {
+          setNewAvatarUrl(reader.result);
+        } else if (editingAccount) {
+          setEditingAccount({ ...editingAccount, avatarUrl: reader.result });
+        }
+        showToast('📸 ছবি সফলভাবে যুক্ত হয়েছে!');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Sync accounts list on storage events
   useEffect(() => {
@@ -232,6 +260,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     );
     setNewAssignedClass('Nursery');
     setNewCanFullEdit(defaultRole === 'director');
+    setNewAvatarUrl('');
     setFormError(null);
     setIsAddModalOpen(true);
   };
@@ -272,6 +301,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         phone: newPhone.trim(),
         username: cleanUser,
         passwordHint: newPassword.trim(),
+        avatarUrl: newAvatarUrl.trim() || undefined,
         assignedClass: newRole === 'teacher' || newRole === 'parent' ? newAssignedClass : undefined,
         canFullEdit: newRole === 'director' ? newCanFullEdit : undefined,
       });
@@ -951,6 +981,47 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 </div>
               </div>
 
+              {/* Profile Photo */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+                <div className="w-13 h-13 rounded-2xl bg-white border-2 border-emerald-400 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                  {newAvatarUrl ? (
+                    <img src={newAvatarUrl} alt="ছবি" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>ছবি আপলোড</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUserPhotoUpload(e, 'new')}
+                        className="hidden"
+                      />
+                    </label>
+                    {newAvatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setNewAvatarUrl('')}
+                        className="text-xs text-rose-600 hover:underline cursor-pointer"
+                      >
+                        ছবি সরান
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={newAvatarUrl}
+                    onChange={(e) => setNewAvatarUrl(e.target.value)}
+                    placeholder="অথবা সরাসরি ছবির URL দিন..."
+                    className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
+                  />
+                </div>
+              </div>
+
               {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1166,6 +1237,47 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             </div>
 
             <form onSubmit={handleUpdateUserSubmit} className="space-y-3.5">
+              {/* Profile Photo Edit */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+                <div className="w-13 h-13 rounded-2xl bg-white border-2 border-amber-400 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                  {editingAccount.avatarUrl ? (
+                    <img src={editingAccount.avatarUrl} alt={editingAccount.nameBn} className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>ছবি পরিবর্তন</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUserPhotoUpload(e, 'edit')}
+                        className="hidden"
+                      />
+                    </label>
+                    {editingAccount.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingAccount({ ...editingAccount, avatarUrl: '' })}
+                        className="text-xs text-rose-600 hover:underline cursor-pointer"
+                      >
+                        ছবি সরান
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={editingAccount.avatarUrl || ''}
+                    onChange={(e) => setEditingAccount({ ...editingAccount, avatarUrl: e.target.value })}
+                    placeholder="অথবা সরাসরি ছবির URL দিন..."
+                    className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">

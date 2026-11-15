@@ -1,4 +1,6 @@
-import { AdmissionApplication, SchoolClass, SchoolShift } from '../types/school';
+import { AdmissionApplication, SchoolClass, SchoolShift, Student } from '../types/school';
+import { INITIAL_STUDENTS } from '../data/mockData';
+import { upsertPortalAccount, normalizeIdentifier } from './schoolLogic';
 
 export const ADMISSION_UPDATE_EVENT = 'anando_admission_update';
 const ADMISSIONS_STORAGE_KEY = 'anando_admission_applications_v1';
@@ -159,6 +161,96 @@ export function submitNewAdmissionApplication(
   return newApp;
 }
 
+export function enrollStudentFromAdmission(app: AdmissionApplication): Student | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const rawStd = localStorage.getItem('ananda_students_v1');
+    let students: Student[] = rawStd ? JSON.parse(rawStd) : [];
+    if (!Array.isArray(students) || students.length === 0) {
+      students = [...INITIAL_STUDENTS];
+    }
+
+    const newId = `std-adm-${app.id}`;
+    // Check if student with this ID already enrolled
+    const existingIndex = students.findIndex((s) => s.id === newId);
+    const existingInClass = students.filter((s) => s.className === app.applyingClass);
+    const nextRoll = String(existingInClass.length + 1).padStart(2, '0');
+    const cleanUsername =
+      app.studentNameEn?.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) ||
+      `std_${app.applyingClass.toLowerCase()}_${nextRoll}`;
+
+    const newStudent: Student = {
+      id: newId,
+      rollNo: nextRoll,
+      nameBn: app.studentNameBn,
+      nameEn: app.studentNameEn || app.studentNameBn,
+      className: app.applyingClass,
+      section: 'A',
+      shift: app.preferredShift || 'morning',
+      gender: app.gender,
+      birthDate: app.dateOfBirth,
+      bloodGroup: app.bloodGroup || 'B+',
+      allergies: 'নেই',
+      emergencyPhone: app.fatherPhone || app.emergencyContact,
+      email: `${cleanUsername}@anandapathshala.edu.bd`,
+      fatherNameBn: app.fatherNameBn,
+      motherNameBn: app.motherNameBn,
+      homeAddressBn: app.presentAddressBn,
+      currentStatus: 'in_class',
+      authorizedPickups: [
+        {
+          id: `p-${Date.now()}-1`,
+          nameBn: app.fatherNameBn || 'অভিভাবক',
+          nameEn: app.studentNameEn || 'Guardian',
+          relationBn: 'বাবা',
+          relationEn: 'Father/Guardian',
+          phone: app.fatherPhone || app.emergencyContact,
+          nid: 'NID-VERIFIED-2026',
+          avatarBg: 'bg-emerald-500',
+          avatarIcon: 'user',
+          isPrimary: true,
+          approved: true,
+        },
+      ],
+      avatarColor: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+      photoUrl: app.photoUrl || undefined,
+      username: cleanUsername,
+      password: '123456',
+      portalRole: 'parent',
+    };
+
+    if (existingIndex >= 0) {
+      students[existingIndex] = { ...students[existingIndex], ...newStudent };
+    } else {
+      students.push(newStudent);
+    }
+
+    localStorage.setItem('ananda_students_v1', JSON.stringify(students));
+
+    upsertPortalAccount({
+      id: `acc-std-${newId}`,
+      studentId: newId,
+      username: cleanUsername,
+      phone: normalizeIdentifier(newStudent.emergencyPhone) || '01914057511',
+      email: newStudent.email || `${cleanUsername}@anandapathshala.edu.bd`,
+      passwordHint: '123456',
+      role: 'parent',
+      nameBn: `${newStudent.fatherNameBn} (${newStudent.nameBn}-এর অভিভাবক)`,
+      nameEn: newStudent.nameEn,
+      roleTitleBn: `অভিভাবক · শ্রেণি: ${newStudent.className}`,
+      portalNameBn: 'অভিভাবক ও সন্তান ড্যাশবোর্ড পোর্টাল',
+      assignedClass: newStudent.className,
+      avatarUrl: newStudent.photoUrl || '/assets/fb/kids-1.jpg',
+    });
+
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: newStudent }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
+    return newStudent;
+  } catch {
+    return null;
+  }
+}
+
 export function updateAdmissionStatus(
   id: string,
   status: AdmissionApplication['status'],
@@ -170,6 +262,9 @@ export function updateAdmissionStatus(
     target.status = status;
     if (remarks) target.adminRemarksBn = remarks;
     saveAdmissionApplication(target);
+    if (status === 'admitted') {
+      enrollStudentFromAdmission(target);
+    }
   }
 }
 

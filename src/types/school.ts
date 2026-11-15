@@ -200,6 +200,7 @@ export interface Student {
   nameEn: string;
   className: SchoolClass;
   section: string;
+  shift?: SchoolShift;
   birthDate: string;
   bloodGroup: string;
   gender: 'male' | 'female';
@@ -303,6 +304,7 @@ export interface AdmissionApplication {
   dateOfBirth: string; // "YYYY-MM-DD"
   gender: 'male' | 'female';
   bloodGroup?: string;
+  photoUrl?: string;
   applyingClass: SchoolClass;
   preferredShift: SchoolShift; // 'morning' (০৮:০০-১১:০০) | 'day' (১১:০০-০২:০০)
   fatherNameBn: string;

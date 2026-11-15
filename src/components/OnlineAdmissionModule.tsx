@@ -21,6 +21,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Check,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { AdmissionApplication, SchoolClass, SchoolShift, UserRole } from '../types/school';
 import {
@@ -88,7 +90,25 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
     presentAddressBn: '',
     previousSchoolBn: '',
     emergencyContact: '',
+    photoUrl: '',
   });
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData((prev) => ({ ...prev, photoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   useEffect(() => {
     const handleUpdate = () => setApplications(getAdmissionApplications());
@@ -146,6 +166,7 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
       presentAddressBn: '',
       previousSchoolBn: '',
       emergencyContact: '',
+      photoUrl: '',
     });
   };
 
@@ -544,6 +565,47 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                     <User className="w-3.5 h-3.5" />
                     <span>১. শিক্ষার্থীর প্রাথমিক তথ্য</span>
                   </h4>
+
+                  {/* Applicant Photo */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-white border-2 border-indigo-300 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                      {formData.photoUrl ? (
+                        <img src={formData.photoUrl} alt="ছবি" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-slate-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <label className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-xs">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>শিক্ষার্থীর ছবি আপলোড</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {formData.photoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                            className="text-xs text-rose-600 hover:underline cursor-pointer"
+                          >
+                            ছবি মুছুন
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="url"
+                        value={formData.photoUrl}
+                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                        placeholder="অথবা সরাসরি ছবির ওয়েব লিঙ্ক (URL) দিন..."
+                        className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700"
+                      />
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>

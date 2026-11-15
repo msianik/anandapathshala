@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Student, 
   SchoolClass, 
+  SchoolShift,
   UserRole, 
   PickupPerson,
   PortalAccountRole,
@@ -49,6 +50,9 @@ import {
   QrCode,
   Award,
   IdCard,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { StudentIdCardModal } from './StudentIdCardModal';
 import { StudentProgressCardModal } from './StudentProgressCardModal';
@@ -80,6 +84,14 @@ const AVATAR_COLORS = [
   'bg-teal-100 text-teal-800 border border-teal-300',
   'bg-rose-100 text-rose-800 border border-rose-300',
   'bg-violet-100 text-violet-800 border border-violet-300',
+];
+
+const SAMPLE_STUDENT_AVATARS = [
+  { url: '/assets/biddalay/student_hasin.jpg', label: 'আদিত্য' },
+  { url: '/assets/fb/kids-1.jpg', label: 'প্লে গ্রুপ' },
+  { url: '/assets/fb/photo-1.jpg', label: 'ছবি ১' },
+  { url: '/assets/fb/photo-2.jpg', label: 'ছবি ২' },
+  { url: '/assets/fb/photo-3.jpg', label: 'ছবি ৩' },
 ];
 
 export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
@@ -139,9 +151,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     nameEn: '',
     className: 'HateKhori' as SchoolClass,
     section: 'A',
-    gender: 'male' as 'male' as 'male' | 'female',
+    shift: 'morning' as SchoolShift,
+    gender: 'male' as 'male' | 'female',
     birthDate: '2022-05-15',
     bloodGroup: 'B+',
+    photoUrl: '',
     fatherNameBn: '',
     motherNameBn: '',
     emergencyPhone: '',
@@ -155,6 +169,26 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     password: '123456',
     portalRole: 'parent' as PortalAccountRole,
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('⚠️ ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট (5MB) হতে পারবে।');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData((prev) => ({ ...prev, photoUrl: reader.result as string }));
+        showToast('📸 শিক্ষার্থীর ছবি সফলভাবে যুক্ত হয়েছে!');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -268,9 +302,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       nameEn: '',
       className: targetClass,
       section: 'A',
+      shift: 'morning',
       gender: 'male',
       birthDate: '2022-05-15',
       bloodGroup: 'B+',
+      photoUrl: '',
       fatherNameBn: '',
       motherNameBn: '',
       emergencyPhone: '',
@@ -296,9 +332,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       nameEn: student.nameEn,
       className: student.className,
       section: student.section,
+      shift: student.shift || 'morning',
       gender: student.gender,
       birthDate: student.birthDate,
       bloodGroup: student.bloodGroup || 'B+',
+      photoUrl: student.photoUrl || '',
       fatherNameBn: student.fatherNameBn || '',
       motherNameBn: student.motherNameBn || '',
       emergencyPhone: student.emergencyPhone || '',
@@ -355,6 +393,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       nameEn: formData.nameEn.trim() || formData.nameBn.trim(),
       className: formData.className,
       section: formData.section.trim() || 'A',
+      shift: formData.shift,
       gender: formData.gender,
       birthDate: formData.birthDate,
       bloodGroup: formData.bloodGroup,
@@ -367,6 +406,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       currentStatus: formData.currentStatus,
       authorizedPickups: [primaryPickup],
       avatarColor: randomColor,
+      photoUrl: formData.photoUrl.trim() || undefined,
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
@@ -392,6 +432,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
 
     onAddStudent(newStudent);
     setIsAddModalOpen(false);
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: newStudent }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     showToast(
       `✅ "${newStudent.nameBn}" (${newStudent.className}) ও পোর্টাল লগইন আইডি (${cleanUsername}) সফলভাবে যুক্ত হয়েছে!`
     );
@@ -431,6 +473,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       nameEn: formData.nameEn.trim() || editingStudent.nameEn,
       className: formData.className,
       section: formData.section.trim() || editingStudent.section,
+      shift: formData.shift,
       gender: formData.gender,
       birthDate: formData.birthDate,
       bloodGroup: formData.bloodGroup,
@@ -442,6 +485,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       homeAddressBn: formData.homeAddressBn.trim(),
       currentStatus: formData.currentStatus,
       authorizedPickups: updatedPickups,
+      photoUrl: formData.photoUrl.trim() || undefined,
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
@@ -467,8 +511,10 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
 
     onUpdateStudent(updatedStudent);
     setEditingStudent(null);
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: updatedStudent }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     showToast(
-      `✅ "${updatedStudent.nameBn}" এর প্রোফাইল, রোল (${getPortalRoleLabelBn(assignedRole)}) ও লগইন আইডি (${cleanUsername}) আপডেট হয়েছে!`
+      `✅ "${updatedStudent.nameBn}" এর প্রোফাইল, ছবি ও পোর্টাল তথ্য সফলভাবে আপডেট হয়েছে!`
     );
   };
 
@@ -914,9 +960,17 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   {/* Top Bar with Avatar, Name & Status */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-2xs ${std.avatarColor}`}>
-                        {std.rollNo}
-                      </div>
+                      {std.photoUrl ? (
+                        <img
+                          src={std.photoUrl}
+                          alt={std.nameBn}
+                          className="w-11 h-11 rounded-2xl object-cover shrink-0 shadow-2xs border-2 border-emerald-400"
+                        />
+                      ) : (
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-2xs ${std.avatarColor}`}>
+                          {std.rollNo}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="text-sm font-bold text-slate-900 truncate">
@@ -1097,17 +1151,32 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       {std.rollNo}
                     </td>
                     <td className="py-3 px-3">
-                      <div className="font-bold text-slate-900">{std.nameBn}</div>
-                      <div className="text-[10px] text-slate-500">{std.nameEn}</div>
-                      <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                        <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          {getPortalRoleLabelBn(std.portalRole || 'parent')}
-                        </span>
-                        {std.username && (
-                          <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                            ID: {std.username}
-                          </span>
+                      <div className="flex items-center gap-2.5">
+                        {std.photoUrl ? (
+                          <img
+                            src={std.photoUrl}
+                            alt={std.nameBn}
+                            className="w-9 h-9 rounded-xl object-cover shrink-0 border border-emerald-300 shadow-2xs"
+                          />
+                        ) : (
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${std.avatarColor}`}>
+                            {std.rollNo}
+                          </div>
                         )}
+                        <div>
+                          <div className="font-bold text-slate-900">{std.nameBn}</div>
+                          <div className="text-[10px] text-slate-500">{std.nameEn}</div>
+                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                            <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              {getPortalRoleLabelBn(std.portalRole || 'parent')}
+                            </span>
+                            {std.username && (
+                              <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
+                                ID: {std.username}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 px-3 font-semibold">
@@ -1191,52 +1260,168 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD NEW STUDENT                                                    */}
+      {/* MODAL: UNIFIED STUDENT FORM (ADD NEW / EDIT EXISTING STUDENT)              */}
       {/* ========================================================================= */}
-      {isAddModalOpen && (
+      {(isAddModalOpen || editingStudent) && (
         <div
           role="dialog"
           aria-modal="true"
-          onClick={() => setIsAddModalOpen(false)}
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+          onClick={() => {
+            setIsAddModalOpen(false);
+            setEditingStudent(null);
+          }}
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 space-y-5 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col overflow-hidden"
+            className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 space-y-5 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
-                  <UserPlus className="w-5 h-5" />
+                <div className={`p-2.5 rounded-2xl ${editingStudent ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                  {editingStudent ? <Edit3 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-slate-900">
-                    নতুন শিক্ষার্থী ভর্তি ও তথ্য সংরক্ষণ
+                    {editingStudent ? 'শিক্ষার্থীর তথ্য আপডেট ও পরিবর্তন' : 'নতুন শিক্ষার্থী ভর্তি ও তথ্য সংরক্ষণ'}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    আনন্দ পাঠশালার অফিসিয়াল ডাটাবেজে নতুন ছাত্র/ছাত্রীর প্রোফাইল যুক্ত করুন
+                    {editingStudent
+                      ? `${editingStudent.nameBn} (রোল: ${editingStudent.rollNo} · ${getSchoolClassNameBn(editingStudent.className)})`
+                      : 'আনন্দ পাঠশালার অফিসিয়াল ডাটাবেজে নতুন ছাত্র/ছাত্রীর প্রোফাইল ও পোর্টাল অ্যাকাউন্ট যুক্ত করুন'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 font-bold rounded-xl"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingStudent(null);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 font-bold rounded-xl cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* Form Fields */}
-            <form onSubmit={handleSubmitAdd} className="space-y-4 overflow-y-auto flex-1 pr-1 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <form onSubmit={editingStudent ? handleSubmitEdit : handleSubmitAdd} className="space-y-4 overflow-y-auto flex-1 pr-1 text-xs">
+              
+              {/* 1. STUDENT PHOTO UPLOAD & PREVIEW SECTION */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/60 to-amber-50/50 border-2 border-emerald-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-700" />
+                    <span>শিক্ষার্থীর ছবি (Student Photo & Avatar)</span>
+                  </span>
+                  {formData.photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                    >
+                      ছবি মুছে ফেলুন
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Photo Preview Box */}
+                  <div className="relative group shrink-0">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-4 border-emerald-400 bg-white shadow-md flex items-center justify-center">
+                      {formData.photoUrl ? (
+                        <img
+                          src={formData.photoUrl}
+                          alt={formData.nameBn || 'শিক্ষার্থীর ছবি'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 p-2 text-center">
+                          <Camera className="w-8 h-8 text-slate-300 mb-1" />
+                          <span className="text-[10px] font-bold text-slate-500">ছবি নেই</span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1.5 -right-1.5 p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md cursor-pointer transition-transform hover:scale-105"
+                      title="ডিভাইস থেকে ছবি পরিবর্তন করুন"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Upload Controls & Presets */}
+                  <div className="flex-1 space-y-2 w-full text-left">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handlePhotoFileUpload}
+                      className="hidden"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>ডিভাইস থেকে ছবি নির্বাচন করুন</span>
+                      </button>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        (সর্বোচ্চ ৫ মেগাবাইট)
+                      </span>
+                    </div>
+
+                    {/* Presets */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-600 block">অথবা ডেমো ছবি সিলেক্ট করুন:</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {SAMPLE_STUDENT_AVATARS.map((av, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, photoUrl: av.url })}
+                            className={`p-0.5 rounded-xl border-2 transition-transform hover:scale-105 cursor-pointer ${
+                              formData.photoUrl === av.url ? 'border-emerald-600 ring-2 ring-emerald-200' : 'border-slate-200 hover:border-emerald-400'
+                            }`}
+                            title={av.label}
+                          >
+                            <img
+                              src={av.url}
+                              alt={av.label}
+                              className="w-8 h-8 rounded-lg object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* URL Option */}
+                    <div>
+                      <input
+                        type="url"
+                        value={formData.photoUrl}
+                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                        placeholder="অথবা সরাসরি ছবির ওয়েব লিঙ্ক (URL) দিন..."
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-700 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. ACADEMIC INFORMATION */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">ভর্তি ইচ্ছুক শ্রেণি *</label>
+                  <label className="font-bold text-slate-700 block mb-1">শ্রেণি *</label>
                   <select
                     value={formData.className}
                     onChange={(e) => setFormData({ ...formData, className: e.target.value as SchoolClass })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
                   >
                     <option value="HateKhori">১. হাতেখড়ি (Pre-Play) — ২.৫+ বছর</option>
                     <option value="Play">২. প্লে (Play) — ৩+ বছর</option>
@@ -1253,33 +1438,45 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     type="text"
                     value={formData.section}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    placeholder="e.g. A"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
                   />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">শিফট (Shift)</label>
+                  <select
+                    value={formData.shift}
+                    onChange={(e) => setFormData({ ...formData, shift: e.target.value as SchoolShift })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  >
+                    <option value="morning">মর্নিং শিফট (০৮:০০ - ১১:০০)</option>
+                    <option value="day">ডে শিফট (১১:০০ - ০২:০০)</option>
+                  </select>
                 </div>
 
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">রোল নম্বর *</label>
                   <input
                     type="text"
+                    required
                     value={formData.rollNo}
                     onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                    placeholder="যেমন: 05"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
                   />
                 </div>
               </div>
 
+              {/* 3. PERSONAL INFORMATION */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">শিক্ষার্থীর নাম (বাংলায়) *</label>
                   <input
                     type="text"
+                    required
                     value={formData.nameBn}
                     onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
                     placeholder="যেমন: তাওসিফ আহমেদ আরিয়ান"
-                    required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
                   />
                 </div>
 
@@ -1290,18 +1487,18 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     value={formData.nameEn}
                     onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
                     placeholder="e.g. Tawsif Ahmed Aryan"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">লিঙ্গ</label>
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'male' | 'female' })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold"
                   >
                     <option value="male">ছেলে (Boy)</option>
                     <option value="female">মেয়ে (Girl)</option>
@@ -1314,7 +1511,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     type="date"
                     value={formData.birthDate}
                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
                   />
                 </div>
 
@@ -1323,7 +1520,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   <select
                     value={formData.bloodGroup}
                     onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800"
                   >
                     <option value="A+">A+</option>
                     <option value="A-">A-</option>
@@ -1335,11 +1532,25 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     <option value="AB-">AB-</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">উপস্থিতি স্ট্যাটাস</label>
+                  <select
+                    value={formData.currentStatus}
+                    onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold"
+                  >
+                    <option value="in_class">শ্রেণিকক্ষে উপস্থিত</option>
+                    <option value="picked_up">ছুটিপ্রাপ্ত (Picked Up)</option>
+                    <option value="absent">অনুপস্থিত</option>
+                  </select>
+                </div>
               </div>
 
+              {/* 4. GUARDIAN & CONTACT DETAILS */}
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <span className="font-black text-slate-800 uppercase tracking-wider text-[10px] block">
-                  অভিভাবকের তথ্য ও জরুরি যোগাযোগ
+                  অভিভাবকের তথ্য ও যোগাযোগ
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1368,9 +1579,10 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">জরুরি যোগাযোগের মোবাইল নম্বর *</label>
+                    <label className="font-bold text-slate-700 block mb-1">জরুরি মোবাইল নম্বর *</label>
                     <input
                       type="text"
+                      required
                       value={formData.emergencyPhone}
                       onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
                       placeholder="যেমন: ০১৯১৪-০৫৭৫১১"
@@ -1379,23 +1591,19 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">প্রধান পিক-আপ অভিভাবকের সম্পর্ক</label>
-                    <select
+                    <label className="font-bold text-slate-700 block mb-1">প্রধান অভিভাবক সম্পর্ক</label>
+                    <input
+                      type="text"
                       value={formData.guardianRelationBn}
                       onChange={(e) => setFormData({ ...formData, guardianRelationBn: e.target.value })}
+                      placeholder="যেমন: বাবা / মা / নানা"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                    >
-                      <option value="বাবা">বাবা (Father)</option>
-                      <option value="মা">মা (Mother)</option>
-                      <option value="দাদা/নানা">দাদা / নানা</option>
-                      <option value="চাচা/মামা">চাচা / মামা</option>
-                      <option value="অনুমোদিত অভিভাবক">অনুমোদিত অভিভাবক</option>
-                    </select>
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">বাসস্থানের বর্তমান ঠিকানা</label>
+                  <label className="font-bold text-slate-700 block mb-1">বর্তমান ঠিকানা</label>
                   <input
                     type="text"
                     value={formData.homeAddressBn}
@@ -1406,9 +1614,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
               </div>
 
-              {/* =============================================================== */}
-              {/* STUDENT / GUARDIAN PORTAL LOGIN ACCOUNT & ROLE SECTION          */}
-              {/* =============================================================== */}
+              {/* 5. PORTAL LOGIN ACCOUNT & ACCESS ROLE */}
               <div className="p-4 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
@@ -1420,7 +1626,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-900/90 leading-relaxed">
-                  শিক্ষার্থী বা অভিভাবকের প্রোফাইল তৈরির সাথে সাথে এই লগইন আইডি, পাসওয়ার্ড ও রোল দিয়ে অ্যাকাউন্ট সক্রিয় হবে।
+                  শিক্ষার্থীর ছবি, আইডি এবং রোলের তথ্য সংরক্ষণ করার সাথে সাথে পোর্টাল অ্যাকাউন্টের সাথে সম্পূর্ণ সিনক্রোনাইজ হয়ে যাবে।
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1479,310 +1685,22 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
               <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingStudent(null);
+                  }}
                   className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                  className={`px-5 py-2.5 text-white font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    editingStudent ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
                 >
                   <Check className="w-4 h-4" />
-                  <span>শিক্ষার্থী সংরক্ষণ করুন</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: EDIT EXISTING STUDENT                                              */}
-      {/* ========================================================================= */}
-      {editingStudent && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setEditingStudent(null)}
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 space-y-5 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-amber-100 text-amber-800 rounded-xl">
-                  <Edit3 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900">
-                    শিক্ষার্থীর তথ্য আপডেট ও পরিবর্তন
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {editingStudent.nameBn} (রোল: {editingStudent.rollNo} · {editingStudent.className})
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingStudent(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 font-bold rounded-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Form Fields */}
-            <form onSubmit={handleSubmitEdit} className="space-y-4 overflow-y-auto flex-1 pr-1 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">শ্রেণি *</label>
-                  <select
-                    value={formData.className}
-                    onChange={(e) => setFormData({ ...formData, className: e.target.value as SchoolClass })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
-                  >
-                    <option value="HateKhori">১. হাতেখড়ি (Pre-Play) — ২.৫+ বছর</option>
-                    <option value="Play">২. প্লে (Play) — ৩+ বছর</option>
-                    <option value="Nursery">৩. নার্সারি (Nursery) — ৪+ বছর</option>
-                    <option value="KG">৪. কেজি (KG) — ৫+ বছর</option>
-                    <option value="Class-1">৫. ওয়ান (Class 1) — ৬+ বছর</option>
-                    <option value="Class-2">৬. টু (Class 2) — ৭+ বছর</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">শাখা (Section)</label>
-                  <input
-                    type="text"
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">রোল নম্বর *</label>
-                  <input
-                    type="text"
-                    value={formData.rollNo}
-                    onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">শিক্ষার্থীর নাম (বাংলায়) *</label>
-                  <input
-                    type="text"
-                    value={formData.nameBn}
-                    onChange={(e) => setFormData({ ...formData, nameBn: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">শিক্ষার্থীর নাম (ইংরেজিতে)</label>
-                  <input
-                    type="text"
-                    value={formData.nameEn}
-                    onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">লাইভ স্ট্যাটাস</label>
-                  <select
-                    value={formData.currentStatus}
-                    onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold"
-                  >
-                    <option value="in_class">শ্রেণিকক্ষে উপস্থিত</option>
-                    <option value="picked_up">ছুটিপ্রাপ্ত (Picked Up)</option>
-                    <option value="absent">অনুপস্থিত</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">জন্ম তারিখ</label>
-                  <input
-                    type="date"
-                    value={formData.birthDate}
-                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
-                  <select
-                    value={formData.bloodGroup}
-                    onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <span className="font-black text-slate-800 uppercase tracking-wider text-[10px] block">
-                  অভিভাবকের তথ্য ও যোগাযোগ
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">পিতার নাম</label>
-                    <input
-                      type="text"
-                      value={formData.fatherNameBn}
-                      onChange={(e) => setFormData({ ...formData, fatherNameBn: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">মাতার নাম</label>
-                    <input
-                      type="text"
-                      value={formData.motherNameBn}
-                      onChange={(e) => setFormData({ ...formData, motherNameBn: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">জরুরি মোবাইল নম্বর *</label>
-                    <input
-                      type="text"
-                      value={formData.emergencyPhone}
-                      onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-700 block mb-1">প্রধান অভিভাবক সম্পর্ক</label>
-                    <input
-                      type="text"
-                      value={formData.guardianRelationBn}
-                      onChange={(e) => setFormData({ ...formData, guardianRelationBn: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">বর্তমান ঠিকানা</label>
-                  <input
-                    type="text"
-                    value={formData.homeAddressBn}
-                    onChange={(e) => setFormData({ ...formData, homeAddressBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                  />
-                </div>
-              </div>
-
-              {/* =============================================================== */}
-              {/* STUDENT / GUARDIAN PORTAL LOGIN ACCOUNT & ROLE SECTION          */}
-              {/* =============================================================== */}
-              <div className="p-4 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 space-y-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                    <span>🔐 পোর্টাল অ্যাকাউন্ট (লগইন আইডি, পাসওয়ার্ড ও রোল নির্ধারণ)</span>
-                  </span>
-                  <span className="text-[10px] font-bold bg-emerald-700 text-white px-2.5 py-0.5 rounded-full">
-                    {getPortalNameForRoleBn(formData.portalRole)}
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-900/90 leading-relaxed">
-                  এই প্রোফাইলের লগইন ইউজার আইডি, পাসওয়ার্ড ও পোর্টাল রোল এখান থেকে সরাসরি পরিবর্তন করা যাবে।
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">লগইন ইউজার আইডি (User ID) *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-mono font-bold text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">লগইন পাসওয়ার্ড (Password) *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-mono font-bold text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">পোর্টাল অ্যাক্সেস রোল (Role) *</label>
-                    <select
-                      value={formData.portalRole}
-                      onChange={(e) =>
-                        setFormData({ ...formData, portalRole: e.target.value as PortalAccountRole })
-                      }
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-bold text-slate-900"
-                    >
-                      <option value="parent">👨‍👧 অভিভাবক / শিক্ষার্থী (Guardian)</option>
-                      <option value="teacher">👩‍🏫 শিক্ষক (Teacher)</option>
-                      <option value="principal">🎓 প্রিন্সিপাল (Principal)</option>
-                      <option value="director">🏛️ পরিচালক (Director)</option>
-                      <option value="gate_security">🛡️ সহায়ক স্টাফ (Support Staff)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-800 block mb-1">ইমেইল (ঐচ্ছিক লগইন)</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="parent@anandapathshala.edu.bd"
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-slate-900"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Footer */}
-              <div className="pt-2 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setEditingStudent(null)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>তথ্য আপডেট করুন</span>
+                  <span>{editingStudent ? 'তথ্য আপডেট করুন' : 'শিক্ষার্থী সংরক্ষণ করুন'}</span>
                 </button>
               </div>
             </form>
