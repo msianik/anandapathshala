@@ -1,28 +1,63 @@
 @echo off
-chcp 65001 > nul
-title আনন্দ পাঠশালা - ZKBio Zlink অটো-সিঙ্ক (RPA)
+setlocal EnableDelayedExpansion
+
+title Anando Pathshala - ZKBio Zlink RPA Auto-Sync
+
 echo ====================================================================
-echo      আনন্দ পাঠশালা (Anando Pathshala) - ZKBio Zlink অটো-সিঙ্ক (RPA)
+echo      Anando Pathshala - ZKBio Zlink Attendance Sync (RPA)
 echo ====================================================================
 echo.
-echo [1/3] পাইথন পরিবেশ যাচাই করা হচ্ছে...
+
+set PY_CMD=
+
+py --version >nul 2>&1
+if not errorlevel 1 (
+    set PY_CMD=py
+    goto FOUND_PY
+)
+
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [!] পাইথন পাওয়া যায়নি! অনুগ্রহ করে Python ইনস্টল করুন (https://www.python.org).
-    echo.
+if not errorlevel 1 (
+    set PY_CMD=python
+    goto FOUND_PY
+)
+
+if exist "%LOCALAPPDATA%\Python\bin\python.exe" (
+    set "PY_CMD=%LOCALAPPDATA%\Python\bin\python.exe"
+    goto FOUND_PY
+)
+
+for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python*") do (
+    if exist "%%D\python.exe" (
+        set "PY_CMD=%%D\python.exe"
+        goto FOUND_PY
+    )
+)
+
+:FOUND_PY
+if "%PY_CMD%"=="" (
+    echo [ERROR] Python not found in PATH or standard directories!
+    echo Please ensure Python is installed and check your PATH.
     pause
-    exit /b
+    exit /b 1
 )
 
-echo [2/3] প্রয়োজনীয় প্যাকেজ (Playwright) যাচাই করা হচ্ছে...
-python -c "import playwright" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [*] Playwright ইনস্টল করা হচ্ছে...
-    pip install playwright
-    playwright install chromium
-)
+echo [1/3] Python Detected: %PY_CMD%
+%PY_CMD% --version
 
-echo [3/3] ZKBio Zlink অটো-সিঙ্ক সার্ভিস চালু হচ্ছে...
 echo.
-python scripts/zlink_automation_scraper.py
+echo [2/3] Checking Playwright library...
+%PY_CMD% -m pip show playwright >nul 2>&1
+if errorlevel 1 (
+    echo [*] Installing Playwright and Chromium browser...
+    %PY_CMD% -m pip install playwright
+    %PY_CMD% -m playwright install chromium
+)
+
+echo.
+echo [3/3] Starting ZKBio Zlink Attendance Scraper...
+echo ====================================================================
+echo.
+%PY_CMD% scripts\zlink_automation_scraper.py
+echo.
 pause

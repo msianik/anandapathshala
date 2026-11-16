@@ -1,0 +1,9 @@
+{
+  "zlink_url": "https://zlink.minervaiot.com",
+  "username": "",
+  "password": "",
+  "company_code": "ANANDO-PATHSHALA-2026",
+  "sync_interval_minutes": 15,
+  "headless": true,
+  "_comment": "এই ফাইলটির অনুকরণে scripts/zlink_config.json তৈরি করে আপনার ইমেইল ও পাসওয়ার্ড প্রদান করুন।"
+}
