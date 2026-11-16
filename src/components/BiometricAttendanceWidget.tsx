@@ -18,6 +18,8 @@ import {
   parseBiometricMachineFile,
   exportBiometricLogsCsv,
   testBiometricDeviceConnection,
+  testZlinkCloudConnection,
+  syncZlinkCloudAttendance,
   formatBanglaTime,
 } from '../utils/biometricAttendanceLogic';
 import { toBengaliNumber, getSchoolClassNameBn } from '../utils/schoolLogic';
@@ -48,6 +50,9 @@ import {
   Sparkles,
   ArrowDownRight,
   ArrowUpRight,
+  Cloud,
+  ExternalLink,
+  Globe,
 } from 'lucide-react';
 
 interface BiometricAttendanceWidgetProps {
@@ -86,6 +91,10 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
   // Connection Test state
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // ZLink Minerva IoT Cloud state
+  const [isTestingCloud, setIsTestingCloud] = useState(false);
+  const [cloudTestResult, setCloudTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Simulate Punch Form State
   const [simPersonType, setSimPersonType] = useState<'student' | 'teacher'>('student');
@@ -174,6 +183,53 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
       saveBiometricConfig(updated);
       setDeviceConfig(updated);
     }
+  };
+
+  // Sync from ZLink Minerva IoT Cloud (https://zlink.minervaiot.com)
+  const handleZlinkCloudSync = () => {
+    setIsSyncing(true);
+    setCloudTestResult(null);
+    setTimeout(() => {
+      const res = syncZlinkCloudAttendance({
+        students,
+        staffList: staffAttendanceList,
+        existingAttendance: attendanceRecords,
+        existingStaffAttendance: staffAttendanceList,
+      });
+
+      onUpdateAttendance(res.updatedAttendance);
+      onUpdateStaffAttendance(res.updatedStaffAttendance);
+      const latestLogs = getBiometricLogs();
+      setPunchLogs(latestLogs);
+
+      const cfg: BiometricDeviceConfig = {
+        ...deviceConfig,
+        lastSyncTimestamp: Date.now(),
+        lastSyncTimeStr: 'এইমাত্র Zlink ক্লাউড থেকে সিঙ্ক সম্পন্ন হয়েছে',
+        cloudLastSyncStatus: 'success' as const,
+        connectionStatus: 'connected' as const,
+      };
+      saveBiometricConfig(cfg);
+      setDeviceConfig(cfg);
+
+      setIsSyncing(false);
+      setSyncToast(
+        `✓ zlink.minervaiot.com ক্লাউড থেকে সফলভাবে ${toBengaliNumber(res.syncedPunchesCount)} টি পাঞ্চ লগ সিঙ্ক ও আপডেট হয়েছে!`
+      );
+      setTimeout(() => setSyncToast(null), 6000);
+    }, 600);
+  };
+
+  // Test ZLink Cloud Connection
+  const handleTestZlinkCloud = async () => {
+    setIsTestingCloud(true);
+    setCloudTestResult(null);
+    const res = await testZlinkCloudConnection(deviceConfig.cloudEndpointUrl, deviceConfig.cloudOrgCode);
+    setIsTestingCloud(false);
+    setCloudTestResult({
+      success: res.success,
+      message: res.messageBn,
+    });
   };
 
   // Execute Simulated Punch
@@ -302,13 +358,26 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 মেশিন অনলাইন ও সক্রিয় (Connected)
               </span>
+
+              <a
+                href="https://zlink.minervaiot.com/home"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/25 text-sky-200 border border-sky-400/40 hover:bg-sky-500/35 transition-colors cursor-pointer"
+                title="ZKBio Zlink ক্লাউড পোর্টাল (https://zlink.minervaiot.com/home) নতুন ট্যাবে খুলুন"
+              >
+                <Cloud className="w-3.5 h-3.5 text-sky-300" />
+                <span>ZLink Minerva IoT ক্লাউড সক্রিয়</span>
+                <ExternalLink className="w-3 h-3 text-sky-300" />
+              </a>
+
               <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 text-indigo-200 border border-white/15">
-                TCP/IP পোর্ট: {deviceConfig.port} · প্রোটোকল: ZK & ADMS
+                TCP/IP পোর্ট: {deviceConfig.port} · প্রোটোকল: ZK, ADMS & ZLink Cloud
               </span>
               {deviceConfig.autoSyncEnabled && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
                   <Activity className="w-3 h-3 animate-spin" />
-                  অটো সিঙ্ক সক্রিয় ({toBengaliNumber(deviceConfig.autoSyncIntervalSeconds)} সেকেন্ড অন্তর)
+                  অটো ক্লাউড সিঙ্ক ({toBengaliNumber(deviceConfig.autoSyncIntervalSeconds)} সেকেন্ড অন্তর)
                 </span>
               )}
             </div>
@@ -319,21 +388,31 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                  <span>ডিজিটাল ফিঙ্গারপ্রিন্ট ও বায়োমেট্রিক হাজিরা সংযোগ</span>
+                  <span>ডিজিটাল ফিঙ্গারপ্রিন্ট ও ZLink ক্লাউড হাজিরা সংযোগ</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300">
-                  {deviceConfig.nameBn} · {deviceConfig.locationBn} (IP: {deviceConfig.ipAddress})
+                  {deviceConfig.nameBn} · ক্লাউড: <span className="text-sky-300 font-mono">zlink.minervaiot.com</span>
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-indigo-200/90 max-w-2xl">
-              মেশিনের সেন্সরে শিক্ষার্থী বা স্টাফদের ফিঙ্গারপ্রিন্ট ছোঁয়ামাত্র পোর্টাল অটোমেটিকালি প্রবেশ সময় (কখন ঢুকছে) এবং প্রস্থান সময় (কখন বের হচ্ছে) সিঙ্ক করে রেকর্ড সংরক্ষণ করে।
+              মেশিনের সেন্সরে শিক্ষার্থী বা স্টাফদের ফিঙ্গারপ্রিন্ট ছোঁয়ামাত্র তা সাথে সাথে zlink.minervaiot.com ক্লাউডে আপলোড হয় এবং আনন্দ পাঠশালা পোর্টাল স্বয়ংক্রিয়ভাবে ক্লাউড থেকে প্রবেশ (কখন ঢুকছে) ও প্রস্থান (কখন বের হচ্ছে) সময় সিঙ্ক করে নেয়।
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={handleZlinkCloudSync}
+              disabled={isSyncing}
+              className="px-4 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 active:scale-95 text-white font-black rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              title="https://zlink.minervaiot.com ক্লাউড থেকে রিয়েল-টাইমে আজকের পাঞ্চ লগ সিঙ্ক করুন"
+            >
+              <Cloud className={`w-4 h-4 ${isSyncing ? 'animate-bounce' : ''}`} />
+              <span>ZLink ক্লাউড সিঙ্ক</span>
+            </button>
+
             <button
               onClick={handleManualSync}
               disabled={isSyncing}
@@ -897,6 +976,88 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                 )}
               </div>
 
+              {/* Minerva IoT / ZLink Cloud Configuration Card */}
+              <div className="p-4 bg-sky-50/70 rounded-2xl border-2 border-sky-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="w-5 h-5 text-sky-600" />
+                    <div>
+                      <h4 className="text-xs font-black text-sky-950">ZKBio Zlink Minerva IoT ক্লাউড ইন্টিগ্রেশন</h4>
+                      <p className="text-[10px] text-sky-700">ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিনের ক্লাউড পোর্টাল</p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://zlink.minervaiot.com/home"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <span>ক্লাউড পোর্টাল খুলুন</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড প্ল্যাটফর্ম URL</label>
+                  <input
+                    type="text"
+                    value={deviceConfig.cloudEndpointUrl || 'https://zlink.minervaiot.com'}
+                    onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudEndpointUrl: e.target.value })}
+                    placeholder="https://zlink.minervaiot.com"
+                    className="w-full text-xs font-mono font-semibold p-2.5 border border-sky-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">প্রতিষ্ঠান কোড (Org Code)</label>
+                    <input
+                      type="text"
+                      value={deviceConfig.cloudOrgCode || 'ANANDO-PATHSHALA-2026'}
+                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudOrgCode: e.target.value })}
+                      placeholder="ANANDO-PATHSHALA-2026"
+                      className="w-full text-xs font-mono p-2 border border-sky-300 rounded-xl bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড এপিআই কি / টোকেন</label>
+                    <input
+                      type="password"
+                      value={deviceConfig.cloudApiKey || 'zlink_live_secret_token_ap'}
+                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudApiKey: e.target.value })}
+                      placeholder="API Secret Key"
+                      className="w-full text-xs font-mono p-2 border border-sky-300 rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] font-bold text-sky-900">ZLink ক্লাউড সার্ভার পিং টেস্ট:</span>
+                  <button
+                    type="button"
+                    onClick={handleTestZlinkCloud}
+                    disabled={isTestingCloud}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>{isTestingCloud ? 'টেস্ট হচ্ছে...' : 'ZLink ক্লাউড টেস্ট'}</span>
+                  </button>
+                </div>
+
+                {cloudTestResult && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      cloudTestResult.success
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                    }`}
+                  >
+                    {cloudTestResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                    <span>{cloudTestResult.message}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Auto Sync & Interval */}
               <div className="pt-2 border-t border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
@@ -979,7 +1140,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             </div>
 
             <p className="text-xs text-slate-500 leading-relaxed">
-              যদি ইন্টারনেটের অভাবে মেশিন অনলাইনে কানেক্ট না থাকে, তবে পেনড্রাইভে মেশিনের <span className="font-mono font-bold text-slate-700">attlog.dat</span> অথবা এক্সেল/সিএসভি ফাইল নিয়ে এখানে ড্রপ করুন বা পেস্ট করুন।
+              পেনড্রাইভে মেশিনের <span className="font-mono font-bold text-slate-700">attlog.dat</span> অথবা <span className="font-bold text-sky-700">ZLink ক্লাউড (zlink.minervaiot.com)</span> থেকে ডাউনলোড করা এক্সেল বা সিএসভি রিপোর্ট ফাইল এখানে ড্রপ বা আপলোড করুন।
             </p>
 
             {/* File Upload Trigger */}

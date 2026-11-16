@@ -477,9 +477,17 @@ export interface BiometricDeviceConfig {
   lastSyncTimeStr?: string;
   autoSyncEnabled: boolean; // অটো সিঙ্ক সক্রিয় আছে কিনা
   autoSyncIntervalSeconds: number; // অটো সিঙ্ক বিরতি (যেমন: ১৫ বা ৩০ সেকেন্ড)
-  protocol: 'zk_tcp' | 'adms_cloud' | 'realtime_push' | 'webhook';
+  protocol: 'zk_tcp' | 'adms_cloud' | 'realtime_push' | 'webhook' | 'zlink_cloud';
   autoSmsAlertEnabled: boolean; // পাঞ্চ করার সাথে সাথে অভিভাবকের ফোনে অ্যালার্ট
   soundAlertEnabled: boolean; // সফল পাঞ্চে অডিও বীপ
+  // Minerva IoT / ZLink Cloud integration settings
+  cloudPlatform: 'zlink_minerva' | 'standalone_tcp' | 'adms_push';
+  cloudEndpointUrl: string; // e.g. "https://zlink.minervaiot.com"
+  cloudOrgCode?: string; // Company / School Org Code in ZLink
+  cloudApiKey?: string; // ZLink Open API Key / Access Token
+  cloudUsername?: string; // ZLink Login Email / Username
+  cloudSyncMode: 'auto_realtime' | 'polling' | 'manual';
+  cloudLastSyncStatus?: 'success' | 'failed' | 'pending';
 }
 
 export interface BiometricPunchLog {

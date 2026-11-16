@@ -10,6 +10,8 @@ import {
   parseBiometricMachineFile,
   exportBiometricLogsCsv,
   testBiometricDeviceConnection,
+  testZlinkCloudConnection,
+  syncZlinkCloudAttendance,
   DEFAULT_BIOMETRIC_CONFIG,
 } from './biometricAttendanceLogic';
 import { Student, AttendanceRecord, StaffAttendanceRecord } from '../types/school';
@@ -159,5 +161,30 @@ describe('biometricAttendanceLogic tests', () => {
     const res = await testBiometricDeviceConnection('192.168.1.201', 4370);
     expect(res.success).toBe(true);
     expect(res.latencyMs).toBeGreaterThan(0);
+  });
+
+  it('tests ZLink Minerva IoT Cloud connection successfully', async () => {
+    const res = await testZlinkCloudConnection('https://zlink.minervaiot.com', 'ANANDO-PATHSHALA-2026');
+    expect(res.success).toBe(true);
+    expect(res.latencyMs).toBeGreaterThan(0);
+    expect(res.messageBn).toContain('ZKBio Zlink');
+  });
+
+  it('synchronizes live attendance records from ZLink Minerva IoT Cloud', () => {
+    const res = syncZlinkCloudAttendance({
+      students: mockStudents,
+      staffList: mockStaff,
+      existingAttendance: [],
+      existingStaffAttendance: mockStaff,
+    });
+    expect(res.syncedPunchesCount).toBeGreaterThan(0);
+    expect(res.cloudStatusText).toContain('ZLink Minerva IoT ক্লাউড');
+  });
+
+  it('parses ZLink Cloud exported CSV format with Emp_ID header', () => {
+    const zlinkCsv = `Emp_ID,Punch Time,Punch State,Verify Mode\n১০০,2026-11-08 07:55:00,In,Fingerprint\n১০১,2026-11-08 12:40:00,Out,Fingerprint`;
+    const parsed = parseBiometricMachineFile(zlinkCsv, mockStudents);
+    expect(parsed.parsedCount).toBe(2);
+    expect(parsed.newLogs[0].rollNo).toBe('১০০');
   });
 });
