@@ -969,6 +969,52 @@ export function syncZlinkCloudAttendance({
 }
 
 /**
+ * Asynchronously fetch and synchronize live daily attendance records from ZLink Minerva IoT Cloud or local RPA synced logs
+ */
+export async function syncZlinkCloudAttendanceAsync({
+  students,
+  staffList,
+  existingAttendance,
+  existingStaffAttendance,
+}: {
+  students: Student[];
+  staffList: StaffAttendanceRecord[];
+  existingAttendance: AttendanceRecord[];
+  existingStaffAttendance: StaffAttendanceRecord[];
+}): Promise<{
+  updatedAttendance: AttendanceRecord[];
+  updatedStaffAttendance: StaffAttendanceRecord[];
+  syncedPunchesCount: number;
+  newPunchesCount: number;
+  cloudStatusText: string;
+}> {
+  try {
+    const res = await fetch(`/attendance_synced_logs.json?t=${Date.now()}`);
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parseBiometricMachineFile(text, students);
+      if (parsed.newLogs && parsed.newLogs.length > 0) {
+        const existingLogs = getBiometricLogs();
+        const existingKeys = new Set(existingLogs.map((l) => `${l.personId}_${l.timestamp}_${l.punchType}`));
+        const toAdd = parsed.newLogs.filter((l) => !existingKeys.has(`${l.personId}_${l.timestamp}_${l.punchType}`));
+        if (toAdd.length > 0) {
+          saveBiometricLogs([...toAdd, ...existingLogs]);
+        }
+      }
+    }
+  } catch {
+    // Non-blocking in case file doesn't exist yet
+  }
+
+  return syncZlinkCloudAttendance({
+    students,
+    staffList,
+    existingAttendance,
+    existingStaffAttendance,
+  });
+}
+
+/**
  * Simulate receiving an instant incoming punch webhook payload from ZKBio Zlink Minerva IoT Cloud
  */
 export function simulateZlinkWebhookPush({

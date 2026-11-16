@@ -1,0 +1,9 @@
+{
+  "zlink_url": "https://zlink.minervaiot.com",
+  "username": "",
+  "password": "",
+  "company_code": "ANANDO-PATHSHALA-2026",
+  "sync_interval_minutes": 15,
+  "headless": true,
+  "_comment": "username এবং password ফিল্ডে আপনার Zlink লগইন তথ্য দিয়ে সেভ করুন। এরপর start-zlink-sync.bat চালান।"
+}

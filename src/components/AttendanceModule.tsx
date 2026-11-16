@@ -69,6 +69,7 @@ import { BiometricConfigModal } from './BiometricConfigModal';
 import { 
   syncBiometricAttendanceData, 
   syncZlinkCloudAttendance, 
+  syncZlinkCloudAttendanceAsync,
   getBiometricConfig, 
   BiometricDeviceConfig 
 } from '../utils/biometricAttendanceLogic';
@@ -145,19 +146,20 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     const timer = setInterval(() => {
       setSecondsUntilNextSync((prev) => {
         if (prev <= 1) {
-          // Trigger Auto-sync from ZLink Cloud
-          const result = syncZlinkCloudAttendance({
+          // Trigger Auto-sync from ZLink Cloud & local RPA logs
+          syncZlinkCloudAttendanceAsync({
             students,
             staffList: staffAttendanceList,
             existingAttendance: attendanceRecords,
             existingStaffAttendance: staffAttendanceList,
-          });
+          }).then((result) => {
+            onUpdateAttendance(result.updatedAttendance);
+            setStaffAttendanceList(result.updatedStaffAttendance);
+            const freshCfg = getBiometricConfig();
+            setDeviceConfig({ ...freshCfg });
+          }).catch(() => {});
 
-          onUpdateAttendance(result.updatedAttendance);
-          setStaffAttendanceList(result.updatedStaffAttendance);
           const freshCfg = getBiometricConfig();
-          setDeviceConfig({ ...freshCfg });
-
           return freshCfg.autoSyncIntervalSeconds || 30;
         }
         return prev - 1;
@@ -168,10 +170,10 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   }, [deviceConfig.autoSyncEnabled, deviceConfig.autoSyncIntervalSeconds, students, attendanceRecords, staffAttendanceList]);
 
   // Quick ZLink Cloud Sync handler (ZLink ক্লাউড সিঙ্ক বাটন)
-  const handleQuickZlinkCloudSync = () => {
+  const handleQuickZlinkCloudSync = async () => {
     setIsCloudSyncing(true);
-    setTimeout(() => {
-      const res = syncZlinkCloudAttendance({
+    try {
+      const res = await syncZlinkCloudAttendanceAsync({
         students,
         staffList: staffAttendanceList,
         existingAttendance: attendanceRecords,
@@ -181,13 +183,16 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       setStaffAttendanceList(res.updatedStaffAttendance);
       const freshCfg = getBiometricConfig();
       setDeviceConfig({ ...freshCfg });
-      setIsCloudSyncing(false);
       setSecondsUntilNextSync(freshCfg.autoSyncIntervalSeconds || 30);
       setAlertSuccessBanner(
         `✓ ZLink ক্লাউড (zlink.minervaiot.com) থেকে ${toBengaliNumber(res.syncedPunchesCount)} টি পাঞ্চ লগ সফলভাবে সিঙ্ক ও আপডেট হয়েছে!`
       );
       setTimeout(() => setAlertSuccessBanner(null), 6000);
-    }, 500);
+    } catch {
+      // Fallback
+    } finally {
+      setIsCloudSyncing(false);
+    }
   };
 
   // Quick Biometric Sync handler
