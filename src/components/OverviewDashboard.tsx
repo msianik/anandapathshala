@@ -1127,6 +1127,9 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       <SuperAdminAccessPanel
         isSuperAdmin={isSuperAdmin}
         directorPermissions={directorPermissions}
+        students={students}
+        teachersList={teachersList}
+        directorsList={directorsList}
         onToggleMasterEdit={handleToggleDirectorEditAccess}
         onToggleEditPermission={(directorId, permKey) =>
           handleToggleDirectorPermission(directorId, permKey)

@@ -518,6 +518,34 @@ test('Super Admin User Management: create, access toggle, update, and delete acc
   assert.ok(superAdminAcc);
   const deleteSuperAdminResult = deletePortalUserAccount(superAdminAcc.id);
   assert.equal(deleteSuperAdminResult, false);
+
+  // 6. Create teacher without assigned class (multi-class / optional class support)
+  const multiClassTeacher = createPortalUserAccount({
+    nameBn: 'মাহমুদা হক',
+    nameEn: 'Mahmuda Haque',
+    role: 'teacher',
+    phone: '01711223344',
+    username: 'tch_mahmuda',
+    passwordHint: '654321',
+    // assignedClass left undefined (optional for multi-class teachers)
+  });
+  assert.equal(multiClassTeacher.assignedClass, undefined);
+  assert.equal(multiClassTeacher.role, 'teacher');
+
+  // 7. Create parent user linked to student
+  const parentAccount = createPortalUserAccount({
+    nameBn: 'মো. শফিকুল ইসলাম',
+    nameEn: 'Md Shafiqul Islam',
+    role: 'parent',
+    phone: '01711002233',
+    username: 'parent_std100',
+    passwordHint: '123456',
+    studentId: 'std-0',
+    assignedClass: 'HateKhori',
+  });
+  assert.equal(parentAccount.studentId, 'std-0');
+  assert.equal(parentAccount.assignedClass, 'HateKhori');
+  assert.equal(parentAccount.role, 'parent');
 });
 
 

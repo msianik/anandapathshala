@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldCheck,
   Building2,
@@ -31,6 +31,7 @@ import {
   ChevronUp,
   Camera,
   Upload,
+  Link2,
 } from 'lucide-react';
 import {
   DirectorAccessPermission,
@@ -38,6 +39,9 @@ import {
   PortalAccountRole,
   SchoolClass,
   UserRole,
+  Student,
+  TeacherMember,
+  CommitteeDirector,
 } from '../../types/school';
 import {
   getAllPortalAccounts,
@@ -50,8 +54,14 @@ import {
   saveDirectorPermissions,
   toBengaliNumber,
   getPortalRoleLabelBn,
+  getSchoolClassNameBn,
   normalizeIdentifier,
 } from '../../utils/schoolLogic';
+import {
+  INITIAL_STUDENTS,
+  SCHOOL_TEACHERS,
+  MANAGEMENT_COMMITTEE,
+} from '../../data/mockData';
 
 export interface SuperAdminAccessPanelProps {
   isSuperAdmin: boolean;
@@ -73,6 +83,9 @@ export interface SuperAdminAccessPanelProps {
   onToggleEditAccess?: (directorId: string) => void;
   onToggleModule?: (directorId: string, moduleId: string) => void;
   onSetAllAccess?: (enable: boolean) => void;
+  students?: Student[];
+  teachersList?: TeacherMember[];
+  directorsList?: CommitteeDirector[];
 }
 
 type UserCategoryFilter = 'all' | 'director' | 'principal' | 'teacher' | 'staff' | 'parent';
@@ -80,6 +93,9 @@ type UserCategoryFilter = 'all' | 'director' | 'principal' | 'teacher' | 'staff'
 export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   isSuperAdmin,
   directorPermissions,
+  students: propStudents,
+  teachersList: propTeachers,
+  directorsList: propDirectors,
   onToggleMasterEdit,
   onToggleEditPermission,
   onSetAllEditAccess,
@@ -94,6 +110,43 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [panelToast, setPanelToast] = useState<string | null>(null);
+
+  // Available live profiles for quick linking
+  const availableStudents = useMemo<Student[]>(() => {
+    if (propStudents && propStudents.length > 0) return propStudents;
+    try {
+      const raw = localStorage.getItem('ananda_students_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_STUDENTS;
+  }, [propStudents]);
+
+  const availableTeachers = useMemo<TeacherMember[]>(() => {
+    if (propTeachers && propTeachers.length > 0) return propTeachers;
+    try {
+      const raw = localStorage.getItem('ananda_school_teachers_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return SCHOOL_TEACHERS;
+  }, [propTeachers]);
+
+  const availableDirectors = useMemo<CommitteeDirector[]>(() => {
+    if (propDirectors && propDirectors.length > 0) return propDirectors;
+    try {
+      const raw = localStorage.getItem('ananda_management_directors_v10');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return MANAGEMENT_COMMITTEE;
+  }, [propDirectors]);
 
   // Expandable dropdown state (defaults to false so the overview dashboard stays compact)
   const [isExpanded, setIsExpanded] = useState<boolean>(() => {
@@ -128,10 +181,98 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRoleTitleBn, setNewRoleTitleBn] = useState('');
-  const [newAssignedClass, setNewAssignedClass] = useState<SchoolClass>('Nursery');
+  const [newAssignedClass, setNewAssignedClass] = useState<SchoolClass | ''>('');
   const [newCanFullEdit, setNewCanFullEdit] = useState(false);
   const [newAvatarUrl, setNewAvatarUrl] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Pre-existing profile linker state
+  const [selectedLinkedProfileId, setSelectedLinkedProfileId] = useState<string>('');
+  const [linkedProfileNote, setLinkedProfileNote] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  // Quick link handler when picking from pre-existing profiles
+  const handleSelectProfileToLink = (profileId: string) => {
+    setSelectedLinkedProfileId(profileId);
+    if (!profileId) {
+      setLinkedProfileNote(null);
+      return;
+    }
+
+    if (newRole === 'teacher' || newRole === 'principal') {
+      const tch = availableTeachers.find((t) => t.id === profileId);
+      if (tch) {
+        setNewNameBn(tch.nameBn);
+        setNewNameEn(tch.nameEn || '');
+        setNewPhone(tch.phone || '');
+        setNewEmail(tch.email || '');
+        setNewRoleTitleBn(
+          tch.designationBn || (newRole === 'principal' ? 'প্রিন্সিপাল ও একাডেমিক প্রধান' : 'সহকারী শিক্ষক')
+        );
+        setNewAvatarUrl(tch.photoUrl || '');
+        const cleanUser = tch.username || tch.id.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        setNewUsername(cleanUser);
+        setNewPassword(tch.password || '123456');
+        setNewAssignedClass(tch.assignedClass || '');
+        setLinkedProfileNote(
+          `✓ শিক্ষক "${tch.nameBn}" (${tch.designationBn})-এর প্রোফাইল সফলভাবে লিঙ্ক করা হয়েছে!`
+        );
+      }
+    } else if (newRole === 'parent') {
+      const std = availableStudents.find((s) => s.id === profileId);
+      if (std) {
+        const guardianName = std.guardianNameBn || `${std.nameBn}-এর অভিভাবক`;
+        const guardianPhone = std.emergencyPhone || std.guardianPhone || '';
+        setNewNameBn(guardianName);
+        setNewNameEn(std.guardianNameEn || std.nameEn || '');
+        setNewPhone(guardianPhone);
+        setNewEmail('');
+        setNewRoleTitleBn(`${std.nameBn}-এর প্রধান অভিভাবক`);
+        setNewAvatarUrl(std.photoUrl || '');
+        const cleanUser = `parent_std${std.rollNo || std.id.replace(/[^0-9]/g, '')}`;
+        setNewUsername(cleanUser);
+        setNewPassword('123456');
+        setNewAssignedClass(std.className);
+        setSelectedStudentId(std.id);
+        setLinkedProfileNote(
+          `✓ শিক্ষার্থী "${std.nameBn}" (রোল ${toBengaliNumber(std.rollNo)}, শ্রেণি: ${getSchoolClassNameBn(
+            std.className
+          )})-এর সাথে অভিভাবক অ্যাকাউন্ট লিঙ্ক করা হয়েছে!`
+        );
+      }
+    } else if (newRole === 'accountant' || newRole === 'gate_security') {
+      const staff = availableTeachers.find((t) => t.id === profileId);
+      if (staff) {
+        setNewNameBn(staff.nameBn);
+        setNewNameEn(staff.nameEn || '');
+        setNewPhone(staff.phone || '');
+        setNewEmail(staff.email || '');
+        setNewRoleTitleBn(staff.designationBn || (newRole === 'accountant' ? 'হিসাবরক্ষণ কর্মকর্তা' : 'সহায়ক স্টাফ'));
+        setNewAvatarUrl(staff.photoUrl || '');
+        const cleanUser = staff.username || staff.id.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        setNewUsername(cleanUser);
+        setNewPassword(staff.password || '123456');
+        setNewAssignedClass('');
+        setLinkedProfileNote(`✓ স্টাফ "${staff.nameBn}" (${staff.designationBn})-এর প্রোফাইল লিঙ্ক করা হয়েছে!`);
+      }
+    } else if (newRole === 'director') {
+      const dir = availableDirectors.find((d) => d.id === profileId);
+      if (dir) {
+        setNewNameBn(dir.nameBn);
+        setNewNameEn(dir.nameEn || '');
+        setNewPhone(dir.phone || '');
+        setNewEmail(dir.email || '');
+        setNewRoleTitleBn(dir.roleTitleBn || 'সম্মানিত পরিচালক, পরিচালনা পর্ষদ');
+        setNewAvatarUrl(dir.photoUrl || '');
+        const cleanUser = dir.username || dir.id.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        setNewUsername(cleanUser);
+        setNewPassword('123456');
+        setNewAssignedClass('');
+        setNewCanFullEdit(true);
+        setLinkedProfileNote(`✓ পরিচালনা পর্ষদের সদস্য "${dir.nameBn}"-এর প্রোফাইল লিঙ্ক করা হয়েছে!`);
+      }
+    }
+  };
 
   const handleUserPhotoUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -258,9 +399,12 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         ? 'প্রিন্সিপাল ও একাডেমিক প্রধান'
         : 'অভিভাবক'
     );
-    setNewAssignedClass('Nursery');
+    setNewAssignedClass('');
     setNewCanFullEdit(defaultRole === 'director');
     setNewAvatarUrl('');
+    setSelectedLinkedProfileId('');
+    setLinkedProfileNote(null);
+    setSelectedStudentId(null);
     setFormError(null);
     setIsAddModalOpen(true);
   };
@@ -302,7 +446,11 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         username: cleanUser,
         passwordHint: newPassword.trim(),
         avatarUrl: newAvatarUrl.trim() || undefined,
-        assignedClass: newRole === 'teacher' || newRole === 'parent' ? newAssignedClass : undefined,
+        assignedClass:
+          (newRole === 'teacher' || newRole === 'parent') && newAssignedClass
+            ? (newAssignedClass as SchoolClass)
+            : undefined,
+        studentId: selectedStudentId || undefined,
         canFullEdit: newRole === 'director' ? newCanFullEdit : undefined,
       });
 
@@ -955,6 +1103,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                       type="button"
                       onClick={() => {
                         setNewRole(r.role);
+                        setSelectedLinkedProfileId('');
+                        setLinkedProfileNote(null);
+                        setSelectedStudentId(null);
+                        setNewAssignedClass('');
                         setNewRoleTitleBn(
                           r.role === 'director'
                             ? 'সম্মানিত পরিচালক, পরিচালনা পর্ষদ'
@@ -979,6 +1131,82 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* PRE-EXISTING PROFILE LINKER (পূর্বনির্ধারিত প্রোফাইল থেকে লিংক করার ড্রপডাউন) */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-sky-50 to-indigo-50 border-2 border-indigo-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <Link2 className="w-4 h-4 text-indigo-600" />
+                    <span>পূর্বনির্ধারিত প্রোফাইল থেকে লিঙ্ক করুন:</span>
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    অটো-ফিল ড্রপডাউন
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600">
+                  {newRole === 'teacher' || newRole === 'principal'
+                    ? 'নিয়োগকৃত শিক্ষক/প্রিন্সিপাল তালিকা থেকে সিলেক্ট করলে নাম, মোবাইল, ছবি ও ইউজার আইডি স্বয়ংক্রিয়ভাবে পূরণ হয়ে যাবে।'
+                    : newRole === 'parent'
+                    ? 'অনুমোদিত শিক্ষার্থী তালিকা থেকে সিলেক্ট করলে শিক্ষার্থীর নাম, রোল ও অভিভাবকের তথ্য স্বয়ংক্রিয়ভাবে লিঙ্ক হবে।'
+                    : newRole === 'accountant' || newRole === 'gate_security'
+                    ? 'নিয়োগকৃত স্টাফ তালিকা থেকে সিলেক্ট করে লিঙ্ক করুন।'
+                    : 'পরিচালনা পর্ষদের পরিচালক তালিকা থেকে সিলেক্ট করুন।'}
+                </p>
+
+                <select
+                  value={selectedLinkedProfileId}
+                  onChange={(e) => handleSelectProfileToLink(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-indigo-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+                >
+                  <option value="">
+                    -- {newRole === 'teacher'
+                      ? 'নিয়োগকৃত শিক্ষক নির্বাচন করুন (বা নিজে টাইপ করুন)'
+                      : newRole === 'principal'
+                      ? 'প্রিন্সিপাল প্রোফাইল নির্বাচন করুন'
+                      : newRole === 'parent'
+                      ? 'অনুমোদিত শিক্ষার্থী ও অভিভাবক নির্বাচন করুন'
+                      : newRole === 'director'
+                      ? 'পরিচালনা পর্ষদের সম্মানিত পরিচালক নির্বাচন করুন'
+                      : 'স্টাফ প্রোফাইল নির্বাচন করুন'} --
+                  </option>
+                  {(newRole === 'teacher' || newRole === 'principal') &&
+                    availableTeachers.map((tch) => (
+                      <option key={tch.id} value={tch.id}>
+                        {tch.nameBn} ({tch.designationBn}) — মোবাইল: {tch.phone} {tch.assignedClass ? `[${tch.assignedClass}]` : ''}
+                      </option>
+                    ))}
+                  {newRole === 'parent' &&
+                    availableStudents.map((std) => (
+                      <option key={std.id} value={std.id}>
+                        রোল {toBengaliNumber(std.rollNo)}: {std.nameBn} ({getSchoolClassNameBn(std.className)}) — অভিভাবক: {std.guardianNameBn || std.nameBn} ({std.emergencyPhone || std.guardianPhone || 'মোবাইল নেই'})
+                      </option>
+                    ))}
+                  {(newRole === 'accountant' || newRole === 'gate_security') &&
+                    availableTeachers
+                      .filter((t) => t.staffCategory === 'support_staff' || t.designationBn.includes('স্টাফ') || t.designationBn.includes('সিকিউরিটি') || t.designationBn.includes('হিসাব'))
+                      .concat(availableTeachers)
+                      .filter((t, idx, arr) => arr.findIndex((x) => x.id === t.id) === idx)
+                      .map((stf) => (
+                        <option key={stf.id} value={stf.id}>
+                          {stf.nameBn} ({stf.designationBn}) — মোবাইল: {stf.phone}
+                        </option>
+                      ))}
+                  {newRole === 'director' &&
+                    availableDirectors.map((dir) => (
+                      <option key={dir.id} value={dir.id}>
+                        {dir.nameBn} ({dir.roleTitleBn}) — মোবাইল: {dir.phone}
+                      </option>
+                    ))}
+                </select>
+
+                {linkedProfileNote && (
+                  <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-700" />
+                    <span>{linkedProfileNote}</span>
+                  </div>
+                )}
               </div>
 
               {/* Profile Photo */}
@@ -1139,13 +1367,20 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 {(newRole === 'teacher' || newRole === 'parent') && (
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      নির্ধারিত শ্রেণি
+                      {newRole === 'teacher'
+                        ? 'নির্ধারিত শ্রেণি (ঐচ্ছিক — একাধিক শ্রেণির জন্য খালি রাখুন)'
+                        : 'শিক্ষার্থীর শ্রেণি'}
                     </label>
                     <select
                       value={newAssignedClass}
-                      onChange={(e) => setNewAssignedClass(e.target.value as SchoolClass)}
+                      onChange={(e) => setNewAssignedClass(e.target.value as SchoolClass | '')}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
                     >
+                      <option value="">
+                        {newRole === 'teacher'
+                          ? 'সকল শ্রেণি / একাধিক শ্রেণি (ঐচ্ছিক)'
+                          : '-- শ্রেণি নির্বাচন করুন --'}
+                      </option>
                       <option value="HateKhori">১. হাতেখড়ি</option>
                       <option value="Play">২. প্লে</option>
                       <option value="Nursery">৩. নার্সারি</option>
@@ -1153,6 +1388,11 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                       <option value="Class_1">৫. ১ম শ্রেণি</option>
                       <option value="Class_2">৬. ২য় শ্রেণি</option>
                     </select>
+                    {newRole === 'teacher' && (
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        💡 শিক্ষক যদি একাধিক শ্রেণিতে পাঠদান করেন, তবে কোনো শ্রেণি সিলেক্ট করার প্রয়োজন নেই।
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -1386,6 +1626,43 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
+
+              {(editingAccount.role === 'teacher' || editingAccount.role === 'parent') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    {editingAccount.role === 'teacher'
+                      ? 'নির্ধারিত শ্রেণি (ঐচ্ছিক — একাধিক শ্রেণির জন্য খালি রাখুন)'
+                      : 'শিক্ষার্থীর শ্রেণি'}
+                  </label>
+                  <select
+                    value={editingAccount.assignedClass || ''}
+                    onChange={(e) =>
+                      setEditingAccount({
+                        ...editingAccount,
+                        assignedClass: e.target.value ? (e.target.value as SchoolClass) : undefined,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
+                  >
+                    <option value="">
+                      {editingAccount.role === 'teacher'
+                        ? 'সকল শ্রেণি / একাধিক শ্রেণি (ঐচ্ছিক)'
+                        : '-- শ্রেণি নির্বাচন করুন --'}
+                    </option>
+                    <option value="HateKhori">১. হাতেখড়ি</option>
+                    <option value="Play">২. প্লে</option>
+                    <option value="Nursery">৩. নার্সারি</option>
+                    <option value="KG">৪. কেজি</option>
+                    <option value="Class_1">৫. ১ম শ্রেণি</option>
+                    <option value="Class_2">৬. ২য় শ্রেণি</option>
+                  </select>
+                  {editingAccount.role === 'teacher' && (
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      💡 শিক্ষক একাধিক শ্রেণিতে পাঠদান করলে এটি খালি রাখুন।
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Access Active / Disable switch */}
               {editingAccount.role !== 'super_admin' && (

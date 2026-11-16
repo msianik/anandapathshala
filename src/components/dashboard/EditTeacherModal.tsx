@@ -46,7 +46,7 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
   const [teacherFormPhone, setTeacherFormPhone] = useState('');
   const [teacherFormEmail, setTeacherFormEmail] = useState('');
   const [teacherFormAssignedClass, setTeacherFormAssignedClass] =
-    useState<SchoolClass>('Nursery');
+    useState<SchoolClass | ''>('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,7 +61,7 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
         setTeacherFormStaffCategory('support_staff');
         setTeacherFormPortalRole('gate_security');
         setTeacherFormUsername(`staff${teachersCount + 1}`);
-        setTeacherFormAssignedClass('HateKhori');
+        setTeacherFormAssignedClass('');
       } else {
         setTeacherFormDesignationBn('সহকারী শিক্ষক (Teacher)');
         setTeacherFormDepartmentBn('প্লে ও নার্সারি শাখা');
@@ -69,7 +69,7 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
         setTeacherFormStaffCategory('teacher');
         setTeacherFormPortalRole('teacher');
         setTeacherFormUsername(`teacher${teachersCount + 1}`);
-        setTeacherFormAssignedClass('Nursery');
+        setTeacherFormAssignedClass('');
       }
       setTeacherFormPassword('123456');
       setTeacherFormPhone('');
@@ -107,7 +107,7 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
       setTeacherFormEmail(
         teacher.email || `${teacher.username || teacher.id}@anandapathshala.edu.bd`
       );
-      setTeacherFormAssignedClass(teacher.assignedClass || 'Nursery');
+      setTeacherFormAssignedClass(teacher.assignedClass || '');
     }
   }, [isOpen, isAddingNew, teacher, initialStaffCategory, teachersCount]);
 
@@ -159,7 +159,7 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
       email:
         teacherFormEmail.trim() ||
         `${cleanUsername}@anandapathshala.edu.bd`,
-      assignedClass: teacherFormAssignedClass,
+      assignedClass: teacherFormAssignedClass ? (teacherFormAssignedClass as SchoolClass) : undefined,
     };
 
     onSave(teacherData, isAddingNew);
@@ -326,14 +326,15 @@ export const EditTeacherModal: React.FC<EditTeacherModalProps> = ({
               />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-slate-700 block">নির্ধারিত শ্রেণি (Class)</label>
+              <label className="font-bold text-slate-700 block">নির্ধারিত শ্রেণি (ঐচ্ছিক / একাধিক শ্রেণি)</label>
               <select
-                value={teacherFormAssignedClass}
+                value={teacherFormAssignedClass || ''}
                 onChange={(e) =>
-                  setTeacherFormAssignedClass(e.target.value as SchoolClass)
+                  setTeacherFormAssignedClass(e.target.value as SchoolClass | '')
                 }
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 font-semibold"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 font-semibold cursor-pointer"
               >
+                <option value="">সকল শ্রেণি / একাধিক শ্রেণি (ঐচ্ছিক)</option>
                 {ALL_SCHOOL_CLASSES.map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     {cls.nameBn}
