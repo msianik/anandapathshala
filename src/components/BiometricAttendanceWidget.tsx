@@ -20,6 +20,8 @@ import {
   testBiometricDeviceConnection,
   testZlinkCloudConnection,
   syncZlinkCloudAttendance,
+  simulateZlinkWebhookPush,
+  getCloudIntakeMethodDetails,
   formatBanglaTime,
 } from '../utils/biometricAttendanceLogic';
 import { toBengaliNumber, getSchoolClassNameBn } from '../utils/schoolLogic';
@@ -57,6 +59,15 @@ import {
   BookOpen,
   Cpu,
   CheckCheck,
+  Copy,
+  Check,
+  Zap,
+  Radio,
+  Timer,
+  ChevronDown,
+  ChevronUp,
+  Send,
+  Calendar,
 } from 'lucide-react';
 
 interface BiometricAttendanceWidgetProps {
@@ -111,34 +122,82 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
   const [importFeedback, setImportFeedback] = useState<{ count: number; errors: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-sync interval listener
-  useEffect(() => {
-    if (!deviceConfig.autoSyncEnabled) return;
+  // Cloud Intake & Countdown State
+  const [secondsUntilNextSync, setSecondsUntilNextSync] = useState<number>(deviceConfig.autoSyncIntervalSeconds || 30);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [showCloudIntakeDetails, setShowCloudIntakeDetails] = useState(true);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
 
-    const intervalMs = Math.max(10, deviceConfig.autoSyncIntervalSeconds) * 1000;
+  // 1-second countdown and background auto-sync runner
+  useEffect(() => {
+    if (!deviceConfig.autoSyncEnabled) {
+      setSecondsUntilNextSync(deviceConfig.autoSyncIntervalSeconds || 30);
+      return;
+    }
+
     const timer = setInterval(() => {
-      // Background auto-sync
-      const result = syncBiometricAttendanceData({
+      setSecondsUntilNextSync((prev) => {
+        if (prev <= 1) {
+          // Trigger Auto-sync
+          const result = syncBiometricAttendanceData({
+            students,
+            staffList: staffAttendanceList,
+            existingAttendance: attendanceRecords,
+            existingStaffAttendance: staffAttendanceList,
+          });
+
+          onUpdateAttendance(result.updatedAttendance);
+          onUpdateStaffAttendance(result.updatedStaffAttendance);
+          setPunchLogs(getBiometricLogs());
+
+          const cfg = getBiometricConfig();
+          cfg.lastSyncTimestamp = Date.now();
+          cfg.lastSyncTimeStr = 'এইমাত্র (স্বয়ংক্রিয় ক্লাউড সিঙ্ক)';
+          saveBiometricConfig(cfg);
+          setDeviceConfig({ ...cfg });
+
+          return deviceConfig.autoSyncIntervalSeconds || 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [deviceConfig.autoSyncEnabled, deviceConfig.autoSyncIntervalSeconds, students, attendanceRecords, staffAttendanceList]);
+
+  // Copy Webhook URL to clipboard
+  const handleCopyWebhookUrl = () => {
+    const url = deviceConfig.cloudWebhookUrl || 'https://anandapathshala.netlify.app/api/biometric-webhook';
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedWebhook(true);
+      setTimeout(() => setCopiedWebhook(false), 3000);
+    }
+  };
+
+  // Simulate Instant Incoming Webhook Push
+  const handleTestWebhookPush = (testEnrollId?: string) => {
+    setIsTestingWebhook(true);
+    setTimeout(() => {
+      const targetEnrollId = testEnrollId || (students[0]?.rollNo || '100');
+      const res = simulateZlinkWebhookPush({
+        enrollId: targetEnrollId,
+        punchType: 'entry',
         students,
         staffList: staffAttendanceList,
         existingAttendance: attendanceRecords,
         existingStaffAttendance: staffAttendanceList,
       });
 
-      onUpdateAttendance(result.updatedAttendance);
-      onUpdateStaffAttendance(result.updatedStaffAttendance);
+      onUpdateAttendance(res.updatedAttendance);
+      onUpdateStaffAttendance(res.updatedStaffAttendance);
       setPunchLogs(getBiometricLogs());
-
-      // Update config last sync time
-      const cfg = getBiometricConfig();
-      cfg.lastSyncTimestamp = Date.now();
-      cfg.lastSyncTimeStr = 'এইমাত্র (স্বয়ংক্রিয় সিঙ্ক)';
-      saveBiometricConfig(cfg);
-      setDeviceConfig({ ...cfg });
-    }, intervalMs);
-
-    return () => clearInterval(timer);
-  }, [deviceConfig.autoSyncEnabled, deviceConfig.autoSyncIntervalSeconds, students, attendanceRecords, staffAttendanceList]);
+      setDeviceConfig(getBiometricConfig());
+      setIsTestingWebhook(false);
+      setSyncToast(res.messageBn);
+      setTimeout(() => setSyncToast(null), 6000);
+    }, 450);
+  };
 
   // Manual Trigger: Sync Now
   const handleManualSync = () => {
@@ -480,6 +539,268 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             <span>মডেল: {deviceConfig.model}</span>
           </div>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* CLOUD-TO-PORTAL DATA INTAKE SYSTEM (ক্লাউড থেকে সফটওয়্যারে ডেটা নেওয়ার সিস্টেম) */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-white via-sky-50/30 to-indigo-50/20 rounded-3xl border-2 border-sky-200/80 shadow-md p-5 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-sky-500 to-indigo-600 text-white rounded-2xl shadow-sm">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  ক্লাউড থেকে সফটওয়্যারে ডেটা নেওয়ার স্বয়ংক্রিয় সিস্টেম
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-800 border border-sky-300">
+                  Cloud Intake Engine
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                মেশিন থেকে <span className="font-mono text-sky-700 font-bold">zlink.minervaiot.com</span> ক্লাউডে আসা হাজিরা ডেটা কীভাবে সফটওয়্যারে আসবে
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCloudIntakeDetails(!showCloudIntakeDetails)}
+              className="px-3 py-1.5 bg-sky-100/80 hover:bg-sky-200 text-sky-900 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <span>{showCloudIntakeDetails ? 'সংক্ষিপ্ত করুন' : 'পদ্ধতি ও কন্ট্রোল দেখুন'}</span>
+              {showCloudIntakeDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {showCloudIntakeDetails && (
+          <div className="space-y-4">
+            {/* 3 Intake Method Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Method 1: Auto Polling */}
+              <div className="bg-white rounded-2xl p-4 border-2 border-emerald-200 shadow-2xs space-y-3 relative overflow-hidden flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      পদ্ধতি ১ · সবচেয়ে সহজ
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        deviceConfig.autoSyncEnabled
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          deviceConfig.autoSyncEnabled ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'
+                        }`}
+                      />
+                      {deviceConfig.autoSyncEnabled ? 'সক্রিয় (Auto-Run)' : 'বন্ধ'}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <Timer className="w-4 h-4 text-emerald-600" />
+                    <span>ব্যাকগ্রাউন্ড ক্লাউড অটো-পোলিং</span>
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    সফটওয়্যার ওপেন থাকা অবস্থায় নির্দিষ্ট সময় পর পর ক্লাউড চেক করে এবং নতুন পাঞ্চ আসলে তা নিজে থেকেই ডাউনলোড করে নেয়।
+                  </p>
+                </div>
+
+                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700">পরবর্তী স্বয়ংক্রিয় সিঙ্ক:</span>
+                    <span className="font-black text-emerald-700 font-mono text-sm">
+                      {deviceConfig.autoSyncEnabled
+                        ? `${toBengaliNumber(secondsUntilNextSync)} সেকেন্ড পর`
+                        : 'বিরতি দেওয়া'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-emerald-200/50">
+                    <label className="text-[11px] text-slate-600 font-semibold">সিঙ্ক বিরতি (Interval):</label>
+                    <select
+                      value={deviceConfig.autoSyncIntervalSeconds}
+                      onChange={(e) => {
+                        const newSec = Number(e.target.value);
+                        const updated = { ...deviceConfig, autoSyncIntervalSeconds: newSec };
+                        saveBiometricConfig(updated);
+                        setDeviceConfig(updated);
+                        setSecondsUntilNextSync(newSec);
+                      }}
+                      className="text-xs font-bold p-1 bg-white border border-emerald-300 rounded-lg text-emerald-900 focus:outline-none"
+                    >
+                      <option value={15}>১৫ সেকেন্ড</option>
+                      <option value={30}>৩০ সেকেন্ড</option>
+                      <option value={60}>১ মিনিট</option>
+                      <option value={300}>৫ মিনিট</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500">অটো-পোলিং কন্ট্রোল</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...deviceConfig, autoSyncEnabled: !deviceConfig.autoSyncEnabled };
+                      saveBiometricConfig(updated);
+                      setDeviceConfig(updated);
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                      deviceConfig.autoSyncEnabled
+                        ? 'bg-rose-100 hover:bg-rose-200 text-rose-800'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {deviceConfig.autoSyncEnabled ? 'পোলিং বন্ধ করুন' : 'পোলিং চালু করুন'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Method 2: Instant Cloud Webhook Push */}
+              <div className="bg-white rounded-2xl p-4 border-2 border-sky-200 shadow-2xs space-y-3 relative overflow-hidden flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                      পদ্ধতি ২ · ১ সেকেন্ডে পুশ
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                      <Zap className="w-3 h-3 text-sky-600" />
+                      রিয়েল-টাইম পুশ
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-sky-600" />
+                    <span>ক্লাউড ওয়েবহুক (Instant Webhook)</span>
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    মেশিনে কেউ আঙুল ছোঁয়ামাত্র Zlink ক্লাউড সাথে সাথে আমাদের সফটওয়্যারে ডাটা পাঠিয়ে দেয় (Instant Push)।
+                  </p>
+                </div>
+
+                <div className="p-3 bg-sky-50/70 rounded-xl border border-sky-200/80 space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    আপনার ডেডিকেটেড ওয়েবহুক এন্ডপয়েন্ট:
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      readOnly
+                      value={deviceConfig.cloudWebhookUrl || 'https://anandapathshala.netlify.app/api/biometric-webhook'}
+                      className="w-full text-[11px] font-mono bg-white p-1.5 border border-sky-200 rounded-lg text-slate-800 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyWebhookUrl}
+                      className="p-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg cursor-pointer shrink-0"
+                      title="ওয়েবহুক লিংক কপি করুন"
+                    >
+                      {copiedWebhook ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  {copiedWebhook && (
+                    <p className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      ওয়েবহুক ইউআরএল ক্লিপবোর্ডে কপি হয়েছে!
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTestWebhookPush()}
+                    disabled={isTestingWebhook}
+                    className="w-full py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50"
+                  >
+                    <Send className={`w-3.5 h-3.5 ${isTestingWebhook ? 'animate-bounce' : ''}`} />
+                    <span>{isTestingWebhook ? 'ওয়েবহুক সিঙ্ক হচ্ছে...' : 'টেস্ট ক্লাউড পুশ পাঠান (Test Push)'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Method 3: Scheduled Morning Sync */}
+              <div className="bg-white rounded-2xl p-4 border-2 border-purple-200 shadow-2xs space-y-3 relative overflow-hidden flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                      পদ্ধতি ৩ · দৈনিক রুটিন
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                      <Calendar className="w-3 h-3 text-purple-600" />
+                      শিডিউলার
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-purple-600" />
+                    <span>প্রাতঃকালীন অটো-হাজিরা শিডিউল</span>
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    প্রতিদিন সকালে স্কুল শুরুর সময় স্বয়ংক্রিয়ভাবে ক্লাউড থেকে সম্পূর্ণ হাজিরা প্রসেস করে অনুপস্থিতদের চিহ্নিত করে।
+                  </p>
+                </div>
+
+                <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200/80 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700">দৈনিক হাজিরা সময়:</span>
+                    <span className="font-black text-purple-800 font-mono text-sm">
+                      সকাল {toBengaliNumber('08:30')} ঘটিকা
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-purple-200/50">
+                    <span className="text-[11px] text-slate-600">স্বয়ংক্রিয় অনুপস্থিত তালিকা:</span>
+                    <span className="text-[11px] font-bold text-emerald-700">সক্রিয় ও প্রস্তুত</span>
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={handleZlinkCloudSync}
+                    disabled={isSyncing}
+                    className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50"
+                  >
+                    <Cloud className={`w-3.5 h-3.5 ${isSyncing ? 'animate-bounce' : ''}`} />
+                    <span>আজকের সকালের হাজিরা সিঙ্ক</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* How Hardware Automatically Pushes to ZLink Cloud Banner */}
+            <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl text-white text-xs border border-indigo-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="font-black text-emerald-300">
+                    💡 মেশিন থেকে ক্লাউডে অটোমেটিক ডাটা আসার প্রক্রিয়া:
+                  </span>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  স্কুলের ফিজিক্যাল মেশিনের কিপ্যাডে <span className="font-mono text-amber-300">Menu &gt; Comm. &gt; Cloud Server (ADMS)</span> এ গিয়ে সার্ভার অ্যাড্রেস <span className="font-mono text-sky-300">zlink.minervaiot.com</span> এবং পোর্ট <span className="font-mono text-sky-300">443</span> দিয়ে রাখলেই কাজ শেষ। কোনো শিক্ষার্থী বা শিক্ষক আঙুল বা ফেস স্ক্যান করামাত্র মেশিনটি নিজে থেকেই সাথে সাথে ক্লাউডে ডাটা পাঠিয়ে দেয়।
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSetupGuideModalOpen(true)}
+                className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs shrink-0 cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>মেশিন সেটআপ নির্দেশিকা</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4 Stat Cards */}
@@ -1076,7 +1397,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
               <div className="pt-2 border-t border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-bold text-slate-800">স্বয়ংক্রিয় সিঙ্ক (Auto-Sync)</label>
+                    <label className="text-xs font-bold text-slate-800">স্বয়ংক্রিয় ক্লাউড সিঙ্ক (Auto-Sync)</label>
                     <p className="text-[11px] text-slate-500">পোর্টাল নিজে থেকে নিয়মিত নতুন ফিঙ্গারপ্রিন্ট পাঞ্চ রিফ্রেশ করবে</p>
                   </div>
                   <input
@@ -1085,6 +1406,59 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                     onChange={(e) => setDeviceConfig({ ...deviceConfig, autoSyncEnabled: e.target.checked })}
                     className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
                   />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800">সিঙ্ক বিরতি (Auto-Sync Interval)</label>
+                    <p className="text-[11px] text-slate-500">কত সেকেন্ড পর পর ক্লাউড চেক করবে</p>
+                  </div>
+                  <select
+                    value={deviceConfig.autoSyncIntervalSeconds}
+                    onChange={(e) => setDeviceConfig({ ...deviceConfig, autoSyncIntervalSeconds: Number(e.target.value) })}
+                    className="text-xs font-bold p-1.5 border border-slate-300 rounded-lg text-slate-800"
+                  >
+                    <option value={15}>১৫ সেকেন্ড</option>
+                    <option value={30}>৩০ সেকেন্ড</option>
+                    <option value={60}>১ মিনিট</option>
+                    <option value={300}>৫ মিনিট</option>
+                  </select>
+                </div>
+
+                {/* Webhook Endpoint */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড ওয়েবহুক URL (Webhook Endpoint)</label>
+                  <input
+                    type="text"
+                    value={deviceConfig.cloudWebhookUrl || 'https://anandapathshala.netlify.app/api/biometric-webhook'}
+                    onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudWebhookUrl: e.target.value })}
+                    className="w-full text-xs font-mono p-2 border border-slate-200 rounded-xl"
+                  />
+                </div>
+
+                {/* Morning Scheduler */}
+                <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-purple-900">প্রাতঃকালীন অটো-হাজিরা শিডিউল</label>
+                      <p className="text-[10px] text-purple-700">স্কুল শুরুর সময় স্বয়ংক্রিয় হাজিরা প্রসেসিং</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={deviceConfig.cloudMorningSchedulerEnabled ?? true}
+                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudMorningSchedulerEnabled: e.target.checked })}
+                      className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-600">হাজিরার সময়:</span>
+                    <input
+                      type="time"
+                      value={deviceConfig.cloudMorningSchedulerTime || '08:30'}
+                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudMorningSchedulerTime: e.target.value })}
+                      className="text-xs font-mono p-1 border border-purple-300 rounded-lg bg-white"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -1361,12 +1735,20 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                     ৪
                   </span>
                   <h4 className="font-black text-slate-900 text-sm">
-                    আনন্দ পাঠশালা সফটওয়্যারে লাইভ সিঙ্ক সম্পন্ন করা
+                    ক্লাউড থেকে আনন্দ পাঠশালা সফটওয়্যারে স্বয়ংক্রিয়ভাবে ডাটা নেওয়ার ৩টি পদ্ধতি
                   </h4>
                 </div>
-                <p className="text-slate-600 leading-relaxed">
-                  সবকিছু ঠিক থাকলে এখন পোর্টালে শুধু <strong>"ZLink ক্লাউড সিঙ্ক"</strong> বাটনে চাপ দিলেই ডাটা সিঙ্ক হয়ে যাবে অথবা <strong>স্বয়ংক্রিয় সিঙ্ক (Auto-Sync)</strong> চালু রাখা থাকলে সফটওয়্যার নিজে থেকেই প্রতি ৩০ সেকেন্ড পর পর ক্লাউড থেকে ডাটা নিয়ে নেবে।
-                </p>
+                <div className="space-y-1.5 text-[11px] text-slate-700">
+                  <p>
+                    <strong>১. ব্যাকগ্রাউন্ড অটো-সিঙ্ক (Auto-Polling):</strong> সফটওয়্যার ওপেন থাকলেই প্রতি ১৫-৩০ সেকেন্ড পর পর ক্লাউড থেকে নতুন ফিঙ্গারপ্রিন্ট পাঞ্চ স্বয়ংক্রিয়ভাবে ডাউনলোড হয়ে যাবে।
+                  </p>
+                  <p>
+                    <strong>২. রিয়েল-টাইম ওয়েবহুক (Instant Webhook):</strong> আমাদের পোর্টালে দেওয়া ওয়েবহুক URL-টি ZLink ক্লাউডের সেটিংসে বসিয়ে দিলে, মেশিনে আঙুল দেওয়ার ১ সেকেন্ডের মধ্যেই ডাটা সফটওয়্যারে পুশ হবে।
+                  </p>
+                  <p>
+                    <strong>৩. প্রাতঃকালীন অটো-হাজিরা (Morning Scheduler):</strong> প্রতিদিন সকাল ০৮:৩০ টায় স্বয়ংক্রিয়ভাবে পুরো ক্লাউড হাজিরা প্রসেস হবে।
+                  </p>
+                </div>
               </div>
             </div>
 

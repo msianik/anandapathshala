@@ -488,6 +488,10 @@ export interface BiometricDeviceConfig {
   cloudUsername?: string; // ZLink Login Email / Username
   cloudSyncMode: 'auto_realtime' | 'polling' | 'manual';
   cloudLastSyncStatus?: 'success' | 'failed' | 'pending';
+  cloudWebhookUrl?: string;
+  cloudWebhookSecret?: string;
+  cloudMorningSchedulerEnabled?: boolean;
+  cloudMorningSchedulerTime?: string;
 }
 
 export interface BiometricPunchLog {

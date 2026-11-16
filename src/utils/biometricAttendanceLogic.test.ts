@@ -12,6 +12,8 @@ import {
   testBiometricDeviceConnection,
   testZlinkCloudConnection,
   syncZlinkCloudAttendance,
+  simulateZlinkWebhookPush,
+  getCloudIntakeMethodDetails,
   DEFAULT_BIOMETRIC_CONFIG,
 } from './biometricAttendanceLogic';
 import { Student, AttendanceRecord, StaffAttendanceRecord } from '../types/school';
@@ -186,5 +188,30 @@ describe('biometricAttendanceLogic tests', () => {
     const parsed = parseBiometricMachineFile(zlinkCsv, mockStudents);
     expect(parsed.parsedCount).toBe(2);
     expect(parsed.newLogs[0].rollNo).toBe('১০০');
+  });
+
+  it('simulates instant incoming ZLink Webhook push payload and updates records', () => {
+    const res = simulateZlinkWebhookPush({
+      enrollId: '১০০',
+      punchType: 'entry',
+      students: mockStudents,
+      staffList: mockStaff,
+      existingAttendance: [],
+      existingStaffAttendance: mockStaff,
+    });
+    expect(res.newLog.rollNo).toBe('১০০');
+    expect(res.messageBn).toContain('Webhook Push');
+    expect(res.updatedAttendance.length).toBeGreaterThan(0);
+  });
+
+  it('provides structured descriptions of all 4 Cloud-to-Software Intake Methods', () => {
+    const methods = getCloudIntakeMethodDetails();
+    expect(methods.length).toBe(4);
+    expect(methods.map((m) => m.id)).toEqual([
+      'auto_polling',
+      'webhook_push',
+      'morning_scheduler',
+      'manual_sync',
+    ]);
   });
 });

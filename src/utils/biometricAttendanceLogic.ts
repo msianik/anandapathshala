@@ -33,6 +33,10 @@ export const DEFAULT_BIOMETRIC_CONFIG: BiometricDeviceConfig = {
   cloudOrgCode: 'ANANDO-PATHSHALA-2026',
   cloudSyncMode: 'auto_realtime',
   cloudLastSyncStatus: 'success',
+  cloudWebhookUrl: 'https://anandapathshala.netlify.app/api/biometric-webhook',
+  cloudWebhookSecret: 'ap_zk_webhook_secret_2026',
+  cloudMorningSchedulerEnabled: true,
+  cloudMorningSchedulerTime: '08:30',
 };
 
 // Initial realistic punch logs for the school day
@@ -848,4 +852,132 @@ export function syncZlinkCloudAttendance({
     newPunchesCount: result.syncedPunchesCount,
     cloudStatusText: 'ZLink Minerva IoT ক্লাউড থেকে প্রতিদিনের হাজিরা ডাটা সফলভাবে সিঙ্ক ও আপডেট হয়েছে',
   };
+}
+
+/**
+ * Simulate receiving an instant incoming punch webhook payload from ZKBio Zlink Minerva IoT Cloud
+ */
+export function simulateZlinkWebhookPush({
+  enrollId,
+  punchType,
+  students,
+  staffList,
+  existingAttendance,
+  existingStaffAttendance,
+}: {
+  enrollId: string;
+  punchType: BiometricPunchType;
+  students: Student[];
+  staffList: StaffAttendanceRecord[];
+  existingAttendance: AttendanceRecord[];
+  existingStaffAttendance: StaffAttendanceRecord[];
+}): {
+  newLog: BiometricPunchLog;
+  updatedAttendance: AttendanceRecord[];
+  updatedStaffAttendance: StaffAttendanceRecord[];
+  messageBn: string;
+} {
+  // Determine if student or teacher
+  const isTeacher = enrollId.toUpperCase().startsWith('TCH') || enrollId.toLowerCase().includes('teacher');
+  const matchedStudent = !isTeacher
+    ? students.find((s) => s.rollNo === enrollId || s.id === enrollId || s.rollNo === toBengaliNumber(enrollId))
+    : undefined;
+  const personId = isTeacher ? enrollId : matchedStudent?.id || students[0]?.id || 'std-0';
+
+  const { newLog } = recordBiometricPunch({
+    personType: isTeacher ? 'teacher' : 'student',
+    personId,
+    punchType,
+    students,
+  });
+
+  // Re-sync attendance
+  const syncResult = syncBiometricAttendanceData({
+    students,
+    staffList,
+    existingAttendance,
+    existingStaffAttendance,
+  });
+
+  // Update config
+  const cfg = getBiometricConfig();
+  cfg.lastSyncTimestamp = Date.now();
+  cfg.lastSyncTimeStr = 'এইমাত্র Zlink ক্লাউড Webhook Push গৃহীত হয়েছে';
+  cfg.cloudLastSyncStatus = 'success';
+  saveBiometricConfig(cfg);
+
+  return {
+    newLog,
+    updatedAttendance: syncResult.updatedAttendance,
+    updatedStaffAttendance: syncResult.updatedStaffAttendance,
+    messageBn: `Zlink ক্লাউড থেকে রিয়েল-টাইম Webhook Push সফলভাবে সফটওয়্যারে গৃহীত হয়েছে! (${newLog.nameBn} - ${newLog.punchType === 'entry' ? 'প্রবেশ' : 'প্রস্থান'}, সময়: ${newLog.punchTimeStr})`,
+  };
+}
+
+/**
+ * Structured details about Cloud-to-Software Intake Methods
+ */
+export function getCloudIntakeMethodDetails() {
+  return [
+    {
+      id: 'auto_polling',
+      nameBn: 'পদ্ধতি ১: ব্যাকগ্রাউন্ড অটো-ক্লাউড পোলিং (Auto Background Cloud Polling)',
+      tagBn: 'সবচেয়ে সহজ ও জনপ্রিয়',
+      tagColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      descriptionBn:
+        'সফটওয়্যার ওপেন থাকা অবস্থায় নির্দিষ্ট বিরতিতে (যেমন প্রতি ৩০ সেকেন্ড বা ১ মিনিট পর পর) ব্যাকগ্রাউন্ডে স্বয়ংক্রিয়ভাবে zlink.minervaiot.com ক্লাউড সার্ভার চেক করে এবং মেশিনে কোনো নতুন পাঞ্চ আসলেই তা নিজে নিজে সফটওয়্যারে ডাউনলোড করে নেয়। ইউজারকে কোনো বাটনে ক্লিক করতে হয় না।',
+      featuresBn: [
+        'স্বয়ংক্রিয় ব্যাকগ্রাউন্ড সিঙ্ক (১৫ সেকেন্ড / ৩০ সেকেন্ড / ১ মিনিট পর পর)',
+        'ক্লাউডে কোনো নতুন উপস্থিতি আসলে সেকেন্ডের মধ্যে হাজিরা তালিকায় আপডেট',
+        'কোনো সার্ভার কনফিগারেশন বা আইপি পোর্ট ফরওয়ার্ডিং লাগে না',
+      ],
+      setupGuideBn:
+        'শুধু নিচের "অটো ক্লাউড সিঙ্ক" টগল চালু রাখুন। সফটওয়্যার ব্যাকগ্রাউন্ডে নিজে থেকেই নিয়মিত ক্লাউড থেকে হাজিরা ডাটা সংগ্রহ করবে।',
+    },
+    {
+      id: 'webhook_push',
+      nameBn: 'পদ্ধতি ২: রিয়েল-টাইম ক্লাউড ওয়েবহুক (Instant Cloud Webhook Push)',
+      tagBn: 'সবচেয়ে দ্রুত ও আধুনিক (১ সেকেন্ডে)',
+      tagColor: 'bg-sky-100 text-sky-800 border-sky-300',
+      descriptionBn:
+        'স্কুলের মেশিনে কেউ ফিঙ্গারপ্রিন্ট ছোঁয়ালে Zlink ক্লাউড সরাসরি আমাদের সফটওয়্যারের ওয়েবহুক ইউআরএলে সাথে সাথে (১ সেকেন্ডের মধ্যে) পুশ করে পাঠিয়ে দেয়। এতে কোনো পোলিং ছাড়াই চোখের পলকে উপস্থিতির এসএমএস এবং স্ক্রিন নোটিফিকেশন চলে আসে।',
+      featuresBn: [
+        '১ সেকেন্ডে রিয়েল-টাইম সিঙ্ক (Instant Push Notification)',
+        'অভিভাবকের ফোনে সাথে সাথে এসএমএস অ্যালার্ট পাঠানোর জন্য সেরা',
+        'ক্লাউড থেকে তাৎক্ষণিক পুশ ইভেন্ট রিসিভ করার সিকিউর এন্ডপয়েন্ট',
+      ],
+      setupGuideBn:
+        'ZKBio Zlink Minerva IoT কনসোলে (Settings > Webhook) গিয়ে আমাদের ওয়েবহুক ইউআরএল (https://anandapathshala.netlify.app/api/biometric-webhook) পেস্ট করুন।',
+    },
+    {
+      id: 'morning_scheduler',
+      nameBn: 'পদ্ধতি ৩: নির্ধারিত প্রাতঃকালীন অটো-হাজিরা (Scheduled Morning Auto-Sync)',
+      tagBn: 'দৈনিক রুটিন সিঙ্ক',
+      tagColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      descriptionBn:
+        'প্রতিদিন সকালে স্কুল শুরুর সময় (যেমন সকাল ০৮:৩০ বা ০৯:০০ টায়) সফটওয়্যার সম্পূর্ণ স্কুলের সকালের পাঞ্চগুলো ক্লাউড থেকে একবারে বিশ্লেষণ করে এবং যারা স্কুলে আসেনি তাদের স্বয়ংক্রিয় "অনুপস্থিত" তালিকা তৈরি করে প্রিন্সিপালকে রিপোর্ট দেয়।',
+      featuresBn: [
+        'স্কুল শুরুর নির্দিষ্ট টাইমে অটোমেটিক হাজিরা ক্লিপিং',
+        'সময়মতো উপস্থিত এবং বিলম্বিতদের (Late) শ্রেণিভিত্তিক তালিকা প্রস্তুত',
+        'অনুপস্থিত শিক্ষার্থীদের জন্য অটোমেটিক রিমাইন্ডার লিস্ট তৈরি',
+      ],
+      setupGuideBn:
+        'সকালের শিডিউল টাইম নির্ধারণ করে রাখুন। প্রতিদিন নির্ধারিত টাইমে সম্পূর্ণ হাজিরা শিট স্বয়ংক্রিয়ভাবে রেডি হয়ে যাবে।',
+    },
+    {
+      id: 'manual_sync',
+      nameBn: 'পদ্ধতি ৪: অন-ডিমান্ড ১-ক্লিক ক্লাউড সিঙ্ক (1-Click Instant Sync)',
+      tagBn: 'তাৎক্ষণিক নিয়ন্ত্রণ',
+      tagColor: 'bg-amber-100 text-amber-800 border-amber-300',
+      descriptionBn:
+        'যেকোনো জরুরি মুহূর্তে শিক্ষক বা প্রধান শিক্ষক মাত্র এক ক্লিকে "ZLink ক্লাউড সিঙ্ক" বাটনে চাপ দিলেই ক্লাউডের সকল পাঞ্চ এক ক্লিকে হালনাগাদ হয়ে যায়।',
+      featuresBn: [
+        'যেকোনো সময় ১-ক্লিকে রিফ্রেশ',
+        'ইন্টারনেট ধীরগতির হলেও নিরাপদে কাজ করে',
+        'সিঙ্কের পর কতটি পাঞ্চ যোগ হলো তার বিস্তারিত রিপোর্ট',
+      ],
+      setupGuideBn:
+        'যেকোনো সময় স্ক্রিনের উপরের নীল "ZLink ক্লাউড সিঙ্ক" বাটনে ক্লিক করুন।',
+    },
+  ];
 }
