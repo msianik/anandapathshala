@@ -121,7 +121,28 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
     if (raw) {
       const parsed: Record<string, TeacherAttendanceRecord[]> = JSON.parse(raw);
       if (parsed[dateStr] && parsed[dateStr].length > 0) {
-        return parsed[dateStr];
+        const teachers = getStoredStaffMembers();
+        const existing = parsed[dateStr];
+        const missing = teachers.filter((t) => !existing.some((e) => e.teacherId === t.id));
+        if (missing.length > 0) {
+          const newRecords: TeacherAttendanceRecord[] = missing.map((tch) => ({
+            id: `att-${dateStr}-${tch.id}`,
+            date: dateStr,
+            teacherId: tch.id,
+            teacherNameBn: tch.nameBn,
+            designationBn: tch.designationBn,
+            departmentBn: tch.departmentBn,
+            photoUrl: tch.photoUrl,
+            status: 'present',
+            checkInTime: '০৮:০০ AM',
+            remarksBn: 'স্বাভাবিক উপস্থিতি',
+          }));
+          const merged = [...existing, ...newRecords];
+          parsed[dateStr] = merged;
+          localStorage.setItem(STAFF_ATTENDANCE_STORAGE_KEY, JSON.stringify(parsed));
+          return merged;
+        }
+        return existing;
       }
     }
   } catch {}

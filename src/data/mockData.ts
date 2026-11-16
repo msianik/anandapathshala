@@ -1363,181 +1363,84 @@ export const INITIAL_SCHOOL_NOTICES: SchoolNotice[] = [
   },
 ];
 
-export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = [
-  {
-    id: 'stf-att-1',
-    teacherId: 'tch-1',
-    teacherNameBn: 'শাফী আব্দুল্লাহ',
-    teacherNameEn: 'Shafee Abdullah',
-    designationBn: 'প্রিন্সিপাল (Principal)',
-    departmentBn: 'প্রিন্সিপাল ও একাডেমিক প্রধান',
-    photoUrl: '/assets/biddalay/shafee_abdullah.jpg',
-    phone: '01914057512',
+export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = ZLINK_SYNCED_TEACHERS.map((teacher, index) => {
+  const isPrincipal = teacher.id === 'tch-7' || teacher.staffCategory === 'principal';
+  const isHead = teacher.isHeadTeacher;
+  const isAdmin = teacher.id === 'tch-admin';
+  const isGate = teacher.id === 'tch-gate';
+
+  let status: StaffAttendanceRecord['status'] = 'present';
+  let checkInTime = 'সকাল ০৭:৫৫';
+  let checkInTimestamp: number | undefined = 1793932500000;
+  let isLate = false;
+  let lateMinutes: number | undefined = undefined;
+  let remarksBn = 'অন-টাইম ডিজিটাল চেক-ইন সম্পন্ন।';
+  let checkInMethod: 'self_digital' | 'biometric' | 'admin_manual' = 'self_digital';
+
+  if (isGate) {
+    checkInTime = 'সকাল ০৭:১৫';
+    checkInTimestamp = 1793930100000;
+    remarksBn = 'ক্যাম্পাস প্রধান ফটক সিকিউরিটি ও গেট-পাস স্ক্যানিং পয়েন্ট প্রস্তুত ও সক্রিয়।';
+    checkInMethod = 'biometric';
+  } else if (isAdmin) {
+    checkInTime = 'সকাল ০৭:৩৫';
+    checkInTimestamp = 1793931300000;
+    remarksBn = 'স্কুল অফিস, সার্ভার ম্যানেজমেন্ট ও শিক্ষার্থী অভ্যর্থনা ডেস্ক চালু করেছেন।';
+  } else if (isPrincipal) {
+    checkInTime = 'সকাল ০৭:৪৫';
+    checkInTimestamp = 1793931900000;
+    remarksBn = 'সকালে ক্যাম্পাসে উপস্থিত হয়ে প্রাতঃকালীন অ্যাসেম্বলি প্রস্তুতি পর্যবেক্ষণ করেছেন।';
+  } else if (isHead) {
+    checkInTime = 'সকাল ০৭:৪৮';
+    checkInTimestamp = 1793932080000;
+    remarksBn = 'ক্লাসরুম পরিদর্শন, শিক্ষক সমন্বয় ও ডায়রি পোস্ট চেকিং দায়িত্ব সম্পন্ন।';
+  } else if (teacher.id === 'tch-10') {
+    status = 'leave';
+    checkInTime = undefined as any;
+    checkInTimestamp = undefined as any;
+    remarksBn = 'শারীরিক অসুস্থতাজনিত কারণে পূর্বানুমোদিত এক দিনের নৈমিত্তিক ছুটি (Casual Leave)।';
+  } else if (teacher.id === 'tch-15') {
+    status = 'absent';
+    checkInTime = undefined as any;
+    checkInTimestamp = undefined as any;
+    remarksBn = 'এখনও ডিজিটাল চেক-ইন করেননি (অপেক্ষমাণ)।';
+  } else if (teacher.id === 'tch-4') {
+    status = 'late';
+    checkInTime = 'সকাল ০৮:১৮';
+    checkInTimestamp = 1793933880000;
+    isLate = true;
+    lateMinutes = 3;
+    remarksBn = 'যানজটের কারণে ৩ মিনিট বিলম্বে চেক-ইন করেছেন।';
+  } else {
+    const mins = 50 + (index % 15);
+    const hourVal = mins >= 60 ? '০৮' : '০৭';
+    const minVal = mins >= 60 ? mins - 60 : mins;
+    const minDigits = String(minVal).padStart(2, '0').replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]);
+    checkInTime = `সকাল ${hourVal}:${minDigits}`;
+    checkInTimestamp = 1793932200000 + index * 60000;
+    remarksBn = `${teacher.assignedClass ? teacher.assignedClass + ' শ্রেণির ' : ''}প্রাতঃকালীন পাঠদান ও অ্যাসেম্বলি প্রস্তুতি সম্পন্ন।`;
+  }
+
+  return {
+    id: `stf-att-${index + 1}`,
+    teacherId: teacher.id,
+    teacherNameBn: teacher.nameBn,
+    teacherNameEn: teacher.nameEn,
+    designationBn: teacher.designationBn,
+    departmentBn: teacher.departmentBn,
+    photoUrl: teacher.photoUrl,
+    phone: teacher.phone,
     date: '2026-11-06',
     dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৭:৪৫',
-    checkInTimestamp: 1793931900000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'সকালে নির্ধারিত সময়ে ক্যাম্পাসে উপস্থিত হয়ে অ্যাসেম্বলি প্রস্তুতি পর্যবেক্ষণ করেছেন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-2',
-    teacherId: 'tch-2',
-    teacherNameBn: 'ফাতেমা আক্তার',
-    teacherNameEn: 'Fatema Akter',
-    designationBn: 'প্রধান শিক্ষক (Head Teacher)',
-    departmentBn: 'প্রধান শিক্ষক ও একাডেমিক তত্ত্বাবধান',
-    photoUrl: '/assets/biddalay/fatema_akter.jpg',
-    phone: '01715112233',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৭:৫২',
-    checkInTimestamp: 1793932320000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'ক্লাসরুম ও ডায়রি পোস্ট চেকিং দায়িত্ব সম্পন্ন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-3',
-    teacherId: 'tch-3',
-    teacherNameBn: 'মোছাঃ মাহমুদা হক (রিয়া মিস)',
-    teacherNameEn: 'Mst. Mahmuda Haque',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'প্লে ও নার্সারি বিভাগ',
-    photoUrl: '/assets/biddalay/mahmuda_haque.jpg',
-    phone: '01721334455',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৭:৫৫',
-    checkInTimestamp: 1793932500000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'প্লে-গ্রুপের অ্যাক্টিভিটি কর্নার প্রস্তুত করেছেন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-4',
-    teacherId: 'tch-4',
-    teacherNameBn: 'সৈয়দ ফাহমিদ বিন নূর',
-    teacherNameEn: 'Syed Fhamid Bin Noor',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'প্রাথমিক গণিত ও সৃজনশীল শিক্ষা',
-    photoUrl: '/assets/biddalay/syed_fhamid.jpg',
-    phone: '01722445566',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৮:০২',
-    checkInTimestamp: 1793932920000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'অন-টাইম ডিজিটাল চেক-ইন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-5',
-    teacherId: 'tch-5',
-    teacherNameBn: 'মুক্তা পারভীন',
-    teacherNameEn: 'Mukta Parvin',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'হাতেখড়ি ও বর্ণমালা শিক্ষা',
-    photoUrl: '/assets/biddalay/mukta_parvin.jpg',
-    phone: '01723556677',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৮:১৮',
-    checkInTimestamp: 1793933880000,
-    status: 'late',
-    checkInMethod: 'self_digital',
-    remarksBn: 'যানজটের কারণে ৩ মিনিট বিলম্বে চেক-ইন করেছেন।',
-    isLate: true,
-    lateMinutes: 3,
-  },
-  {
-    id: 'stf-att-6',
-    teacherId: 'tch-6',
-    teacherNameBn: 'ঐশী বিনতে মোস্তফা (ঐশী মিস)',
-    teacherNameEn: 'Oaisy Binte Mostofa',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'আর্ট, ক্রাফট ও মন্টেসরি ল্যাব',
-    photoUrl: '/assets/biddalay/oaisy_mostofa.jpg',
-    phone: '01724667788',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৮:০৫',
-    checkInTimestamp: 1793933100000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'আর্ট কর্নার পেইন্ট ব্রাশ ও পেপার ম্যাটেরিয়ালস সাজিয়েছেন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-7',
-    teacherId: 'tch-7',
-    teacherNameBn: 'জান্নাতুল ফেরদৌস মীম (মীম ম্যাম)',
-    teacherNameEn: 'Jannatul Ferdaus Meem',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'বাংলা ও ইংরেজি ছড়া ও ফোনিক্স',
-    photoUrl: '/assets/biddalay/jannatul_meem.jpg',
-    phone: '01725778899',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    status: 'leave',
-    remarksBn: 'অসুস্থতাজনিত কারণে পূর্বানুমোদিত এক দিনের নৈমিত্তিক ছুটি (Casual Leave)।',
-  },
-  {
-    id: 'stf-att-8',
-    teacherId: 'tch-8',
-    teacherNameBn: 'আরাফাত হক',
-    teacherNameEn: 'Arafat Huq',
-    designationBn: 'সহকারী শিক্ষক (Teacher)',
-    departmentBn: 'কেজি ও প্রথম শ্রেণি বিভাগ',
-    photoUrl: '/assets/biddalay/arafat_huq.jpg',
-    phone: '01726889900',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    status: 'absent',
-    remarksBn: 'এখনও ডিজিটাল চেক-ইন করেননি (অপেক্ষমাণ)।',
-  },
-  {
-    id: 'stf-att-9',
-    teacherId: 'tch-9',
-    teacherNameBn: 'মোস্তফা আল মামুন',
-    teacherNameEn: 'Mostofa Al Mamun',
-    designationBn: 'প্রশাসনিক কর্মকর্তা (Admin Officer)',
-    departmentBn: 'প্রশাসন, ভর্তি ও শিক্ষার্থী সেবা দপ্তর',
-    photoUrl: '/assets/biddalay/mostofa_mamun.jpg',
-    phone: '01788990011',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৭:৪০',
-    checkInTimestamp: 1793931600000,
-    status: 'present',
-    checkInMethod: 'self_digital',
-    remarksBn: 'স্কুল অফিস ও সার্ভার ম্যানেজমেন্ট চালু করেছেন।',
-    isLate: false,
-  },
-  {
-    id: 'stf-att-10',
-    teacherId: 'tch-10',
-    teacherNameBn: 'হাবিবুর রহমান',
-    teacherNameEn: 'Habibur Rahman',
-    designationBn: 'গেট সিকিউরিটি ও সহায়ক স্টাফ (Support Staff)',
-    departmentBn: 'ক্যাম্পাস নিরাপত্তা ও গেট-পাস যাচাই দপ্তর',
-    photoUrl: '/assets/fb/logo.jpg',
-    phone: '01819001122',
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime: 'সকাল ০৭:১৫',
-    checkInTimestamp: 1793930100000,
-    status: 'present',
-    checkInMethod: 'biometric',
-    remarksBn: 'গেট গেট-পাস স্ক্যানিং পয়েন্ট প্রস্তুত ও সক্রিয়।',
-    isLate: false,
-  },
-];
+    checkInTime,
+    checkInTimestamp,
+    status,
+    checkInMethod,
+    remarksBn,
+    isLate,
+    lateMinutes,
+  };
+});
 
 export const INITIAL_SCHOOL_ASSETS: SchoolAssetItem[] = [
   {

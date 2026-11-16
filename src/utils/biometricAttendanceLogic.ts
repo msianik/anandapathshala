@@ -647,7 +647,10 @@ export function parseBiometricMachineFile(
           (s) => s.rollNo === rawEnrollId || s.id === rawEnrollId || s.rollNo === toBengaliNumber(rawEnrollId)
         );
         const matchedTeacher = SCHOOL_TEACHERS.find(
-          (t) => t.id.toLowerCase() === rawEnrollId.toLowerCase()
+          (t) =>
+            t.id.toLowerCase() === rawEnrollId.toLowerCase() ||
+            (t.biometricEnrollId && t.biometricEnrollId.toLowerCase() === rawEnrollId.toLowerCase()) ||
+            (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase())
         );
 
         if (matchedStudent || matchedTeacher) {
@@ -784,7 +787,10 @@ export function parseBiometricMachineFile(
 
       // Or find teacher
       const matchedTeacher = SCHOOL_TEACHERS.find(
-        (t) => t.id.toLowerCase() === rawEnrollId.toLowerCase()
+        (t) =>
+          t.id.toLowerCase() === rawEnrollId.toLowerCase() ||
+          (t.biometricEnrollId && t.biometricEnrollId.toLowerCase() === rawEnrollId.toLowerCase()) ||
+          (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase())
       );
 
       if (matchedStudent || matchedTeacher) {

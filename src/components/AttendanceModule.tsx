@@ -124,7 +124,33 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   // Staff Attendance & Digital Check-In State
   // ==========================================
   const [attendanceViewTab, setAttendanceViewTab] = useState<'students' | 'staff' | 'biometric'>(initialViewTab);
-  const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>(INITIAL_STAFF_ATTENDANCE);
+  const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>(() => {
+    const list = [...INITIAL_STAFF_ATTENDANCE];
+    const missing = SCHOOL_TEACHERS.filter(
+      (t) => !list.some((s) => s.teacherId === t.id)
+    );
+    if (missing.length > 0) {
+      missing.forEach((tch, idx) => {
+        list.push({
+          id: `stf-att-${list.length + idx + 1}`,
+          teacherId: tch.id,
+          teacherNameBn: tch.nameBn,
+          teacherNameEn: tch.nameEn,
+          designationBn: tch.designationBn,
+          departmentBn: tch.departmentBn,
+          photoUrl: tch.photoUrl,
+          phone: tch.phone,
+          date: '2026-11-06',
+          dateBn: '০৬ নভেম্বর ২০২৬',
+          status: 'present',
+          checkInTime: 'সকাল ০৮:০০',
+          checkInMethod: 'self_digital',
+          remarksBn: 'স্বাভাবিক ডিজিটাল উপস্থিতি।',
+        });
+      });
+    }
+    return list;
+  });
   const [deviceConfig, setDeviceConfig] = useState<BiometricDeviceConfig>(() => getBiometricConfig());
   const [secondsUntilNextSync, setSecondsUntilNextSync] = useState<number>(() => getBiometricConfig().autoSyncIntervalSeconds || 30);
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
