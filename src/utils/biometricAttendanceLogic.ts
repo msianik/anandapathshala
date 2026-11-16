@@ -699,6 +699,31 @@ export function parseBiometricMachineFile(
               syncedAt: Date.now(),
               smsNotified: false,
             });
+          } else {
+            // General or newly enrolled person directly from Zlink
+            const isTeacher = String(item.personType || item.department || '').toLowerCase().includes('teacher');
+            const nameEn = String(item.name || item.personName || rawEnrollId);
+            newLogs.push({
+              id: `import-json-${Date.now()}-${idx}`,
+              enrollId: rawEnrollId,
+              personType: isTeacher ? 'teacher' : 'student',
+              personId: rawEnrollId,
+              nameBn: nameEn,
+              nameEn: nameEn,
+              className: isTeacher ? undefined : 'Unassigned',
+              rollNo: isTeacher ? undefined : rawEnrollId,
+              punchType,
+              punchTimeStr: timeFormatted,
+              timestamp: validDate.getTime(),
+              dateStr: validDate.toLocaleDateString('bn-BD'),
+              verificationMode: item.verificationMode || 'fingerprint',
+              status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
+              statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত উপস্থিতি' : 'অন-টাইম উপস্থিতি') : 'স্বাভাবিক প্রস্থান',
+              deviceId: 'zk-sensefp-m1-01',
+              deviceNameBn: 'ZKTeco SenseFP M1 (JUS3251800031)',
+              syncedAt: Date.now(),
+              smsNotified: false,
+            });
           }
         } else {
           errors.push(`আইটেম ${idx + 1}: আইডি '${rawEnrollId}' কোনো শিক্ষার্থী বা শিক্ষকের সাথে মিলেনি।`);
