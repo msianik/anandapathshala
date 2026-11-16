@@ -160,29 +160,17 @@ export default function App() {
       if (stored) {
         const parsed: Student[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Ensure all 6 classes from INITIAL_STUDENTS are available
-          const hasHateKhori = parsed.some((s) => s.className === 'HateKhori');
-          const hasClass2 = parsed.some((s) => s.className === 'Class-2');
-          let updatedList = parsed;
-
-          // Sync birthday for std-1 to current week if old data exists
-          const std1Idx = updatedList.findIndex((s) => s.id === 'std-1');
-          if (std1Idx !== -1 && updatedList[std1Idx].birthDate !== '২০২১-১১-১০') {
-            updatedList[std1Idx] = { ...updatedList[std1Idx], birthDate: '২০২১-১১-১০' };
-          }
-
-          if (!hasHateKhori || !hasClass2) {
-            const missing = INITIAL_STUDENTS.filter(
-              (initS) => !updatedList.some((p) => p.id === initS.id)
-            );
-            updatedList = [...updatedList, ...missing];
-          }
-
+          // Automatically merge any newly synced students from Zlink roster
+          const missing = INITIAL_STUDENTS.filter(
+            (initS) => !parsed.some((p) => p.id === initS.id || p.rollNo === initS.rollNo)
+          );
+          const updatedList = missing.length > 0 ? [...parsed, ...missing] : parsed;
           localStorage.setItem('ananda_students_v1', JSON.stringify(updatedList));
           return updatedList;
         }
       }
     } catch {}
+    localStorage.setItem('ananda_students_v1', JSON.stringify(INITIAL_STUDENTS));
     return INITIAL_STUDENTS;
   });
   const [pickupLogs, setPickupLogs] = useState<PickupEvent[]>(INITIAL_PICKUP_LOGS);

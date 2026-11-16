@@ -75,7 +75,18 @@ export function getStoredStaffMembers(): TeacherMember[] {
     const raw = localStorage.getItem(STAFF_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Automatically merge any newly added teachers from Zlink synced roster
+        const missing = SCHOOL_TEACHERS.filter(
+          (t) => !parsed.some((p: TeacherMember) => p.id === t.id || p.nameEn === t.nameEn)
+        );
+        if (missing.length > 0) {
+          const merged = [...parsed, ...missing];
+          localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(merged));
+          return merged;
+        }
+        return parsed;
+      }
     }
   } catch {}
   return SCHOOL_TEACHERS;
