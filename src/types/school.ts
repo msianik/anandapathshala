@@ -598,7 +598,7 @@ export interface FcmNotification {
   guardianPhone?: string;
   timestamp: string;
   read: boolean;
-  actionTab: 'pickup' | 'overview' | 'public' | 'diary' | 'fees' | 'students' | 'routine' | 'inventory' | 'calendar' | 'skills' | 'workspace' | 'idcards' | 'attendance' | 'messages';
+  actionTab: 'pickup' | 'overview' | 'public' | 'diary' | 'fees' | 'students' | 'routine' | 'inventory' | 'calendar' | 'skills' | 'workspace' | 'idcards' | 'attendance' | 'biometric' | 'messages';
   fcmMessageId: string;
   invoiceId?: string;
   dueAmount?: number;

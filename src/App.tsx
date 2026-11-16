@@ -1066,7 +1066,7 @@ export default function App() {
                     />
                   )}
 
-                  {currentTab === 'attendance' && (
+                  {(currentTab === 'attendance' || currentTab === 'biometric') && (
                     <AttendanceModule
                       students={students}
                       attendanceRecords={attendanceRecords}
@@ -1074,6 +1074,7 @@ export default function App() {
                       currentRole={currentRole}
                       loggedInTeacherNameBn={loggedInAccount?.nameBn}
                       onSendAttendanceNotification={dispatchRealTimeFcmNotification}
+                      initialViewTab={currentTab === 'biometric' ? 'biometric' : 'students'}
                     />
                   )}
 

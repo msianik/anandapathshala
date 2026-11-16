@@ -87,6 +87,7 @@ interface AttendanceModuleProps {
   currentRole: UserRole;
   loggedInTeacherNameBn?: string;
   onSendAttendanceNotification?: (notif: FcmNotification) => void;
+  initialViewTab?: 'students' | 'staff' | 'biometric';
 }
 
 export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
@@ -96,6 +97,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   currentRole,
   loggedInTeacherNameBn,
   onSendAttendanceNotification,
+  initialViewTab = 'students',
 }) => {
   const [selectedClass, setSelectedClass] = useState<SchoolClass>('HateKhori');
   const [smsSentToast, setSmsSentToast] = useState<string | null>(null);
@@ -110,8 +112,14 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   // ==========================================
   // Staff Attendance & Digital Check-In State
   // ==========================================
-  const [attendanceViewTab, setAttendanceViewTab] = useState<'students' | 'staff' | 'biometric'>('students');
+  const [attendanceViewTab, setAttendanceViewTab] = useState<'students' | 'staff' | 'biometric'>(initialViewTab);
   const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>(INITIAL_STAFF_ATTENDANCE);
+
+  useEffect(() => {
+    if (initialViewTab) {
+      setAttendanceViewTab(initialViewTab);
+    }
+  }, [initialViewTab]);
 
   // Quick Biometric Sync handler
   const handleQuickBiometricSync = () => {

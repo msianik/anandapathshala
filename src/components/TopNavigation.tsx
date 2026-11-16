@@ -33,6 +33,7 @@ import {
   Megaphone,
   GraduationCap,
   Camera,
+  Fingerprint,
 } from 'lucide-react';
 import { PWAInstallButton } from './MobileAppShell';
 import {
@@ -84,6 +85,7 @@ const ITEM_ICON_MAP: Record<string, { icon: React.ComponentType<{ className?: st
   skills: { icon: Award, color: 'text-amber-500' },
   gallery: { icon: Camera, color: 'text-rose-500' },
   attendance: { icon: CalendarCheck, color: 'text-emerald-600' },
+  biometric: { icon: Fingerprint, color: 'text-indigo-600' },
   staff: { icon: UserCheck, color: 'text-teal-700' },
   pickup: { icon: ShieldCheck, color: 'text-teal-600' },
   diary: { icon: BookOpen, color: 'text-indigo-600' },

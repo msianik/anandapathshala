@@ -1620,6 +1620,12 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
       descriptionBn: 'দৈনিক উপস্থিতি ও অনুপস্থিতির SMS',
     },
     {
+      id: 'biometric',
+      labelBn: 'ফিঙ্গারপ্রিন্ট মেশিন',
+      shortLabelBn: 'বায়োমেট্রিক',
+      descriptionBn: 'ZLink ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল',
+    },
+    {
       id: 'staff',
       labelBn: 'শিক্ষক ও স্টাফ',
       shortLabelBn: 'স্টাফ',
@@ -1707,6 +1713,12 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
         labelBn: 'হাজিরা',
         shortLabelBn: 'হাজিরা',
         descriptionBn: 'ডিজিটাল ক্লাসরুম রোল কল ও অ্যাটেনডেন্স',
+      },
+      {
+        id: 'biometric',
+        labelBn: 'ফিঙ্গারপ্রিন্ট মেশিন',
+        shortLabelBn: 'বায়োমেট্রিক',
+        descriptionBn: 'ZLink ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল',
       },
       {
         id: 'staff',
@@ -2021,13 +2033,19 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       defaultTab: 'attendance',
       iconName: 'CalendarCheck',
       color: 'text-teal-600',
-      itemIds: ['attendance', 'staff', 'pickup', 'diary'],
+      itemIds: ['attendance', 'biometric', 'staff', 'pickup', 'diary'],
       items: [
         {
           id: 'attendance',
           labelBn: 'শিক্ষার্থী হাজিরা',
           shortLabelBn: 'শিক্ষার্থী হাজিরা',
           descriptionBn: 'ডিজিটাল ক্লাসরুম হাজিরা ও অনুপস্থিতির SMS',
+        },
+        {
+          id: 'biometric',
+          labelBn: 'ফিঙ্গারপ্রিন্ট ও ক্লাউড মেশিন',
+          shortLabelBn: 'বায়োমেট্রিক মেশিন',
+          descriptionBn: 'ZLink Minerva IoT ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল',
         },
         {
           id: 'staff',
@@ -2163,9 +2181,10 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
         defaultTab: 'attendance',
         iconName: 'CalendarCheck',
         color: 'text-teal-600',
-        itemIds: ['attendance', 'staff', 'pickup', 'diary'],
+        itemIds: ['attendance', 'biometric', 'staff', 'pickup', 'diary'],
         items: [
           { id: 'attendance', labelBn: 'দৈনিক হাজিরা', shortLabelBn: 'হাজিরা', descriptionBn: 'ক্লাসরুম রোল কল ও হাজিরা' },
+          { id: 'biometric', labelBn: 'ফিঙ্গারপ্রিন্ট ও ক্লাউড মেশিন', shortLabelBn: 'বায়োমেট্রিক মেশিন', descriptionBn: 'ZLink Minerva IoT ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল' },
           { id: 'staff', labelBn: 'শিক্ষক ডিরেক্টরি ও ছুটি', shortLabelBn: 'স্টাফ/ছুটি', descriptionBn: 'সহকর্মী ডিরেক্টরি, আইডি কার্ড ও ছুটির আবেদন' },
           { id: 'pickup', labelBn: 'গেট-পাস', shortLabelBn: 'গেট-পাস', descriptionBn: 'পিক-আপ কল ও অভিভাবক যাচাই' },
           { id: 'diary', labelBn: 'ডায়েরি পোস্ট', shortLabelBn: 'ডায়েরি', descriptionBn: 'ছবি, ক্রাফট ও টিফিন আপডেট' },

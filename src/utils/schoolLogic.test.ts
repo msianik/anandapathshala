@@ -281,8 +281,10 @@ test('authenticateAndDetectRole automatically selects principal, teacher, or par
 
 test('getRoleNavMetadata returns role-specific full and compact single-line menu items', () => {
   const principalNav = getRoleNavMetadata('principal');
-  assert.equal(principalNav.length, 16);
+  assert.equal(principalNav.length, 17);
   assert.ok(principalNav.every((item) => item.labelBn.length > 0 && item.shortLabelBn.length > 0));
+  const biometricItem = principalNav.find((i) => i.id === 'biometric');
+  assert.equal(biometricItem?.labelBn, 'ফিঙ্গারপ্রিন্ট মেশিন');
   const chatItem = principalNav.find((i) => i.id === 'messages');
   assert.equal(chatItem?.labelBn, 'চ্যাট');
   const resultsItem = principalNav.find((i) => i.id === 'results');
@@ -293,7 +295,7 @@ test('getRoleNavMetadata returns role-specific full and compact single-line menu
   assert.equal(staffItem?.labelBn, 'শিক্ষক ও স্টাফ');
 
   const teacherNav = getRoleNavMetadata('teacher');
-  assert.equal(teacherNav.length, 15);
+  assert.equal(teacherNav.length, 16);
   assert.equal(teacherNav[0].id, 'overview');
 
   const parentNav = getRoleNavMetadata('parent');
