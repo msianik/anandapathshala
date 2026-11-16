@@ -56,12 +56,20 @@ import {
   ChevronDown,
   Fingerprint,
   ArrowDownRight,
-  ArrowUpRight
+  ArrowUpRight,
+  Cloud,
+  Activity,
+  Timer
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
 import { BiometricAttendanceWidget } from './BiometricAttendanceWidget';
-import { syncBiometricAttendanceData } from '../utils/biometricAttendanceLogic';
+import { 
+  syncBiometricAttendanceData, 
+  syncZlinkCloudAttendance, 
+  getBiometricConfig, 
+  BiometricDeviceConfig 
+} from '../utils/biometricAttendanceLogic';
 
 const PRE_SCHOOL_LATE_REASONS = [
   'দেরিতে ঘুম থেকে ওঠা',
@@ -114,12 +122,70 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   // ==========================================
   const [attendanceViewTab, setAttendanceViewTab] = useState<'students' | 'staff' | 'biometric'>(initialViewTab);
   const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>(INITIAL_STAFF_ATTENDANCE);
+  const [deviceConfig, setDeviceConfig] = useState<BiometricDeviceConfig>(() => getBiometricConfig());
+  const [secondsUntilNextSync, setSecondsUntilNextSync] = useState<number>(() => getBiometricConfig().autoSyncIntervalSeconds || 30);
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialViewTab) {
       setAttendanceViewTab(initialViewTab);
     }
   }, [initialViewTab]);
+
+  // Background Auto-Polling from ZLink Cloud (zlink.minervaiot.com)
+  useEffect(() => {
+    if (!deviceConfig.autoSyncEnabled) {
+      setSecondsUntilNextSync(deviceConfig.autoSyncIntervalSeconds || 30);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSecondsUntilNextSync((prev) => {
+        if (prev <= 1) {
+          // Trigger Auto-sync from ZLink Cloud
+          const result = syncZlinkCloudAttendance({
+            students,
+            staffList: staffAttendanceList,
+            existingAttendance: attendanceRecords,
+            existingStaffAttendance: staffAttendanceList,
+          });
+
+          onUpdateAttendance(result.updatedAttendance);
+          setStaffAttendanceList(result.updatedStaffAttendance);
+          const freshCfg = getBiometricConfig();
+          setDeviceConfig({ ...freshCfg });
+
+          return freshCfg.autoSyncIntervalSeconds || 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [deviceConfig.autoSyncEnabled, deviceConfig.autoSyncIntervalSeconds, students, attendanceRecords, staffAttendanceList]);
+
+  // Quick ZLink Cloud Sync handler (ZLink ক্লাউড সিঙ্ক বাটন)
+  const handleQuickZlinkCloudSync = () => {
+    setIsCloudSyncing(true);
+    setTimeout(() => {
+      const res = syncZlinkCloudAttendance({
+        students,
+        staffList: staffAttendanceList,
+        existingAttendance: attendanceRecords,
+        existingStaffAttendance: staffAttendanceList,
+      });
+      onUpdateAttendance(res.updatedAttendance);
+      setStaffAttendanceList(res.updatedStaffAttendance);
+      const freshCfg = getBiometricConfig();
+      setDeviceConfig({ ...freshCfg });
+      setIsCloudSyncing(false);
+      setSecondsUntilNextSync(freshCfg.autoSyncIntervalSeconds || 30);
+      setAlertSuccessBanner(
+        `✓ ZLink ক্লাউড (zlink.minervaiot.com) থেকে ${toBengaliNumber(res.syncedPunchesCount)} টি পাঞ্চ লগ সফলভাবে সিঙ্ক ও আপডেট হয়েছে!`
+      );
+      setTimeout(() => setAlertSuccessBanner(null), 6000);
+    }, 500);
+  };
 
   // Quick Biometric Sync handler
   const handleQuickBiometricSync = () => {
@@ -773,46 +839,63 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       )}
 
       {/* Biometric Machine Integration Quick Bar */}
-      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-xs shrink-0">
-            <Fingerprint className="w-5 h-5" />
+      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border-2 border-emerald-300/80 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 bg-gradient-to-tr from-sky-600 to-indigo-600 text-white rounded-2xl shadow-md shrink-0">
+            <Fingerprint className="w-6 h-6" />
           </div>
-          <div>
+          <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-black text-slate-900">ডিজিটাল ফিঙ্গারপ্রিন্ট অটো সিঙ্ক</span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+              <span className="text-xs sm:text-sm font-black text-slate-900">
+                {deviceConfig.nameBn}
+              </span>
+              <a
+                href="https://zlink.minervaiot.com/home"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition-colors"
+                title="zlink.minervaiot.com ক্লাউড পোর্টাল খুলুন"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                মেশিন সংযুক্ত (192.168.1.201:4370)
-              </span>
-              <span className="text-[10px] text-slate-500 bg-white/80 px-2 py-0.5 rounded-md border border-slate-200">
-                প্রবেশ ও প্রস্থান স্বয়ংক্রিয় ট্র্যাকিং সক্রিয়
-              </span>
+                <span>ZLink ক্লাউড ব্রিজ সংযুক্ত</span>
+              </a>
+              {deviceConfig.autoSyncEnabled ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300">
+                  <Activity className="w-3 h-3 text-sky-600 animate-spin" />
+                  <span>ব্যাকগ্রাউন্ড অটো-পোলিং সক্রিয় ({toBengaliNumber(secondsUntilNextSync)}s পর পরবর্তী সিঙ্ক)</span>
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300">
+                  অটো-পোলিং বিরতি দেওয়া
+                </span>
+              )}
             </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              মেশিনের সেন্সরে ফিঙ্গারপ্রিন্ট ছোঁয়ামাত্র শিক্ষার্থীদের প্রবেশ সময় (কখন ঢুকছে) এবং প্রস্থান সময় (কখন বের হচ্ছে) অটোমেটিক আপডেট ও সিঙ্ক হয়।
+            <p className="text-xs text-slate-600">
+              মেশিনের সেন্সরে শিক্ষার্থী বা স্টাফদের ফিঙ্গারপ্রিন্ট ছোঁয়ামাত্র তা সরাসরি <span className="font-mono font-bold text-sky-700">zlink.minervaiot.com</span> ক্লাউডে যায় এবং আনন্দ পাঠশালা পোর্টাল অটো-পোলিং বা সিঙ্ক বাটনের মাধ্যমে তা লাইভ গ্রহণ করে।
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={handleQuickBiometricSync}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-            title="মেশিন থেকে সর্বশেষ পাঞ্চ ডাটা এখনই সিঙ্ক করুন"
+            onClick={handleQuickZlinkCloudSync}
+            disabled={isCloudSyncing}
+            className="px-4 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 active:scale-95 text-white font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+            title="zlink.minervaiot.com ক্লাউড থেকে রিয়েল-টাইমে আজকের পাঞ্চ ডাটা সিঙ্ক করুন"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>এখনই সিঙ্ক করুন</span>
+            <Cloud className={`w-4 h-4 text-sky-200 ${isCloudSyncing ? 'animate-bounce' : ''}`} />
+            <span>{isCloudSyncing ? 'ক্লাউড সিঙ্ক হচ্ছে...' : 'ZLink ক্লাউড সিঙ্ক'}</span>
           </button>
+
           <button
             type="button"
             onClick={() => setAttendanceViewTab('biometric')}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-indigo-700 font-black text-xs rounded-xl border border-indigo-200 shadow-2xs flex items-center gap-1 cursor-pointer transition-all"
-            title="ফিঙ্গারপ্রিন্ট মেশিনের বিস্তারিত কনসোল ও লাইভ পাঞ্চ হিস্ট্রি খুলুন"
+            className="px-3.5 py-2.5 bg-white hover:bg-slate-50 active:scale-95 text-indigo-700 font-black text-xs sm:text-sm rounded-xl border border-indigo-200 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+            title="বায়োমেট্রিক মেশিনের সম্পূর্ণ কনসোল, অটোপোলিং নিয়ন্ত্রণ ও লাইভ লগ দেখুন"
           >
-            <span>লাইভ পাঞ্চ স্ট্রিম</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>লাইভ পাঞ্চ কনসোল</span>
+            <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
       </div>

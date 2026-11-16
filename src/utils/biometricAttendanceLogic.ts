@@ -293,6 +293,15 @@ export function getBiometricConfig(): BiometricDeviceConfig {
       }
       parsed.locationBn = DEFAULT_BIOMETRIC_CONFIG.locationBn;
     }
+    if (parsed.autoSyncEnabled === undefined) {
+      parsed.autoSyncEnabled = true;
+    }
+    if (!parsed.autoSyncIntervalSeconds) {
+      parsed.autoSyncIntervalSeconds = 30;
+    }
+    if (!parsed.cloudEndpointUrl) {
+      parsed.cloudEndpointUrl = 'https://zlink.minervaiot.com';
+    }
     return { ...DEFAULT_BIOMETRIC_CONFIG, ...parsed };
   } catch {
     return DEFAULT_BIOMETRIC_CONFIG;
