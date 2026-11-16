@@ -26,6 +26,7 @@ import {
 } from '../utils/biometricAttendanceLogic';
 import { toBengaliNumber, getSchoolClassNameBn } from '../utils/schoolLogic';
 import { SCHOOL_TEACHERS } from '../data/mockData';
+import { BiometricConfigModal } from './BiometricConfigModal';
 import {
   Fingerprint,
   RefreshCw,
@@ -516,10 +517,11 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
 
             <button
               onClick={() => setIsConfigModalOpen(true)}
-              className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl border border-white/20 transition-all cursor-pointer"
-              title="মেশিন কানেকশন ও আইপি কনফিগারেশন সেটিংস"
+              className="px-3.5 py-3 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold rounded-2xl text-xs sm:text-sm border border-white/25 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              title="মেশিন মডেল, সিরিয়াল নম্বর, ক্লাউড বা লোকাল আইপি কনফিগারেশন সেটিংস"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4 text-amber-300" />
+              <span>ডিভাইস কনফিগারেশন</span>
             </button>
           </div>
         </div>
@@ -1205,304 +1207,16 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
       {/* ========================================================================= */}
       {/* MODAL 2: BIOMETRIC DEVICE CONFIGURATION MODAL                             */}
       {/* ========================================================================= */}
-      {isConfigModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-indigo-700">
-                <Settings className="w-5 h-5" />
-                <h3 className="font-black text-slate-900 text-lg">ফিঙ্গারপ্রিন্ট মেশিন কনফিগারেশন</h3>
-              </div>
-              <button
-                onClick={() => {
-                  setIsConfigModalOpen(false);
-                  setTestResult(null);
-                }}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-              {/* Device Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">মেশিনের নাম ও অবস্থান</label>
-                <input
-                  type="text"
-                  value={deviceConfig.nameBn}
-                  onChange={(e) => setDeviceConfig({ ...deviceConfig, nameBn: e.target.value })}
-                  className="w-full text-xs font-semibold p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* IP and Port */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">ডিভাইস আইপি (IP Address)</label>
-                  <input
-                    type="text"
-                    value={deviceConfig.ipAddress}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, ipAddress: e.target.value })}
-                    placeholder="192.168.1.201"
-                    className="w-full text-xs font-mono font-semibold p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">পোর্ট (Port)</label>
-                  <input
-                    type="number"
-                    value={deviceConfig.port}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, port: Number(e.target.value) })}
-                    placeholder="4370"
-                    className="w-full text-xs font-mono font-semibold p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Machine Model and Serial */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">মডেল</label>
-                  <input
-                    type="text"
-                    value={deviceConfig.model}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, model: e.target.value })}
-                    className="w-full text-xs p-2.5 border border-slate-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">সিরিয়াল নম্বর</label>
-                  <input
-                    type="text"
-                    value={deviceConfig.terminalSerial}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, terminalSerial: e.target.value })}
-                    className="w-full text-xs font-mono p-2.5 border border-slate-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Test Connection Button & Result */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">ডিভাইস নেটওয়ার্ক পিং ও সংযোগ পরীক্ষা</span>
-                  <button
-                    type="button"
-                    onClick={handleTestConnection}
-                    disabled={isTestingConnection}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <Server className="w-3.5 h-3.5" />
-                    <span>{isTestingConnection ? 'টেস্ট হচ্ছে...' : 'কানেকশন টেস্ট'}</span>
-                  </button>
-                </div>
-
-                {testResult && (
-                  <div
-                    className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                      testResult.success
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-100 text-rose-800 border border-rose-200'
-                    }`}
-                  >
-                    {testResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-                    <span>{testResult.message}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Minerva IoT / ZLink Cloud Configuration Card */}
-              <div className="p-4 bg-sky-50/70 rounded-2xl border-2 border-sky-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Cloud className="w-5 h-5 text-sky-600" />
-                    <div>
-                      <h4 className="text-xs font-black text-sky-950">ZKBio Zlink Minerva IoT ক্লাউড ইন্টিগ্রেশন</h4>
-                      <p className="text-[10px] text-sky-700">ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিনের ক্লাউড পোর্টাল</p>
-                    </div>
-                  </div>
-                  <a
-                    href="https://zlink.minervaiot.com/home"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <span>ক্লাউড পোর্টাল খুলুন</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড প্ল্যাটফর্ম URL</label>
-                  <input
-                    type="text"
-                    value={deviceConfig.cloudEndpointUrl || 'https://zlink.minervaiot.com'}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudEndpointUrl: e.target.value })}
-                    placeholder="https://zlink.minervaiot.com"
-                    className="w-full text-xs font-mono font-semibold p-2.5 border border-sky-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">প্রতিষ্ঠান কোড (Org Code)</label>
-                    <input
-                      type="text"
-                      value={deviceConfig.cloudOrgCode || 'ANANDO-PATHSHALA-2026'}
-                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudOrgCode: e.target.value })}
-                      placeholder="ANANDO-PATHSHALA-2026"
-                      className="w-full text-xs font-mono p-2 border border-sky-300 rounded-xl bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড এপিআই কি / টোকেন</label>
-                    <input
-                      type="password"
-                      value={deviceConfig.cloudApiKey || 'zlink_live_secret_token_ap'}
-                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudApiKey: e.target.value })}
-                      placeholder="API Secret Key"
-                      className="w-full text-xs font-mono p-2 border border-sky-300 rounded-xl bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] font-bold text-sky-900">ZLink ক্লাউড সার্ভার পিং টেস্ট:</span>
-                  <button
-                    type="button"
-                    onClick={handleTestZlinkCloud}
-                    disabled={isTestingCloud}
-                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-2xs"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>{isTestingCloud ? 'টেস্ট হচ্ছে...' : 'ZLink ক্লাউড টেস্ট'}</span>
-                  </button>
-                </div>
-
-                {cloudTestResult && (
-                  <div
-                    className={`p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                      cloudTestResult.success
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-rose-100 text-rose-800 border border-rose-300'
-                    }`}
-                  >
-                    {cloudTestResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-                    <span>{cloudTestResult.message}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Auto Sync & Interval */}
-              <div className="pt-2 border-t border-slate-100 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800">স্বয়ংক্রিয় ক্লাউড সিঙ্ক (Auto-Sync)</label>
-                    <p className="text-[11px] text-slate-500">পোর্টাল নিজে থেকে নিয়মিত নতুন ফিঙ্গারপ্রিন্ট পাঞ্চ রিফ্রেশ করবে</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={deviceConfig.autoSyncEnabled}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, autoSyncEnabled: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800">সিঙ্ক বিরতি (Auto-Sync Interval)</label>
-                    <p className="text-[11px] text-slate-500">কত সেকেন্ড পর পর ক্লাউড চেক করবে</p>
-                  </div>
-                  <select
-                    value={deviceConfig.autoSyncIntervalSeconds}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, autoSyncIntervalSeconds: Number(e.target.value) })}
-                    className="text-xs font-bold p-1.5 border border-slate-300 rounded-lg text-slate-800"
-                  >
-                    <option value={15}>১৫ সেকেন্ড</option>
-                    <option value={30}>৩০ সেকেন্ড</option>
-                    <option value={60}>১ মিনিট</option>
-                    <option value={300}>৫ মিনিট</option>
-                  </select>
-                </div>
-
-                {/* Webhook Endpoint */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ক্লাউড ওয়েবহুক URL (Webhook Endpoint)</label>
-                  <input
-                    type="text"
-                    value={deviceConfig.cloudWebhookUrl || 'https://anandapathshala.netlify.app/api/biometric-webhook'}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudWebhookUrl: e.target.value })}
-                    className="w-full text-xs font-mono p-2 border border-slate-200 rounded-xl"
-                  />
-                </div>
-
-                {/* Morning Scheduler */}
-                <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-bold text-purple-900">প্রাতঃকালীন অটো-হাজিরা শিডিউল</label>
-                      <p className="text-[10px] text-purple-700">স্কুল শুরুর সময় স্বয়ংক্রিয় হাজিরা প্রসেসিং</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={deviceConfig.cloudMorningSchedulerEnabled ?? true}
-                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudMorningSchedulerEnabled: e.target.checked })}
-                      className="w-4 h-4 text-purple-600 rounded cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600">হাজিরার সময়:</span>
-                    <input
-                      type="time"
-                      value={deviceConfig.cloudMorningSchedulerTime || '08:30'}
-                      onChange={(e) => setDeviceConfig({ ...deviceConfig, cloudMorningSchedulerTime: e.target.value })}
-                      className="text-xs font-mono p-1 border border-purple-300 rounded-lg bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-xs font-bold text-slate-800">অভিভাবককে স্বয়ংক্রিয় এসএমএস</label>
-                    <p className="text-[11px] text-slate-500">শিক্ষার্থী ক্লাসে ঢুকলে বা ছুটি হলে অভিভাবকের ফোনে নোটিফিকেশন যাবে</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={deviceConfig.autoSmsAlertEnabled}
-                    onChange={(e) => setDeviceConfig({ ...deviceConfig, autoSmsAlertEnabled: e.target.checked })}
-                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsConfigModalOpen(false);
-                  setTestResult(null);
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                বাতিল
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  saveBiometricConfig(deviceConfig);
-                  setIsConfigModalOpen(false);
-                  setSyncToast('✓ বায়োমেট্রিক মেশিনের কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!');
-                  setTimeout(() => setSyncToast(null), 4000);
-                }}
-                className="px-5 py-2.5 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer"
-              >
-                সংরক্ষণ করুন
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BiometricConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        config={deviceConfig}
+        onSave={(updated) => {
+          setDeviceConfig(updated);
+          setSyncToast(`✓ ${updated.nameBn} (${updated.model}) সফলভাবে সংরক্ষিত হয়েছে!`);
+          setTimeout(() => setSyncToast(null), 5000);
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* MODAL 3: USB FLASH DRIVE / DAT FILE IMPORT MODAL                          */}

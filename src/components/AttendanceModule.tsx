@@ -59,11 +59,13 @@ import {
   ArrowUpRight,
   Cloud,
   Activity,
-  Timer
+  Timer,
+  Settings
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
 import { BiometricAttendanceWidget } from './BiometricAttendanceWidget';
+import { BiometricConfigModal } from './BiometricConfigModal';
 import { 
   syncBiometricAttendanceData, 
   syncZlinkCloudAttendance, 
@@ -125,6 +127,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   const [deviceConfig, setDeviceConfig] = useState<BiometricDeviceConfig>(() => getBiometricConfig());
   const [secondsUntilNextSync, setSecondsUntilNextSync] = useState<number>(() => getBiometricConfig().autoSyncIntervalSeconds || 30);
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [isDeviceConfigModalOpen, setIsDeviceConfigModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialViewTab) {
@@ -890,8 +893,18 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
           <button
             type="button"
+            onClick={() => setIsDeviceConfigModalOpen(true)}
+            className="px-3.5 py-2.5 bg-white hover:bg-slate-50 active:scale-95 text-slate-800 font-black text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all"
+            title="যেকোনো মেশিনের নাম, মডেল, সিরিয়াল নম্বর বা নেটওয়ার্ক সেটিংস পরিবর্তন ও কনফিগার করুন"
+          >
+            <Settings className="w-4 h-4 text-slate-600" />
+            <span>ডিভাইস কনফিগারেশন</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setAttendanceViewTab('biometric')}
-            className="px-3.5 py-2.5 bg-white hover:bg-slate-50 active:scale-95 text-indigo-700 font-black text-xs sm:text-sm rounded-xl border border-indigo-200 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+            className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 font-black text-xs sm:text-sm rounded-xl border border-indigo-200 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
             title="বায়োমেট্রিক মেশিনের সম্পূর্ণ কনসোল, অটোপোলিং নিয়ন্ত্রণ ও লাইভ লগ দেখুন"
           >
             <span>লাইভ পাঞ্চ কনসোল</span>
@@ -2181,6 +2194,20 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
         dateStr={attendanceDateStr}
         loggedInTeacherNameBn={loggedInTeacherNameBn}
         onSendAlerts={handleSendAlertsFromModal}
+      />
+
+      {/* Device Configuration Modal */}
+      <BiometricConfigModal
+        isOpen={isDeviceConfigModalOpen}
+        onClose={() => setIsDeviceConfigModalOpen(false)}
+        config={deviceConfig}
+        onSave={(updated) => {
+          setDeviceConfig(updated);
+          setAlertSuccessBanner(
+            `✓ ${updated.nameBn} (${updated.model}) সফলভাবে কনফিগার ও সংরক্ষিত হয়েছে!`
+          );
+          setTimeout(() => setAlertSuccessBanner(null), 6000);
+        }}
       />
     </div>
   );

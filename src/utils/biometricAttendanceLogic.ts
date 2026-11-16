@@ -283,16 +283,6 @@ export function getBiometricConfig(): BiometricDeviceConfig {
     const raw = safeGetItem(BIOMETRIC_CONFIG_KEY);
     if (!raw) return DEFAULT_BIOMETRIC_CONFIG;
     const parsed = JSON.parse(raw);
-    // Auto-migrate legacy/initial configs to ZKTeco SenseFP M1
-    if (parsed.model && (parsed.model.includes('Face') || parsed.model.includes('Generic') || parsed.id === 'zk-ap-terminal-01')) {
-      parsed.id = DEFAULT_BIOMETRIC_CONFIG.id;
-      parsed.nameBn = DEFAULT_BIOMETRIC_CONFIG.nameBn;
-      parsed.model = DEFAULT_BIOMETRIC_CONFIG.model;
-      if (parsed.terminalSerial === 'AP-ZK2026-X01') {
-        parsed.terminalSerial = DEFAULT_BIOMETRIC_CONFIG.terminalSerial;
-      }
-      parsed.locationBn = DEFAULT_BIOMETRIC_CONFIG.locationBn;
-    }
     if (parsed.autoSyncEnabled === undefined) {
       parsed.autoSyncEnabled = true;
     }
