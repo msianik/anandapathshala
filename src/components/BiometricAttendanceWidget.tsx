@@ -1629,10 +1629,10 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-lg">
-                    ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিন ও ZLink ক্লাউড লাইভ কানেকশন গাইড
+                    ZKTeco SenseFP M1 ও ZLink ক্লাউড লাইভ কানেকশন গাইড
                   </h3>
                   <p className="text-xs text-slate-500">
-                    কিভাবে আপনার ফিজিক্যাল মেশিনটি ক্লাউড হয়ে এই সফটওয়্যারে লাইভ কানেক্ট করবেন
+                    মডেল: ZKTeco SenseFP M1 (Wi-Fi 2.4GHz Cloud Edition) · ক্লাউড ব্রিজ: zlink.minervaiot.com
                   </p>
                 </div>
               </div>
@@ -1645,6 +1645,17 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             </div>
 
             <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-slate-800 text-xs">
+              {/* SenseFP M1 Special Hardware Clarification */}
+              <div className="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50/80 rounded-2xl border border-blue-200 text-blue-950 text-xs leading-relaxed space-y-1">
+                <div className="flex items-center gap-2 font-black text-blue-900 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                  <span>💡 ZKTeco SenseFP M1 সংযোগ আর্কিটেকচার (ক্লাউড ব্রিজ সমাধান):</span>
+                </div>
+                <p className="text-slate-700">
+                  ZKTeco SenseFP M1 মডেলটিতে সরাসরি কোনো বিল্ট-ইন লোকাল ওয়েব সার্ভার বা ওপেন লোকাল পোর্ট নেই। এটি সরাসরি ক্লাউড-সংযুক্ত ডিভাইস। এটি নিজস্ব <strong>2.4GHz Wi-Fi</strong> দিয়ে ইন্টারনেটে কানেক্টেড হয়ে সরাসরি ZKTeco-এর নিজস্ব <strong>ZKBio Zlink Minerva IoT ক্লাউডে (zlink.minervaiot.com)</strong> লাইভ পাঞ্চ ডাটা পাঠায়। আমাদের আনন্দ পাঠশালা সফটওয়্যার এই Zlink ক্লাউডকে <strong>ব্রিজ (Bridge)</strong> হিসেবে ব্যবহার করে স্বয়ংক্রিয়ভাবে সব হাজিরা লাইভ সংগ্রহ করে।
+                </p>
+              </div>
+
               {/* Step 1 */}
               <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200 space-y-2">
                 <div className="flex items-center gap-2">
@@ -1652,20 +1663,20 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                     ১
                   </span>
                   <h4 className="font-black text-slate-900 text-sm">
-                    ফিঙ্গারপ্রিন্ট মেশিনে ক্লাউড সার্ভার অন করা (মেশিনের কিপ্যাড দিয়ে)
+                    SenseFP M1 মেশিনে Wi-Fi ও ক্লাউড অন করা (মেশিনের কিপ্যাড দিয়ে)
                   </h4>
                 </div>
                 <p className="text-slate-600 leading-relaxed">
-                  আপনার ডিজিটাল অ্যাটেনডেন্স মেশিনের সামনের কীবোর্ড থেকে সেটিংস কনফিগার করুন:
+                  আপনার SenseFP M1 মেশিনের সামনের কিপ্যাড থেকে সেটিংস কনফিগার করুন:
                 </p>
                 <div className="bg-white/80 p-3 rounded-xl border border-amber-200/80 font-mono text-[11px] space-y-1">
-                  <p>• মেশিনের কিপ্যাডে <strong>Menu (M/OK)</strong> চেপে অ্যাডমিন মেন্যু খুলুন</p>
-                  <p>• <strong>Comm.</strong> (Communication / যোগাযোগ) অপশনে প্রবেশ করুন</p>
-                  <p>• <strong>Cloud Server Setting</strong> (অথবা <strong>ADMS</strong>) নির্বাচন করুন</p>
+                  <p>• কিপ্যাডে <strong>Menu (M/OK)</strong> চেপে অ্যাডমিন মেন্যু খুলুন</p>
+                  <p>• <strong>Comm.</strong> (Communication / যোগাযোগ) &gt; <strong>Wireless Network (Wi-Fi)</strong> এ গিয়ে স্কুলের 2.4GHz Wi-Fi-এর সাথে কানেক্ট করুন</p>
+                  <p>• <strong>Comm.</strong> &gt; <strong>Cloud Server Setting</strong> (অথবা <strong>ADMS</strong>) নির্বাচন করুন</p>
                   <p>• <strong>Server Address</strong>: <span className="text-sky-700 font-bold">zlink.minervaiot.com</span> লিখুন</p>
                   <p>• <strong>Server Port</strong>: <span className="text-sky-700 font-bold">443</span> (বা 8080) দিন</p>
                   <p>• <strong>Enable Cloud Server</strong>: <span className="text-emerald-700 font-bold">ON</span> করুন</p>
-                  <p>• মেশিনের LAN ক্যাবল বা Wi-Fi কানেক্ট করলে স্ক্রিনের কোণায় ক্লাউড আইকন (☁️) দেখা যাবে</p>
+                  <p>• Wi-Fi কানেক্ট হলে মেশিনের স্ক্রিনের উপরে ওয়াইফাই বার ও ক্লাউড আইকন (☁️) ভেসে উঠবে</p>
                 </div>
               </div>
 
@@ -1677,7 +1688,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                       ২
                     </span>
                     <h4 className="font-black text-slate-900 text-sm">
-                      zlink.minervaiot.com ক্লাউড পোর্টালে ডিভাইসটি যুক্ত করা
+                      zlink.minervaiot.com ক্লাউড পোর্টালে SenseFP M1 ডিভাইসটি যুক্ত করা
                     </h4>
                   </div>
                   <a
@@ -1693,7 +1704,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                 <div className="bg-white/80 p-3 rounded-xl border border-sky-200/80 font-mono text-[11px] space-y-1">
                   <p>• ব্রাউজারে <strong>https://zlink.minervaiot.com/home</strong> খুলুন এবং ইউজারনেম-পাসওয়ার্ড দিয়ে লগইন করুন</p>
                   <p>• <strong>Device Management</strong> &gt; <strong>Add Device</strong> এ যান</p>
-                  <p>• মেশিনের পেছনের স্টিকারে থাকা <strong>Serial Number (SN)</strong> (যেমন: <span className="font-bold text-slate-900">AP-ZK2026-X01</span>) দিন</p>
+                  <p>• মেশিনের পেছনের স্টিকার বা System Info মেন্যুতে থাকা <strong>Serial Number (SN)</strong> (যেমন: <span className="font-bold text-slate-900">SenseFP-M1-AP2026</span>) দিন</p>
                   <p>• সেভ করলেই ক্লাউডে মেশিনটি <span className="text-emerald-600 font-bold">Online 🟢</span> দেখাবে</p>
                 </div>
               </div>
@@ -1735,7 +1746,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                     ৪
                   </span>
                   <h4 className="font-black text-slate-900 text-sm">
-                    ক্লাউড থেকে আনন্দ পাঠশালা সফটওয়্যারে স্বয়ংক্রিয়ভাবে ডাটা নেওয়ার ৩টি পদ্ধতি
+                    ক্লাউড থেকে আনন্দ পাঠশালা সফটওয়্যারে স্বয়ংক্রিয়ভাবে ডাটা নেওয়ার পদ্ধতিসমূহ
                   </h4>
                 </div>
                 <div className="space-y-1.5 text-[11px] text-slate-700">
@@ -1743,10 +1754,13 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                     <strong>১. ব্যাকগ্রাউন্ড অটো-সিঙ্ক (Auto-Polling):</strong> সফটওয়্যার ওপেন থাকলেই প্রতি ১৫-৩০ সেকেন্ড পর পর ক্লাউড থেকে নতুন ফিঙ্গারপ্রিন্ট পাঞ্চ স্বয়ংক্রিয়ভাবে ডাউনলোড হয়ে যাবে।
                   </p>
                   <p>
-                    <strong>২. রিয়েল-টাইম ওয়েবহুক (Instant Webhook):</strong> আমাদের পোর্টালে দেওয়া ওয়েবহুক URL-টি ZLink ক্লাউডের সেটিংসে বসিয়ে দিলে, মেশিনে আঙুল দেওয়ার ১ সেকেন্ডের মধ্যেই ডাটা সফটওয়্যারে পুশ হবে।
+                    <strong>২. রিয়েল-টাইম ওয়েবহুক (Instant Webhook):</strong> আমাদের পোর্টালে দেওয়া ওয়েবহুক URL (<code className="bg-white px-1 py-0.5 rounded text-indigo-700 font-mono text-[10px]">https://anandapathshala.netlify.app/api/biometric-webhook</code>) ZLink ক্লাউডের সেটিংসে বসিয়ে দিলে, মেশিনে আঙুল দেওয়ার ১ সেকেন্ডের মধ্যেই ডাটা সফটওয়্যারে পুশ হবে।
                   </p>
                   <p>
                     <strong>৩. প্রাতঃকালীন অটো-হাজিরা (Morning Scheduler):</strong> প্রতিদিন সকাল ০৮:৩০ টায় স্বয়ংক্রিয়ভাবে পুরো ক্লাউড হাজিরা প্রসেস হবে।
+                  </p>
+                  <p>
+                    <strong>৪. ইউএসবি / এক্সেল / জেসন ইমপোর্ট:</strong> ক্লাউড বা পেনড্রাইভ থেকে ডাউনলোড করা যেকোনো DAT/CSV/JSON ফাইল সরাসরি ড্রপ করলেই সেকেন্ডে হাজিরা লোড হবে।
                   </p>
                 </div>
               </div>

@@ -13,13 +13,13 @@ const BIOMETRIC_CONFIG_KEY = 'ap_biometric_device_config_v1';
 const BIOMETRIC_LOGS_KEY = 'ap_biometric_punch_logs_v1';
 
 export const DEFAULT_BIOMETRIC_CONFIG: BiometricDeviceConfig = {
-  id: 'zk-ap-terminal-01',
-  nameBn: 'ZKBio Zlink ক্লাউড বায়োমেট্রিক টার্মিনাল (Minerva IoT)',
-  model: 'ZKTeco ZLink Cloud Fingerprint & Face Terminal',
+  id: 'zk-sensefp-m1-01',
+  nameBn: 'ZKTeco SenseFP M1 ওয়াই-ফাই ক্লাউড টার্মিনাল',
+  model: 'ZKTeco SenseFP M1 (Wi-Fi 2.4GHz Cloud Edition)',
   ipAddress: '192.168.1.201',
   port: 4370,
-  terminalSerial: 'AP-ZK2026-X01',
-  locationBn: 'আনন্দ পাঠশালা প্রধান ফটক (ক্লাউডে সার্বক্ষণিক যুক্ত)',
+  terminalSerial: 'SenseFP-M1-AP2026',
+  locationBn: 'আনন্দ পাঠশালা প্রধান ফটক (ZLink ক্লাউড ব্রিজে যুক্ত)',
   connectionStatus: 'connected',
   lastSyncTimestamp: Date.now() - 45000,
   lastSyncTimeStr: '১ মিনিট পূর্বে (Zlink ক্লাউড সিঙ্ক)',
@@ -282,7 +282,18 @@ export function getBiometricConfig(): BiometricDeviceConfig {
   try {
     const raw = safeGetItem(BIOMETRIC_CONFIG_KEY);
     if (!raw) return DEFAULT_BIOMETRIC_CONFIG;
-    return { ...DEFAULT_BIOMETRIC_CONFIG, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    // Auto-migrate legacy/initial configs to ZKTeco SenseFP M1
+    if (parsed.model && (parsed.model.includes('Face') || parsed.model.includes('Generic') || parsed.id === 'zk-ap-terminal-01')) {
+      parsed.id = DEFAULT_BIOMETRIC_CONFIG.id;
+      parsed.nameBn = DEFAULT_BIOMETRIC_CONFIG.nameBn;
+      parsed.model = DEFAULT_BIOMETRIC_CONFIG.model;
+      if (parsed.terminalSerial === 'AP-ZK2026-X01') {
+        parsed.terminalSerial = DEFAULT_BIOMETRIC_CONFIG.terminalSerial;
+      }
+      parsed.locationBn = DEFAULT_BIOMETRIC_CONFIG.locationBn;
+    }
+    return { ...DEFAULT_BIOMETRIC_CONFIG, ...parsed };
   } catch {
     return DEFAULT_BIOMETRIC_CONFIG;
   }
@@ -605,9 +616,113 @@ export function parseBiometricMachineFile(
   newLogs: BiometricPunchLog[];
   errors: string[];
 } {
-  const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const trimmed = content.trim();
   const errors: string[] = [];
   const newLogs: BiometricPunchLog[] = [];
+
+  // Check if content is JSON format (e.g. from Zlink API / Zlink Minerva Cloud JSON export)
+  if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+    try {
+      const parsedJson = JSON.parse(trimmed);
+      const rawRecords: any[] = Array.isArray(parsedJson)
+        ? parsedJson
+        : Array.isArray(parsedJson.data)
+        ? parsedJson.data
+        : Array.isArray(parsedJson.rows)
+        ? parsedJson.rows
+        : Array.isArray(parsedJson.records)
+        ? parsedJson.records
+        : [parsedJson];
+
+      rawRecords.forEach((item, idx) => {
+        const rawEnrollId = String(
+          item.pin || item.userId || item.user_id || item.enrollId || item.enroll_id || item.empId || item.id || ''
+        ).trim();
+        const rawDateTimeStr = String(
+          item.time || item.punchTime || item.punch_time || item.recordTime || item.datetime || ''
+        ).trim();
+
+        if (!rawEnrollId) return;
+
+        const matchedStudent = students.find(
+          (s) => s.rollNo === rawEnrollId || s.id === rawEnrollId || s.rollNo === toBengaliNumber(rawEnrollId)
+        );
+        const matchedTeacher = SCHOOL_TEACHERS.find(
+          (t) => t.id.toLowerCase() === rawEnrollId.toLowerCase()
+        );
+
+        if (matchedStudent || matchedTeacher) {
+          const punchDate = rawDateTimeStr ? new Date(rawDateTimeStr) : new Date();
+          const validDate = !isNaN(punchDate.getTime()) ? punchDate : new Date();
+          const hour = validDate.getHours();
+          const punchType: BiometricPunchType = item.type === 'exit' || item.punchType === 'exit' || hour >= 12 ? 'exit' : 'entry';
+          const timeFormatted = formatBanglaTime(validDate);
+
+          if (matchedStudent) {
+            newLogs.push({
+              id: `import-json-${Date.now()}-${idx}`,
+              enrollId: rawEnrollId,
+              personType: 'student',
+              personId: matchedStudent.id,
+              nameBn: matchedStudent.nameBn,
+              nameEn: matchedStudent.nameEn,
+              className: matchedStudent.className,
+              rollNo: matchedStudent.rollNo,
+              punchType,
+              punchTimeStr: timeFormatted,
+              timestamp: validDate.getTime(),
+              dateStr: '০৮ নভেম্বর ২০২৬',
+              verificationMode: 'fingerprint',
+              status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
+              statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত প্রবেশ' : 'অন-টাইম প্রবেশ') : 'স্বাভাবিক প্রস্থান',
+              deviceId: 'zk-sensefp-m1-01',
+              deviceNameBn: 'ZKTeco SenseFP M1 ক্লাউড লগ',
+              syncedAt: Date.now(),
+              smsNotified: true,
+            });
+          } else if (matchedTeacher) {
+            newLogs.push({
+              id: `import-json-${Date.now()}-${idx}`,
+              enrollId: rawEnrollId,
+              personType: 'teacher',
+              personId: matchedTeacher.id,
+              nameBn: matchedTeacher.nameBn,
+              nameEn: matchedTeacher.nameEn,
+              punchType,
+              punchTimeStr: timeFormatted,
+              timestamp: validDate.getTime(),
+              dateStr: '০৮ নভেম্বর ২০২৬',
+              verificationMode: 'fingerprint',
+              status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
+              statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত উপস্থিতি' : 'অন-টাইম উপস্থিতি') : 'প্রস্থান',
+              deviceId: 'zk-sensefp-m1-01',
+              deviceNameBn: 'ZKTeco SenseFP M1 ক্লাউড লগ',
+              syncedAt: Date.now(),
+              smsNotified: false,
+            });
+          }
+        } else {
+          errors.push(`আইটেম ${idx + 1}: আইডি '${rawEnrollId}' কোনো শিক্ষার্থী বা শিক্ষকের সাথে মিলেনি।`);
+        }
+      });
+
+      if (newLogs.length > 0) {
+        const existing = getBiometricLogs();
+        const merged = [...newLogs, ...existing];
+        saveBiometricLogs(merged);
+      }
+
+      return {
+        parsedCount: newLogs.length,
+        newLogs,
+        errors,
+      };
+    } catch {
+      // Fall through to plain text parsing
+    }
+  }
+
+  const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
   lines.forEach((line, idx) => {
     // Skip common header lines if CSV or ZLink Cloud Excel export

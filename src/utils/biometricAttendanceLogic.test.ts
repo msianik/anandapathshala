@@ -204,6 +204,18 @@ describe('biometricAttendanceLogic tests', () => {
     expect(res.updatedAttendance.length).toBeGreaterThan(0);
   });
 
+  it('parses ZLink Cloud exported JSON array format', () => {
+    const zlinkJson = JSON.stringify([
+      { userId: '১০০', time: '2026-11-08 07:55:00', type: 'entry' },
+      { userId: '১০১', time: '2026-11-08 12:40:00', type: 'exit' },
+    ]);
+    const parsed = parseBiometricMachineFile(zlinkJson, mockStudents);
+    expect(parsed.parsedCount).toBe(2);
+    expect(parsed.newLogs[0].rollNo).toBe('১০০');
+    expect(parsed.newLogs[1].rollNo).toBe('১০১');
+    expect(parsed.newLogs[0].deviceId).toBe('zk-sensefp-m1-01');
+  });
+
   it('provides structured descriptions of all 4 Cloud-to-Software Intake Methods', () => {
     const methods = getCloudIntakeMethodDetails();
     expect(methods.length).toBe(4);
