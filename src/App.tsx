@@ -58,6 +58,7 @@ const SchoolAssetsModule = lazy(() => import('./components/SchoolAssetsModule').
 const StudentDirectoryModule = lazy(() => import('./components/StudentDirectoryModule').then(m => ({ default: m.StudentDirectoryModule })));
 const StudentIdCardModule = lazy(() => import('./components/StudentIdCardModule').then(m => ({ default: m.StudentIdCardModule })));
 const ClassRoutineModule = lazy(() => import('./components/ClassRoutineModule').then(m => ({ default: m.ClassRoutineModule })));
+const HomeworkChecklistModule = lazy(() => import('./components/HomeworkChecklistModule').then(m => ({ default: m.HomeworkChecklistModule })));
 const ParentClassRoutineView = lazy(() => import('./components/ParentClassRoutineView').then(m => ({ default: m.ParentClassRoutineView })));
 const AcademicCalendarModule = lazy(() => import('./components/AcademicCalendarModule').then(m => ({ default: m.AcademicCalendarModule })));
 const ExamResultsModule = lazy(() => import('./components/ExamResultsModule').then(m => ({ default: m.ExamResultsModule })));
@@ -939,6 +940,15 @@ export default function App() {
                         currentRole={currentRole}
                       />
                     )
+                  )}
+
+                  {currentTab === 'homework' && (
+                    <HomeworkChecklistModule
+                      students={students}
+                      currentRole={currentRole}
+                      loggedInAccount={loggedInAccount}
+                      onNavigateTab={setCurrentTab}
+                    />
                   )}
 
                   {currentTab === 'calendar' && (

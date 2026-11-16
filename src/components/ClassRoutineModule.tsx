@@ -57,6 +57,7 @@ import { SCHOOL_TEACHERS } from '../data/mockData';
 import { ExamScheduleTab } from './ExamScheduleTab';
 import { CulturalDayHubTab } from './CulturalDayHubTab';
 import { WeeklyTiffinMenuTab } from './WeeklyTiffinMenuTab';
+import { HomeworkChecklistModule } from './HomeworkChecklistModule';
 import {
   Calendar,
   Clock,
@@ -155,7 +156,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
   // Weekly Summary View & Whole-Week Progress State
   const [activeRoutineTab, setActiveRoutineTab] = useState<
-    'daily_routine' | 'cultural_day' | 'tiffin_routine' | 'weekly_summary' | 'exam_schedule'
+    'daily_routine' | 'cultural_day' | 'tiffin_routine' | 'weekly_summary' | 'exam_schedule' | 'homework_checklist'
   >('daily_routine');
   const [selectedWeekKey, setSelectedWeekKey] = useState<string>('nov-2026-w1');
   const [weeklyProgress, setWeeklyProgress] = useState<WeeklyClassProgressRecord>(() =>
@@ -1366,6 +1367,18 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                 <ClipboardList className="w-3.5 h-3.5" />
                 <span>📝 পরীক্ষার সময়সূচি</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveRoutineTab('homework_checklist')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                  activeRoutineTab === 'homework_checklist'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-amber-200 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>📝 হোমওয়ার্ক চেকলিস্ট</span>
+              </button>
             </div>
 
             {/* Teacher / Admin 1-Click Whole Week Completed / Pending Action Buttons */}
@@ -2009,6 +2022,15 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             selectedClass={selectedClass}
             onSelectClass={(cls) => setSelectedClass(cls)}
             onNavigateBackToRoutine={() => setActiveRoutineTab('daily_routine')}
+          />
+        </div>
+      ) : activeRoutineTab === 'homework_checklist' ? (
+        <div className="animate-in fade-in duration-200">
+          <HomeworkChecklistModule
+            currentRole={currentRole}
+            initialClass={selectedClass}
+            initialShift={shiftFilter === 'all' ? undefined : shiftFilter}
+            initialSection={sectionFilter === 'all' ? undefined : sectionFilter}
           />
         </div>
       ) : (

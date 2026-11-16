@@ -37,6 +37,7 @@ const TAB_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> 
   idcards: IdCard,
   health: HeartPulse,
   routine: Clock,
+  homework: BookOpen,
   calendar: CalendarDays,
   results: FileCheck2,
   skills: Award,

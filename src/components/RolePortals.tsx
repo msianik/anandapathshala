@@ -37,6 +37,7 @@ import {
   getStudentCompleteInvoicesList,
   STUDENT_FEE_CONFIG_EVENT,
 } from '../utils/feeManagementLogic';
+import { getStudentHomeworkRecordForDate } from '../utils/homeworkChecklistLogic';
 import {
   downloadInvoicePdfReceipt,
   getReceiptPdfFileName,
@@ -285,6 +286,21 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
               <div className="min-w-0">
                 <div className="text-xs font-black truncate">ফলাফল ও মার্ক</div>
                 <div className="text-[10px] text-emerald-100 truncate">নম্বর এন্ট্রি ও রিপোর্ট</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigateTab('homework')}
+              className="p-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white flex items-center gap-2.5 text-left shadow-sm transition-all cursor-pointer hover:scale-[1.02] border border-amber-400"
+              title="শিক্ষার্থীর খাতা মূল্যায়ন, হোমওয়ার্ক চেকলিস্ট ও স্টার রেটিং"
+            >
+              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <BookOpen className="w-4 h-4 text-amber-200" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black truncate">হোমওয়ার্ক চেকলিস্ট</div>
+                <div className="text-[10px] text-amber-100 truncate">খাতা মূল্যায়ন ও স্টার</div>
               </div>
             </button>
 
@@ -2459,30 +2475,77 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                       <p className="text-xs text-slate-500">আজ কোনো বাড়ির কাজ নির্ধারিত নেই।</p>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {homeworkPeriods.map((hw) => (
-                          <div
-                            key={`hw-${hw.id}`}
-                            className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200 space-y-2 text-xs"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-black text-slate-900">
-                                {hw.subjectBn || hw.subject} ({hw.periodLabelBn})
-                              </span>
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
-                                জমা: {hw.homeworkDueDateBn || 'পরবর্তী ক্লাসে জমা'}
-                              </span>
+                        {homeworkPeriods.map((hw) => {
+                          const childHwRecord = getStudentHomeworkRecordForDate(
+                            myChild.id,
+                            undefined,
+                            hw.subjectBn || hw.subject
+                          );
+                          return (
+                            <div
+                              key={`hw-${hw.id}`}
+                              className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200 space-y-2 text-xs"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-black text-slate-900">
+                                  {hw.subjectBn || hw.subject} ({hw.periodLabelBn})
+                                </span>
+                                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-950">
+                                  জমা: {hw.homeworkDueDateBn || 'পরবর্তী ক্লাসে জমা'}
+                                </span>
+                              </div>
+                              <p className="text-slate-800 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-amber-200">
+                                {hw.homeworkAssignmentBn || hw.homeworkOrActivityBn}
+                              </p>
+
+                              {/* Live Classroom Homework Checklist Submission Status */}
+                              {childHwRecord && (
+                                <div
+                                  className={`p-2 rounded-lg border text-[11px] flex items-center justify-between gap-1.5 ${
+                                    childHwRecord.status === 'submitted'
+                                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                                      : childHwRecord.status === 'pending'
+                                        ? 'bg-rose-50 border-rose-300 text-rose-900'
+                                        : 'bg-slate-50 border-slate-200 text-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 font-bold">
+                                    {childHwRecord.status === 'submitted' ? (
+                                      <>
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                        <span>
+                                          খাতা জমা দিয়েছে{' '}
+                                          {childHwRecord.ratingStars && childHwRecord.ratingStars > 0
+                                            ? `(${toBengaliNumber(childHwRecord.ratingStars)}★)`
+                                            : ''}
+                                        </span>
+                                      </>
+                                    ) : childHwRecord.status === 'pending' ? (
+                                      <>
+                                        <Clock className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>খাতা এখনো ক্লাসে জমা পড়েনি</span>
+                                      </>
+                                    ) : (
+                                      <span>🏖️ ছুটি</span>
+                                    )}
+                                  </div>
+                                  {childHwRecord.teacherRemarkBn && (
+                                    <span className="font-medium text-slate-700 italic truncate max-w-[180px]">
+                                      "{childHwRecord.teacherRemarkBn}"
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-amber-100">
+                                <span className="font-bold text-amber-900">
+                                  {getHomeworkSubmissionTypeLabelBn(hw.homeworkSubmissionType)}
+                                </span>
+                                <span>শিক্ষক: {hw.teacherNameBn}</span>
+                              </div>
                             </div>
-                            <p className="text-slate-800 font-medium leading-relaxed bg-white p-2.5 rounded-lg border border-amber-200">
-                              {hw.homeworkAssignmentBn || hw.homeworkOrActivityBn}
-                            </p>
-                            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-amber-100">
-                              <span className="font-bold text-amber-900">
-                                {getHomeworkSubmissionTypeLabelBn(hw.homeworkSubmissionType)}
-                              </span>
-                              <span>শিক্ষক: {hw.teacherNameBn}</span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

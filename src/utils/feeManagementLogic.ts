@@ -453,3 +453,129 @@ export function getTeacherSalarySlips(
   });
 }
 
+/**
+ * আনন্দ পাঠশালা অফিশিয়াল মোবাইল ব্যাংকিং অ্যাকাউন্টসমূহ (কুষ্টিয়া ক্যাম্পাস)
+ */
+export const SCHOOL_MOBILE_BANKING_ACCOUNTS = {
+  bKash: {
+    id: 'bKash',
+    nameBn: 'বিকাশ (bKash)',
+    type: 'মার্চেন্ট ও পার্সোনাল পেমেন্ট',
+    accountNumber: '০১৭০০-১১২২৩৩',
+    rawNumber: '01700112233',
+    instructionsBn: 'বিকাশ অ্যাপ থেকে Make Payment অথবা Send Money করুন। রেফারেন্সে শিক্ষার্থীর রোল ও শ্রেণির নাম দিন।',
+    badgeColor: 'bg-[#D12053] text-white',
+    icon: '🌸',
+  },
+  Nagad: {
+    id: 'Nagad',
+    nameBn: 'নগদ (Nagad)',
+    type: 'পার্সোনাল ও মার্চেন্ট ওয়ালেট',
+    accountNumber: '০১৯১১-৫৫৬৬৭৭',
+    rawNumber: '01911556677',
+    instructionsBn: 'নগদ অ্যাপ বা *১৬৭# ডায়াল করে Send Money করুন। রেফারেন্সে শিক্ষার্থীর রোল লিখুন।',
+    badgeColor: 'bg-[#F7941D] text-white',
+    icon: '🌺',
+  },
+  Rocket: {
+    id: 'Rocket',
+    nameBn: 'রকেট (Rocket)',
+    type: 'ডাচ্-বাংলা রকেট ওয়ালেট',
+    accountNumber: '০১৭০০-১১২২৩৩-১',
+    rawNumber: '017001122331',
+    instructionsBn: 'রকেট মেনু থেকে বিল পে অথবা সেন্ড মানি করুন।',
+    badgeColor: 'bg-[#8C3494] text-white',
+    icon: '🚀',
+  },
+};
+
+/**
+ * অভিভাবক কর্তৃক বিকাশ / নগদ পেমেন্ট সাবমিশন ও TrxID প্রদান
+ */
+export function submitBcashNagadPayment(
+  invoices: FeeInvoice[],
+  invoiceId: string,
+  payload: {
+    paymentMethod: 'bKash' | 'Nagad' | 'Rocket';
+    senderMobile: string;
+    transactionId: string;
+    amount?: number;
+    parentNoteBn?: string;
+  }
+): FeeInvoice[] {
+  const nowBn = `আজ, ${new Date().toLocaleDateString('bn-BD')} ${new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}`;
+  return invoices.map((inv) => {
+    if (inv.id !== invoiceId) return inv;
+    return {
+      ...inv,
+      paymentMethod: payload.paymentMethod,
+      senderMobileNumber: payload.senderMobile.trim(),
+      transactionId: payload.transactionId.trim().toUpperCase(),
+      verificationStatus: 'pending',
+      verificationRequestedAtBn: nowBn,
+      collectorNoteBn: payload.parentNoteBn
+        ? `অভিভাবকের নোট: ${payload.parentNoteBn.trim()}`
+        : inv.collectorNoteBn,
+    };
+  });
+}
+
+/**
+ * হিসাব শাখা / অ্যাডমিন কর্তৃক বিকাশ/নগদ TrxID যাচাই ও ডিজিটাল মানি রিসিট অনুমোদন
+ */
+export function verifyBcashNagadPayment(
+  invoices: FeeInvoice[],
+  invoiceId: string,
+  options?: {
+    confirmedByBn?: string;
+    collectorNoteBn?: string;
+  }
+): FeeInvoice[] {
+  const nowBn = `আজ, ${new Date().toLocaleDateString('bn-BD')}`;
+  const confirmedBy = options?.confirmedByBn || 'হিসাব শাখা / সুপার অ্যাডমিন';
+  return invoices.map((inv) => {
+    if (inv.id !== invoiceId) return inv;
+    const invNo = inv.invoiceNo || `AP-INV-${Date.now()}`;
+    return {
+      ...inv,
+      status: 'paid',
+      verificationStatus: 'verified',
+      paidAt: nowBn,
+      verifiedAtBn: nowBn,
+      verifiedByBn: confirmedBy,
+      confirmedByBn: confirmedBy,
+      collectorNoteBn:
+        options?.collectorNoteBn ||
+        inv.collectorNoteBn ||
+        'মোবাইল ব্যাংকিং (বিকাশ/নগদ) TrxID সফলভাবে যাচাই করে ৩-পার্ট মানি রিসিট অনুমোদন করা হয়েছে।',
+      pdfReceiptGenerated: true,
+      pdfReceiptFileName: `Ananda_Pathshala_Receipt_${invNo}.pdf`,
+      pdfReceiptGeneratedAt: nowBn,
+      pdfReceiptSerialNo: `PDF-RCPT-${invNo}`,
+    };
+  });
+}
+
+/**
+ * ভুল বা অমিল TrxID-এর ক্ষেত্রে পেমেন্ট ভেরিফিকেশন বাতিল ও কারণ উল্লেখ
+ */
+export function rejectBcashNagadPayment(
+  invoices: FeeInvoice[],
+  invoiceId: string,
+  reasonBn: string,
+  rejectedByBn?: string
+): FeeInvoice[] {
+  const nowBn = `আজ, ${new Date().toLocaleDateString('bn-BD')}`;
+  return invoices.map((inv) => {
+    if (inv.id !== invoiceId) return inv;
+    return {
+      ...inv,
+      verificationStatus: 'rejected',
+      rejectionReasonBn:
+        reasonBn.trim() || 'প্রদত্ত TrxID অথবা মোবাইল নম্বরের সাথে ব্যাংক/ওয়ালেট ব্যালেন্সের হিসাব মেলেনি।',
+      collectorNoteBn: `বাতিলের কারণ: ${reasonBn.trim() || 'ভুল TrxID'} (যাচাইকারী: ${rejectedByBn || 'হিসাব শাখা'})`,
+      verifiedAtBn: nowBn,
+    };
+  });
+}
+

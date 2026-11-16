@@ -404,8 +404,14 @@ export interface FeeInvoice {
   dueDate: string;
   status: 'paid' | 'unpaid' | 'overdue';
   items: FeeItem[];
-  paymentMethod?: 'bKash' | 'Nagad' | 'Bank' | 'Cash';
+  paymentMethod?: 'bKash' | 'Nagad' | 'Rocket' | 'Bank' | 'Cash';
   transactionId?: string;
+  senderMobileNumber?: string;
+  verificationStatus?: 'none' | 'pending' | 'verified' | 'rejected';
+  verificationRequestedAtBn?: string;
+  rejectionReasonBn?: string;
+  verifiedAtBn?: string;
+  verifiedByBn?: string;
   paidAt?: string;
   confirmedByBn?: string;
   collectorNoteBn?: string;
@@ -413,6 +419,44 @@ export interface FeeInvoice {
   pdfReceiptFileName?: string;
   pdfReceiptGeneratedAt?: string;
   pdfReceiptSerialNo?: string;
+}
+
+export type HomeworkSubmissionStatus = 'submitted' | 'pending' | 'excused';
+
+export interface StudentHomeworkSubmissionRecord {
+  studentId: string;
+  studentNameBn: string;
+  rollNo: string;
+  className: SchoolClass;
+  section?: string;
+  shift?: SchoolShift;
+  dateStr: string; // e.g. '2026-11-17'
+  periodId?: string;
+  subjectBn: string;
+  status: HomeworkSubmissionStatus; // 'submitted' | 'pending' | 'excused'
+  ratingStars?: number; // 1 to 5
+  teacherRemarkBn?: string; // যেমন: "খুব সুন্দর হাতের লেখা", "অসম্পূর্ণ কাজ", "খাতা জমা দিয়েছে"
+  checkedAtBn?: string;
+  checkedByBn?: string;
+}
+
+export interface DailyClassHomeworkChecklist {
+  id: string;
+  dateStr: string;
+  dateBn: string;
+  className: SchoolClass;
+  shift: SchoolShift;
+  section: string;
+  subjectBn: string;
+  homeworkTitleBn: string;
+  totalStudents: number;
+  submittedCount: number;
+  pendingCount: number;
+  excusedCount: number;
+  completionRate: number; // percentage (e.g. 85%)
+  records: StudentHomeworkSubmissionRecord[];
+  updatedAtBn?: string;
+  checkedByBn?: string;
 }
 
 export interface AttendanceRecord {

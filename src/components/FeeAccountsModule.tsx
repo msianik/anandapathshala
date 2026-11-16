@@ -9,6 +9,10 @@ import {
   ALL_2026_MONTHS,
   getStudentCompleteInvoicesList,
   getTeacherSalarySlips,
+  SCHOOL_MOBILE_BANKING_ACCOUNTS,
+  submitBcashNagadPayment,
+  verifyBcashNagadPayment,
+  rejectBcashNagadPayment,
 } from '../utils/feeManagementLogic';
 import {
   downloadInvoicePdfReceipt,
@@ -47,6 +51,10 @@ import {
   FileSpreadsheet,
   Users,
   User,
+  Copy,
+  AlertCircle,
+  Smartphone,
+  XCircle,
 } from 'lucide-react';
 
 interface FeeAccountsModuleProps {
@@ -79,6 +87,16 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
   const [generatedTrxId, setGeneratedTrxId] = useState('');
   const [receiptInvoice, setReceiptInvoice] = useState<FeeInvoice | null>(null);
   const [threePartReceiptInvoice, setThreePartReceiptInvoice] = useState<FeeInvoice | null>(null);
+
+  // Mobile Banking Verification & Parent TrxID State
+  const [paymentMode, setPaymentMode] = useState<'manual_trxid' | 'instant_gateway'>('manual_trxid');
+  const [manualMethod, setManualMethod] = useState<'bKash' | 'Nagad' | 'Rocket'>('bKash');
+  const [manualSenderPhone, setManualSenderPhone] = useState<string>('০১৭৩১-৯৯০০১১');
+  const [manualTrxId, setManualTrxId] = useState<string>('');
+  const [manualParentNote, setManualParentNote] = useState<string>('');
+  const [copiedTrxId, setCopiedTrxId] = useState<string>('');
+  const [rejectModalInvoice, setRejectModalInvoice] = useState<FeeInvoice | null>(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState<string>('');
 
   // Admin Payment Confirmation & Receipt Generation Modal State
   const [adminConfirmInvoice, setAdminConfirmInvoice] = useState<FeeInvoice | null>(null);
@@ -377,18 +395,94 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
     return days !== null && days <= 3 && days >= 0;
   });
 
+  const pendingVerificationInvoices = useMemo(() => {
+    return roleScopedInvoices.filter(
+      (inv) =>
+        inv.verificationStatus === 'pending' ||
+        (inv.status === 'unpaid' && Boolean(inv.transactionId) && inv.transactionId.trim().length > 0)
+    );
+  }, [roleScopedInvoices]);
+
   const filteredInvoices = roleScopedInvoices.filter((inv) => {
     if (filterStatus === 'paid') return inv.status === 'paid';
     if (filterStatus === 'unpaid') return inv.status === 'unpaid';
+    if (filterStatus === 'pending_verification') {
+      return (
+        inv.verificationStatus === 'pending' ||
+        (inv.status === 'unpaid' && Boolean(inv.transactionId) && inv.transactionId.trim().length > 0)
+      );
+    }
     return true;
   });
 
   const handleStartPayment = (invoice: FeeInvoice) => {
     setActivePaymentInvoice(invoice);
+    setPaymentMode('manual_trxid');
     setPaymentStep('wallet');
-    setWalletPhone('০১৭২২-৩৩৪৪৫৫');
+    setManualMethod((invoice.paymentMethod as 'bKash' | 'Nagad' | 'Rocket') || 'bKash');
+    setManualSenderPhone(invoice.senderMobileNumber || walletPhone || '০১৭৩১-৯৯০০১১');
+    setManualTrxId(invoice.transactionId || '');
+    setManualParentNote('');
     setOtpCode('');
     setPinCode('');
+  };
+
+  const handleApproveMobileBankingPayment = (inv: FeeInvoice) => {
+    const updated = verifyBcashNagadPayment(invoices, inv.id, {
+      confirmedByBn: loggedInAccount?.nameBn || 'হিসাব শাখা / সুপার অ্যাডমিন',
+    });
+    if (onUpdateInvoices) {
+      onUpdateInvoices(updated);
+    }
+    const approved = updated.find((i) => i.id === inv.id);
+    if (approved) {
+      setThreePartReceiptInvoice(approved);
+    }
+  };
+
+  const handleOpenRejectModal = (inv: FeeInvoice) => {
+    setRejectModalInvoice(inv);
+    setRejectionReasonText('প্রদত্ত TrxID অথবা মোবাইল নম্বরের সাথে ব্যাংক/ওয়ালেট ব্যালেন্সের হিসাব মেলেনি।');
+  };
+
+  const handleConfirmReject = () => {
+    if (!rejectModalInvoice) return;
+    const updated = rejectBcashNagadPayment(
+      invoices,
+      rejectModalInvoice.id,
+      rejectionReasonText,
+      loggedInAccount?.nameBn || 'হিসাব শাখা'
+    );
+    if (onUpdateInvoices) {
+      onUpdateInvoices(updated);
+    }
+    setRejectModalInvoice(null);
+  };
+
+  const handleSubmitManualTrxId = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePaymentInvoice || !manualTrxId.trim()) return;
+
+    const updated = submitBcashNagadPayment(invoices, activePaymentInvoice.id, {
+      paymentMethod: manualMethod,
+      senderMobile: manualSenderPhone,
+      transactionId: manualTrxId,
+      amount: activePaymentInvoice.netAmount,
+      parentNoteBn: manualParentNote,
+    });
+
+    if (onUpdateInvoices) {
+      onUpdateInvoices(updated);
+    }
+    setActivePaymentInvoice(null);
+  };
+
+  const handleCopyTrxId = (trx: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(trx).catch(() => {});
+    }
+    setCopiedTrxId(trx);
+    setTimeout(() => setCopiedTrxId(''), 2500);
   };
 
   const handleProcessPayment = () => {
@@ -1251,6 +1345,16 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           পরিশোধিত (Paid)
                         </span>
+                      ) : inv.verificationStatus === 'pending' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full">
+                          <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                          যাচাই প্রক্রিয়াধীন ({inv.paymentMethod || 'bKash'})
+                        </span>
+                      ) : inv.verificationStatus === 'rejected' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-rose-800 bg-rose-100 border border-rose-300 px-2.5 py-1 rounded-full">
+                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                          যাচাই বাতিল
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[11px] font-black text-rose-700 bg-rose-100 px-2.5 py-1 rounded-full">
                           <Clock className="w-3.5 h-3.5" />
@@ -1313,13 +1417,42 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                             <span>৩-পার্ট ভাউচার</span>
                           </button>
                         </>
+                      ) : inv.verificationStatus === 'pending' ? (
+                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                          <div className="text-[11px] font-bold text-amber-950 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                            <span>📱 {inv.paymentMethod || 'bKash'} TrxID:</span>
+                            <span className="font-mono font-black">{inv.transactionId}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleStartPayment(inv)}
+                            className="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl cursor-pointer transition"
+                          >
+                            সংশোধন
+                          </button>
+                        </div>
+                      ) : inv.verificationStatus === 'rejected' ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] text-rose-600 font-bold max-w-[200px] text-right">
+                            {inv.rejectionReasonBn || 'প্রদত্ত TrxID মেলেনি'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleStartPayment(inv)}
+                            className="px-3.5 py-1.5 text-xs font-black text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                            <span>পুনরায় TrxID দিন</span>
+                          </button>
+                        </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleStartPayment(inv)}
-                          className="px-4 py-2 text-xs font-black text-white bg-pink-600 hover:bg-pink-700 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-4 py-2 text-xs font-black text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <span>bKash দিয়ে পে করুন</span>
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>বিকাশ/নগদ দিয়ে পে করুন</span>
                         </button>
                       )}
                     </div>
@@ -1864,6 +1997,20 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
               >
                 পরিশোধিত ({toBengaliNumber(roleScopedInvoices.filter((i) => i.status === 'paid').length)})
               </button>
+              <button
+                onClick={() => setFilterStatus('pending_verification')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  filterStatus === 'pending_verification'
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5 text-pink-700" />
+                <span>মোবাইল ব্যাংকিং কিউ</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-950 font-mono text-[10px] font-black">
+                  {toBengaliNumber(pendingVerificationInvoices.length)}
+                </span>
+              </button>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -1887,6 +2034,149 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
               )}
             </div>
           </div>
+
+          {/* Mobile Banking (bKash/Nagad/Rocket) Verification Queue Dedicated Dashboard */}
+          {(pendingVerificationInvoices.length > 0 || filterStatus === 'pending_verification') && (
+            <div className="bg-gradient-to-r from-amber-50 via-rose-50 to-pink-50 rounded-3xl border-2 border-amber-300 p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/70 pb-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-200/80 text-amber-950 text-[10px] font-black uppercase">
+                    <Smartphone className="w-3.5 h-3.5 text-pink-700" />
+                    <span>মোবাইল ব্যাংকিং ভেরিফিকেশন কিউ (Verification Queue)</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900">
+                    অভিভাবকদের বিকাশ / নগদ পেমেন্ট ও TrxID যাচাইকরণ
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    এসএমএস বা স্টেটমেন্টের সাথে TrxID মিলিয়ে ১-ক্লিকে অনুমোদন করুন অথবা অমিল হলে কারণসহ বাতিল করুন।
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <div className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 shadow-2xs">
+                    অপেক্ষমান: <strong className="font-mono text-pink-700 font-black">{toBengaliNumber(pendingVerificationInvoices.length)}</strong> টি
+                  </div>
+                </div>
+              </div>
+
+              {/* School's Official Wallet Numbers for Reference */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                {Object.values(SCHOOL_MOBILE_BANKING_ACCOUNTS).map((acc) => (
+                  <div key={acc.id} className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-800 block text-[11px]">{acc.nameBn}</span>
+                      <span className="font-mono text-slate-600 text-xs font-bold">{acc.accountNumber}</span>
+                    </div>
+                    <span className="text-lg">{acc.icon}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pending Invoices List */}
+              {pendingVerificationInvoices.length === 0 ? (
+                <div className="p-6 text-center bg-white/70 rounded-2xl border border-dashed border-amber-300 text-xs text-slate-600">
+                  🎉 বর্তমানে কোনো মোবাইল ব্যাংকিং পেমেন্ট যাচাইয়ের অপেক্ষায় নেই।
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingVerificationInvoices.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="bg-white rounded-2xl border-2 border-amber-300 p-4 sm:p-5 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1.5 min-w-[240px]">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {inv.invoiceNo}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                              inv.paymentMethod === 'Nagad'
+                                ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                                : inv.paymentMethod === 'Rocket'
+                                  ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                                  : 'bg-pink-100 text-pink-800 border border-pink-300'
+                            }`}
+                          >
+                            {inv.paymentMethod || 'bKash'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {inv.verificationRequestedAtBn || 'আজ'}
+                          </span>
+                        </div>
+                        <h4 className="text-sm sm:text-base font-black text-slate-900">
+                          {inv.studentNameBn}
+                        </h4>
+                        <div className="text-xs text-slate-600">
+                          শ্রেণি: <strong>{getSchoolClassNameBn(inv.className)}</strong> · {inv.monthBn}
+                        </div>
+                        {inv.collectorNoteBn && (
+                          <p className="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg">
+                            {inv.collectorNoteBn}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* TrxID & Sender Details */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-amber-50/80 p-3 rounded-xl border border-amber-200">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-500 block">প্রেরক মোবাইল:</span>
+                          <span className="text-xs font-mono font-bold text-slate-900">
+                            {inv.senderMobileNumber || '০১৭৩১-৯৯০০১১'}
+                          </span>
+                        </div>
+                        <div className="border-l sm:border-l border-amber-200 pl-0 sm:pl-3">
+                          <span className="text-[10px] font-bold text-slate-500 block">Transaction ID:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-mono font-black text-pink-700 tracking-wider">
+                              {inv.transactionId || 'BK829XP4QZ'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyTrxId(inv.transactionId || '')}
+                              className="p-1 rounded hover:bg-amber-200 text-slate-600 transition cursor-pointer"
+                              title="TrxID কপি করুন"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            {copiedTrxId === inv.transactionId && (
+                              <span className="text-[10px] font-bold text-emerald-700">কপি হয়েছে!</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="border-l sm:border-l border-amber-200 pl-0 sm:pl-3">
+                          <span className="text-[10px] font-bold text-slate-500 block">প্রদেয় টাকা:</span>
+                          <span className="text-base font-mono font-black text-slate-900">
+                            ৳ {toBengaliNumber(inv.netAmount.toLocaleString())}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Approve / Reject Actions */}
+                      <div className="flex items-center gap-2 self-start lg:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveMobileBankingPayment(inv)}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                          <span>✓ অনুমোদন ও ৩-পার্ট রসিদ</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRejectModal(inv)}
+                          className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <XCircle className="w-4 h-4 text-rose-600" />
+                          <span>বাতিল</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Admin All-Students Invoice Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1926,6 +2216,16 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             পরিশোধিত (Paid)
+                          </span>
+                        ) : inv.verificationStatus === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                            ভেরিফিকেশন কিউ ({inv.paymentMethod || 'bKash'})
+                          </span>
+                        ) : inv.verificationStatus === 'rejected' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-100 border border-rose-300 px-2.5 py-1 rounded-full">
+                            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                            যাচাই বাতিল
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-full">
@@ -2036,6 +2336,24 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                           >
                             <Receipt className="w-3.5 h-3.5 text-slate-950" />
                             <span>৩-পার্ট ভাউচার</span>
+                          </button>
+                        </>
+                      ) : inv.verificationStatus === 'pending' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveMobileBankingPayment(inv)}
+                            className="px-3.5 py-2 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                            <span>✓ অনুমোদন ও ৩-পার্ট রসিদ</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRejectModal(inv)}
+                            className="px-3 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
+                          >
+                            <span>❌ বাতিল</span>
                           </button>
                         </>
                       ) : (
@@ -2432,137 +2750,348 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
         </div>
       )}
 
-      {/* Simulated bKash Merchant Payment Modal */}
+      {/* bKash / Nagad / Rocket Mobile Banking & Gateway Payment Modal */}
       {activePaymentInvoice && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-pink-200 relative animate-in fade-in zoom-in-95">
-            {/* bKash Header */}
-            <div className="bg-[#D12053] p-5 text-white text-center relative">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-white flex items-center justify-center text-pink-600 font-black text-xl shadow-xs">
-                bKash
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border-2 border-pink-200 relative animate-in fade-in zoom-in-95">
+            {/* Header with Amount */}
+            <div className="bg-gradient-to-r from-[#D12053] to-rose-700 p-5 text-white text-center relative">
+              <button
+                type="button"
+                onClick={() => setActivePaymentInvoice(null)}
+                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
+              <div className="w-10 h-10 mx-auto rounded-2xl bg-white flex items-center justify-center text-pink-600 font-black text-lg shadow-xs">
+                ৳
               </div>
-              <h3 className="text-sm font-bold mt-2">আনন্দ পাঠশালা মার্চেন্ট পেমেন্ট</h3>
-              <p className="text-[11px] text-pink-100">Merchant A/C: 01700-112233</p>
-              <div className="mt-3 bg-pink-700/60 py-1.5 px-3 rounded-xl inline-block text-xs font-mono font-bold">
-                টাকার পরিমাণ: ৳ {toBengaliNumber(activePaymentInvoice.netAmount)}
+              <h3 className="text-base font-black mt-1.5">আনন্দ পাঠশালা ডিজিটাল ফি পেমেন্ট</h3>
+              <p className="text-xs text-pink-100">
+                শিক্ষার্থী: {activePaymentInvoice.studentNameBn} · {activePaymentInvoice.monthBn}
+              </p>
+              <div className="mt-2.5 bg-black/25 py-1 px-3.5 rounded-full inline-block text-xs font-mono font-black border border-white/20">
+                প্রদেয় ফি: ৳ {toBengaliNumber(activePaymentInvoice.netAmount.toLocaleString())}
               </div>
             </div>
 
-            {/* Modal Steps */}
-            <div className="p-6 space-y-4">
-              {paymentStep === 'wallet' && (
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <span className="text-xs font-bold text-slate-800 block">আপনার বিকাশ অ্যাকাউন্ট নম্বর দিন</span>
-                    <span className="text-[11px] text-slate-500">আপনার ব্যক্তিগত বিকাশ ওয়ালেট নম্বর</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={walletPhone}
-                    onChange={(e) => setWalletPhone(e.target.value)}
-                    placeholder="০১৭xxxxxxxx"
-                    className="w-full text-center py-2.5 px-3 text-sm font-mono font-bold border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600 focus:ring-2 focus:ring-pink-600/20"
-                  />
-                  <div className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-600" />
-                    <span>নিরাপদ 256-bit এনক্রিপ্টেড গেটওয়ে</span>
-                  </div>
-                </div>
-              )}
+            {/* Mode Tabs: TrxID vs Instant Simulation */}
+            <div className="flex border-b border-slate-100 bg-slate-50 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setPaymentMode('manual_trxid')}
+                className={`flex-1 py-3 px-3 text-center transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  paymentMode === 'manual_trxid'
+                    ? 'bg-white text-pink-700 border-b-2 border-pink-600 font-black shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>বিকাশ/নগদ TrxID দিন</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMode('instant_gateway')}
+                className={`flex-1 py-3 px-3 text-center transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  paymentMode === 'instant_gateway'
+                    ? 'bg-white text-indigo-700 border-b-2 border-indigo-600 font-black shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Lock className="w-4 h-4" />
+                <span>অনলাইন গেটওয়ে টেস্ট</span>
+              </button>
+            </div>
 
-              {paymentStep === 'otp' && (
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <span className="text-xs font-bold text-slate-800 block">ওটিপি (OTP) কোড দিন</span>
-                    <span className="text-[11px] text-slate-500">{walletPhone} নম্বরে কোড পাঠানো হয়েছে</span>
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+              {paymentMode === 'manual_trxid' ? (
+                <form onSubmit={handleSubmitManualTrxId} className="space-y-3.5 text-xs">
+                  {/* Select Wallet Provider */}
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">
+                      পেমেন্ট মাধ্যম (Wallet Provider):
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['bKash', 'Nagad', 'Rocket'] as const).map((method) => {
+                        const acc = SCHOOL_MOBILE_BANKING_ACCOUNTS[method];
+                        const isSelected = manualMethod === method;
+                        return (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setManualMethod(method)}
+                            className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center gap-1 ${
+                              isSelected
+                                ? 'border-pink-500 bg-pink-50/70 text-pink-900 font-black ring-2 ring-pink-500/30'
+                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="text-base">{acc.icon}</span>
+                            <span className="text-[11px] font-bold">{acc.nameBn}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="যেমন: ১২৩৪"
-                    className="w-full text-center py-2.5 px-3 text-base font-mono font-bold tracking-widest border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600"
-                  />
-                  <p className="text-[10px] text-slate-400 text-center">টেস্ট ডেমো কোড: ১২৩৪</p>
-                </div>
-              )}
 
-              {paymentStep === 'pin' && (
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <span className="text-xs font-bold text-slate-800 block">বিকাশ পিন (PIN) কোড দিন</span>
-                    <span className="text-[11px] text-slate-500">পেমেন্ট চূড়ান্ত করতে ৫ ডিজিটের পিন লিখুন</span>
+                  {/* Account Instructions Box */}
+                  <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-300 text-amber-950 space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold">স্কুলের {SCHOOL_MOBILE_BANKING_ACCOUNTS[manualMethod].nameBn} নম্বর:</span>
+                      <span className="font-mono font-black text-pink-700 bg-white px-2 py-0.5 rounded border border-amber-300">
+                        {SCHOOL_MOBILE_BANKING_ACCOUNTS[manualMethod].accountNumber}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-600 leading-relaxed">
+                      {SCHOOL_MOBILE_BANKING_ACCOUNTS[manualMethod].instructionsBn}
+                    </p>
                   </div>
-                  <input
-                    type="password"
-                    maxLength={5}
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    placeholder="•••••"
-                    className="w-full text-center py-2.5 px-3 text-lg font-mono font-bold tracking-widest border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600"
-                  />
-                  <p className="text-[10px] text-slate-400 text-center">ডেমো মোড: যেকোনো পিন টাইপ করুন</p>
-                </div>
-              )}
 
-              {paymentStep === 'success' && (
-                <div className="text-center space-y-3 py-2">
-                  <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-7 h-7" />
+                  {/* Sender Mobile Number */}
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">
+                      যে মোবাইল নম্বর থেকে টাকা পাঠিয়েছেন (Sender Mobile):
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={manualSenderPhone}
+                      onChange={(e) => setManualSenderPhone(e.target.value)}
+                      placeholder="যেমন: ০১৭১১-২২৩৩৪৪"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
                   </div>
-                  <h4 className="text-base font-bold text-slate-900">পেমেন্ট সফল হয়েছে!</h4>
-                  <p className="text-xs text-slate-600">
-                    আনন্দ পাঠশালায় আপনার সন্তানের মাসিক ফি প্রাপ্তি নিশ্চিত করা হলো।
-                  </p>
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-mono">
-                    <span className="text-slate-400 block text-[10px]">ট্রানজেকশন আইডি (TrxID)</span>
-                    <span className="font-bold text-pink-600">{generatedTrxId}</span>
-                  </div>
-                </div>
-              )}
 
-              {/* Modal Buttons */}
-              <div className="pt-2 flex items-center gap-2">
-                {paymentStep !== 'success' ? (
-                  <>
+                  {/* Transaction ID */}
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">
+                      ট্রানজেকশন আইডি (TrxID):
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={manualTrxId}
+                      onChange={(e) => setManualTrxId(e.target.value.toUpperCase())}
+                      placeholder="যেমন: BK829XP4QZ"
+                      className="w-full px-3 py-2 rounded-xl border-2 border-pink-300 bg-pink-50/30 font-mono font-black text-pink-800 tracking-wider uppercase focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                      এসএমএস বা অ্যাপের ইনবক্স থেকে পাওয়া ৮-১০ অক্ষরের TrxID লিখুন
+                    </span>
+                  </div>
+
+                  {/* Optional Note */}
+                  <div>
+                    <label className="font-bold text-slate-600 block mb-1">
+                      অতিরিক্ত নোট বা রেফারেন্স (ঐচ্ছিক):
+                    </label>
+                    <input
+                      type="text"
+                      value={manualParentNote}
+                      onChange={(e) => setManualParentNote(e.target.value)}
+                      placeholder="যেমন: শিক্ষার্থী রোল ১০১, মাসিক বেতন"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setActivePaymentInvoice(null)}
-                      className="w-1/2 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                      className="w-1/3 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer"
                     >
                       বাতিল
                     </button>
                     <button
-                      type="button"
-                      onClick={handleProcessPayment}
-                      className="w-1/2 py-2.5 text-xs font-bold text-white bg-[#D12053] hover:bg-pink-700 rounded-xl shadow-xs"
+                      type="submit"
+                      className="w-2/3 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      {paymentStep === 'wallet' && 'এগিয়ে যান (Next)'}
-                      {paymentStep === 'otp' && 'ওটিপি যাচাই করুন'}
-                      {paymentStep === 'pin' && 'পেমেন্ট নিশ্চিত করুন'}
+                      <CheckCircle2 className="w-4 h-4 text-amber-200" />
+                      <span>TrxID যাচাইয়ের জন্য জমা দিন</span>
                     </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const paidInv: FeeInvoice = {
-                        ...activePaymentInvoice,
-                        status: 'paid',
-                        paymentMethod: 'bKash',
-                        transactionId: generatedTrxId,
-                        paidAt: 'আজ, ০৫ নভেম্বর ২০২৬',
-                      };
-                      setActivePaymentInvoice(null);
-                      setReceiptInvoice(paidInv);
-                    }}
-                    className="w-full py-2.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>মানি রসিদ দেখুন ও সম্পন্ন করুন</span>
-                  </button>
-                )}
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  {paymentStep === 'wallet' && (
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <span className="text-xs font-bold text-slate-800 block">আপনার বিকাশ অ্যাকাউন্ট নম্বর দিন</span>
+                        <span className="text-[11px] text-slate-500">আপনার ব্যক্তিগত বিকাশ ওয়ালেট নম্বর</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={walletPhone}
+                        onChange={(e) => setWalletPhone(e.target.value)}
+                        placeholder="০১৭xxxxxxxx"
+                        className="w-full text-center py-2.5 px-3 text-sm font-mono font-bold border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600 focus:ring-2 focus:ring-pink-600/20"
+                      />
+                      <div className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1">
+                        <Lock className="w-3 h-3 text-emerald-600" />
+                        <span>নিরাপদ 256-bit এনক্রিপ্টেড গেটওয়ে সিমুলেশন</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {paymentStep === 'otp' && (
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <span className="text-xs font-bold text-slate-800 block">ওটিপি (OTP) কোড দিন</span>
+                        <span className="text-[11px] text-slate-500">{walletPhone} নম্বরে কোড পাঠানো হয়েছে</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        placeholder="যেমন: ১২৩৪"
+                        className="w-full text-center py-2.5 px-3 text-base font-mono font-bold tracking-widest border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600"
+                      />
+                      <p className="text-[10px] text-slate-400 text-center">টেস্ট ডেমো কোড: ১২৩৪</p>
+                    </div>
+                  )}
+
+                  {paymentStep === 'pin' && (
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <span className="text-xs font-bold text-slate-800 block">বিকাশ পিন (PIN) কোড দিন</span>
+                        <span className="text-[11px] text-slate-500">পেমেন্ট চূড়ান্ত করতে ৫ ডিজিটের পিন লিখুন</span>
+                      </div>
+                      <input
+                        type="password"
+                        maxLength={5}
+                        value={pinCode}
+                        onChange={(e) => setPinCode(e.target.value)}
+                        placeholder="•••••"
+                        className="w-full text-center py-2.5 px-3 text-lg font-mono font-bold tracking-widest border border-slate-300 rounded-xl focus:outline-none focus:border-pink-600"
+                      />
+                      <p className="text-[10px] text-slate-400 text-center">ডেমো মোড: যেকোনো পিন টাইপ করুন</p>
+                    </div>
+                  )}
+
+                  {paymentStep === 'success' && (
+                    <div className="text-center space-y-3 py-2">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="w-7 h-7" />
+                      </div>
+                      <h4 className="text-base font-bold text-slate-900">পেমেন্ট সফল হয়েছে!</h4>
+                      <p className="text-xs text-slate-600">
+                        আনন্দ পাঠশালায় আপনার সন্তানের মাসিক ফি প্রাপ্তি নিশ্চিত করা হলো।
+                      </p>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-mono">
+                        <span className="text-slate-400 block text-[10px]">ট্রানজেকশন আইডি (TrxID)</span>
+                        <span className="font-bold text-pink-600">{generatedTrxId}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex items-center gap-2">
+                    {paymentStep !== 'success' ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActivePaymentInvoice(null)}
+                          className="w-1/2 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                        >
+                          বাতিল
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleProcessPayment}
+                          className="w-1/2 py-2.5 text-xs font-bold text-white bg-[#D12053] hover:bg-pink-700 rounded-xl shadow-xs cursor-pointer"
+                        >
+                          {paymentStep === 'wallet' && 'এগিয়ে যান (Next)'}
+                          {paymentStep === 'otp' && 'ওটিপি যাচাই করুন'}
+                          {paymentStep === 'pin' && 'পেমেন্ট নিশ্চিত করুন'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const paidInv: FeeInvoice = {
+                            ...activePaymentInvoice,
+                            status: 'paid',
+                            paymentMethod: 'bKash',
+                            transactionId: generatedTrxId,
+                            paidAt: 'আজ, ০৫ নভেম্বর ২০২৬',
+                          };
+                          setActivePaymentInvoice(null);
+                          setReceiptInvoice(paidInv);
+                        }}
+                        className="w-full py-2.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>মানি রসিদ দেখুন ও সম্পন্ন করুন</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal for Mobile Banking Payment */}
+      {rejectModalInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border-2 border-rose-200 animate-in fade-in zoom-in-95 p-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-rose-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">পেমেন্ট ভেরিফিকেশন বাতিল</h3>
+                  <p className="text-xs text-slate-500">ইনভয়েস: {rejectModalInvoice.invoiceNo}</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setRejectModalInvoice(null)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200 text-xs text-rose-950 space-y-1">
+              <div>শিক্ষার্থী: <strong>{rejectModalInvoice.studentNameBn}</strong></div>
+              <div>
+                TrxID: <strong className="font-mono text-pink-700">{rejectModalInvoice.transactionId || 'N/A'}</strong> · প্রেরক: <strong className="font-mono">{rejectModalInvoice.senderMobileNumber || 'N/A'}</strong>
+              </div>
+              <div>টাকার পরিমাণ: <strong>৳{toBengaliNumber(rejectModalInvoice.netAmount)}</strong></div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block">
+                বাতিলের কারণ উল্লেখ করুন (যা অভিভাবক দেখতে পাবেন):
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReasonText}
+                onChange={(e) => setRejectionReasonText(e.target.value)}
+                placeholder="বাতিলের কারণ লিখুন..."
+                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalInvoice(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="px-4 py-2 rounded-xl text-xs font-black text-white bg-rose-600 hover:bg-rose-700 shadow-xs cursor-pointer"
+              >
+                বাতিল নিশ্চিত করুন
+              </button>
             </div>
           </div>
         </div>
