@@ -53,6 +53,10 @@ import {
   Cloud,
   ExternalLink,
   Globe,
+  HelpCircle,
+  BookOpen,
+  Cpu,
+  CheckCheck,
 } from 'lucide-react';
 
 interface BiometricAttendanceWidgetProps {
@@ -87,6 +91,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isSetupGuideModalOpen, setIsSetupGuideModalOpen] = useState(false);
 
   // Connection Test state
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -403,6 +408,15 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsSetupGuideModalOpen(true)}
+              className="px-3.5 py-3 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="কীভাবে মেশিনটি সফটওয়্যারের সাথে লাইভ কানেক্ট করবেন তার পূর্ণাঙ্গ গাইড"
+            >
+              <HelpCircle className="w-4 h-4 text-slate-950" />
+              <span>কানেকশন গাইড</span>
+            </button>
+
             <button
               onClick={handleZlinkCloudSync}
               disabled={isSyncing}
@@ -1223,6 +1237,170 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                   টেক্সট থেকে ইমপোর্ট করুন
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: LIVE CONNECTION & SETUP GUIDE MODAL                              */}
+      {/* ========================================================================= */}
+      {isSetupGuideModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+              <div className="flex items-center gap-2.5 text-indigo-900">
+                <div className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-lg">
+                    ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিন ও ZLink ক্লাউড লাইভ কানেকশন গাইড
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    কিভাবে আপনার ফিজিক্যাল মেশিনটি ক্লাউড হয়ে এই সফটওয়্যারে লাইভ কানেক্ট করবেন
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSetupGuideModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-slate-800 text-xs">
+              {/* Step 1 */}
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center">
+                    ১
+                  </span>
+                  <h4 className="font-black text-slate-900 text-sm">
+                    ফিঙ্গারপ্রিন্ট মেশিনে ক্লাউড সার্ভার অন করা (মেশিনের কিপ্যাড দিয়ে)
+                  </h4>
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  আপনার ডিজিটাল অ্যাটেনডেন্স মেশিনের সামনের কীবোর্ড থেকে সেটিংস কনফিগার করুন:
+                </p>
+                <div className="bg-white/80 p-3 rounded-xl border border-amber-200/80 font-mono text-[11px] space-y-1">
+                  <p>• মেশিনের কিপ্যাডে <strong>Menu (M/OK)</strong> চেপে অ্যাডমিন মেন্যু খুলুন</p>
+                  <p>• <strong>Comm.</strong> (Communication / যোগাযোগ) অপশনে প্রবেশ করুন</p>
+                  <p>• <strong>Cloud Server Setting</strong> (অথবা <strong>ADMS</strong>) নির্বাচন করুন</p>
+                  <p>• <strong>Server Address</strong>: <span className="text-sky-700 font-bold">zlink.minervaiot.com</span> লিখুন</p>
+                  <p>• <strong>Server Port</strong>: <span className="text-sky-700 font-bold">443</span> (বা 8080) দিন</p>
+                  <p>• <strong>Enable Cloud Server</strong>: <span className="text-emerald-700 font-bold">ON</span> করুন</p>
+                  <p>• মেশিনের LAN ক্যাবল বা Wi-Fi কানেক্ট করলে স্ক্রিনের কোণায় ক্লাউড আইকন (☁️) দেখা যাবে</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-4 bg-gradient-to-r from-sky-50 to-indigo-50/50 rounded-2xl border border-sky-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-sky-500 text-white font-black text-xs flex items-center justify-center">
+                      ২
+                    </span>
+                    <h4 className="font-black text-slate-900 text-sm">
+                      zlink.minervaiot.com ক্লাউড পোর্টালে ডিভাইসটি যুক্ত করা
+                    </h4>
+                  </div>
+                  <a
+                    href="https://zlink.minervaiot.com/home"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-white px-2.5 py-1 rounded-lg border border-sky-300"
+                  >
+                    <span>ZLink খুলুন</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <div className="bg-white/80 p-3 rounded-xl border border-sky-200/80 font-mono text-[11px] space-y-1">
+                  <p>• ব্রাউজারে <strong>https://zlink.minervaiot.com/home</strong> খুলুন এবং ইউজারনেম-পাসওয়ার্ড দিয়ে লগইন করুন</p>
+                  <p>• <strong>Device Management</strong> &gt; <strong>Add Device</strong> এ যান</p>
+                  <p>• মেশিনের পেছনের স্টিকারে থাকা <strong>Serial Number (SN)</strong> (যেমন: <span className="font-bold text-slate-900">AP-ZK2026-X01</span>) দিন</p>
+                  <p>• সেভ করলেই ক্লাউডে মেশিনটি <span className="text-emerald-600 font-bold">Online 🟢</span> দেখাবে</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-2xl border border-emerald-200 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center">
+                    ৩
+                  </span>
+                  <h4 className="font-black text-slate-900 text-sm">
+                    শিক্ষার্থী ও শিক্ষকদের ফিঙ্গারপ্রিন্ট আইডি ম্যাপিং (Enroll ID)
+                  </h4>
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  মেশিনে ফিঙ্গারপ্রিন্ট রেজিস্টার করার সময় <strong>User ID</strong> হিসেবে শিক্ষার্থীর <strong>রোল নম্বর</strong> বা শিক্ষকের <strong>আইডি</strong> দিন:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                    <span className="font-bold text-emerald-800 block">শিক্ষার্থীর ক্ষেত্রে:</span>
+                    <p className="text-slate-600">তানিশা ইসলাম (রোল ১০০) → মেশিনে আইডি: <strong>100</strong></p>
+                    <p className="text-slate-600">আদিত্য রায় (রোল ১০১) → মেশিনে আইডি: <strong>101</strong></p>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
+                    <span className="font-bold text-emerald-800 block">শিক্ষক ও স্টাফের ক্ষেত্রে:</span>
+                    <p className="text-slate-600">নিলুফার ইয়াসমিন → মেশিনে আইডি: <strong>TCH-1</strong></p>
+                    <p className="text-slate-600">মো. আসাদুজ্জামান → মেশিনে আইডি: <strong>TCH-2</strong></p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-emerald-700 font-medium">
+                  ✓ এটি দিলে সফটওয়্যার স্বয়ংক্রিয়ভাবে শিক্ষার্থীর নাম, ছবি ও শ্রেণি চিনে নেবে!
+                </p>
+              </div>
+
+              {/* Step 4 */}
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50/50 rounded-2xl border border-indigo-200 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center">
+                    ৪
+                  </span>
+                  <h4 className="font-black text-slate-900 text-sm">
+                    আনন্দ পাঠশালা সফটওয়্যারে লাইভ সিঙ্ক সম্পন্ন করা
+                  </h4>
+                </div>
+                <p className="text-slate-600 leading-relaxed">
+                  সবকিছু ঠিক থাকলে এখন পোর্টালে শুধু <strong>"ZLink ক্লাউড সিঙ্ক"</strong> বাটনে চাপ দিলেই ডাটা সিঙ্ক হয়ে যাবে অথবা <strong>স্বয়ংক্রিয় সিঙ্ক (Auto-Sync)</strong> চালু রাখা থাকলে সফটওয়্যার নিজে থেকেই প্রতি ৩০ সেকেন্ড পর পর ক্লাউড থেকে ডাটা নিয়ে নেবে।
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={handleTestZlinkCloud}
+                disabled={isTestingCloud}
+                className="px-4 py-2.5 bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Globe className="w-4 h-4 text-sky-700" />
+                <span>{isTestingCloud ? 'কানেকশন চেক হচ্ছে...' : 'ZLink ক্লাউড পিং টেস্ট করুন'}</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSetupGuideModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  বন্ধ করুন
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSetupGuideModalOpen(false);
+                    handleZlinkCloudSync();
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Cloud className="w-4 h-4" />
+                  <span>এখনই ক্লাউড সিঙ্ক করুন</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
