@@ -71,12 +71,14 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { INITIAL_STAFF_ATTENDANCE } from '../data/mockData';
+
 interface BiometricAttendanceWidgetProps {
   students: Student[];
   attendanceRecords: AttendanceRecord[];
   onUpdateAttendance: (records: AttendanceRecord[]) => void;
-  staffAttendanceList: StaffAttendanceRecord[];
-  onUpdateStaffAttendance: (records: StaffAttendanceRecord[]) => void;
+  staffAttendanceList?: StaffAttendanceRecord[];
+  onUpdateStaffAttendance?: (records: StaffAttendanceRecord[]) => void;
   currentRole: UserRole;
 }
 
@@ -84,8 +86,8 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
   students,
   attendanceRecords,
   onUpdateAttendance,
-  staffAttendanceList,
-  onUpdateStaffAttendance,
+  staffAttendanceList = INITIAL_STAFF_ATTENDANCE,
+  onUpdateStaffAttendance = () => {},
   currentRole,
 }) => {
   // Device & Log state

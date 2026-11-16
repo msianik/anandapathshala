@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   TeacherMember,
   TeacherLeaveApplication,
@@ -12,6 +12,7 @@ import {
   saveStaffMember,
   deleteStaffMember,
   getStoredStaffAttendance,
+  saveStaffAttendanceList,
   updateSingleStaffAttendance,
   markAllStaffPresent,
   getStoredLeaveApplications,
@@ -21,6 +22,7 @@ import {
   STAFF_CHANGE_EVENT,
   TEACHERS_UPDATED_EVENT,
 } from '../utils/staffManagementLogic';
+import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
 import {
   Users,
@@ -48,6 +50,9 @@ import {
   Layers,
   ArrowRight,
   Clock3,
+  Briefcase,
+  Download,
+  CheckCheck,
 } from 'lucide-react';
 
 interface StaffManagementModuleProps {
@@ -151,6 +156,120 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   });
 
   const pendingLeavesCount = leaveList.filter((l) => l.status === 'pending').length;
+
+  // Digital check-in console state
+  const [selectedStaffTeacherId, setSelectedStaffTeacherId] = useState<string>(() => staffList[0]?.id || 'tch-1');
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [staffStatusFilter, setStaffStatusFilter] = useState<'all' | TeacherAttendanceStatus>('all');
+  const [staffCheckInToast, setStaffCheckInToast] = useState<string | null>(null);
+  const [currentLiveClock, setCurrentLiveClock] = useState<string>(() =>
+    new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentLiveClock(
+        new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleTeacherDigitalCheckIn = (teacherId: string) => {
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const isLateCheckIn = currentHour > 8 || (currentHour === 8 && currentMin > 15);
+    const lateMinutes = isLateCheckIn ? Math.max(1, (currentHour - 8) * 60 + (currentMin - 15)) : 0;
+    const teacher = staffList.find((t) => t.id === teacherId);
+    const teacherName = teacher?.nameBn || 'শিক্ষক';
+
+    const currentRecord = attendanceRecords.find((r) => r.teacherId === teacherId);
+    const updatedRecord: TeacherAttendanceRecord = {
+      id: currentRecord?.id || `att-${selectedDate}-${teacherId}`,
+      date: selectedDate,
+      teacherId,
+      teacherNameBn: teacher?.nameBn || currentRecord?.teacherNameBn || 'শিক্ষক',
+      teacherNameEn: teacher?.nameEn,
+      designationBn: teacher?.designationBn || currentRecord?.designationBn || 'সহকারী শিক্ষক',
+      departmentBn: teacher?.departmentBn || currentRecord?.departmentBn,
+      photoUrl: teacher?.photoUrl || currentRecord?.photoUrl,
+      phone: teacher?.phone || currentRecord?.phone,
+      status: isLateCheckIn ? 'late' : 'present',
+      checkInTime: timeFormatted,
+      checkInMethod: 'self_digital',
+      remarksBn: isLateCheckIn
+        ? `${toBengaliNumber(lateMinutes)} মিনিট বিলম্বে ডিজিটাল চেক-ইন সম্পন্ন হয়েছে।`
+        : 'নির্ধারিত সময়ে প্রাতঃকালীন ডিজিটাল চেক-ইন সফল হয়েছে।',
+    };
+
+    const updatedList = updateSingleStaffAttendance(selectedDate, updatedRecord);
+    setAttendanceRecords(updatedList);
+    setStaffCheckInToast(
+      `✓ ${teacherName} এর ডিজিটাল চেক-ইন সম্পন্ন হয়েছে (সময়: ${timeFormatted}${
+        isLateCheckIn ? `, ${toBengaliNumber(lateMinutes)} মিনিট বিলম্ব` : ', অন-টাইম'
+      })!`
+    );
+    setTimeout(() => setStaffCheckInToast(null), 6000);
+  };
+
+  const handleBulkCheckInStaff = () => {
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    let count = 0;
+    const updated: TeacherAttendanceRecord[] = attendanceRecords.map((rec) => {
+      if (rec.status === 'absent' || !rec.checkInTime) {
+        count++;
+        return {
+          ...rec,
+          status: 'present',
+          checkInTime: timeFormatted,
+          remarksBn: 'প্রশাসনিক তত্ত্বাবধানে একযোগে চেক-ইন সম্পন্ন।',
+        };
+      }
+      return rec;
+    });
+    saveStaffAttendanceList(selectedDate, updated);
+    setAttendanceRecords(updated);
+    setStaffCheckInToast(`✓ ${toBengaliNumber(count)} জন শিক্ষক ও কর্মীর চেক-ইন সম্পন্ন করা হয়েছে!`);
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  const handleExportStaffCsv = () => {
+    const headers = ['Teacher ID', 'Name (Bengali)', 'Name (English)', 'Designation', 'Department', 'Phone', 'Date', 'Check-In Time', 'Status', 'Remarks'];
+    const rows = filteredAttendanceRecords.map((r) => [
+      `"${r.teacherId}"`,
+      `"${r.teacherNameBn}"`,
+      `"${r.teacherNameEn || ''}"`,
+      `"${r.designationBn}"`,
+      `"${r.departmentBn || ''}"`,
+      `"${r.phone || ''}"`,
+      `"${r.date}"`,
+      `"${r.checkInTime || '—'}"`,
+      `"${r.status}"`,
+      `"${r.remarksBn || ''}"`,
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    downloadAttendanceCsvFile(csvContent, `ananda_pathshala_staff_attendance_${selectedDate}.csv`);
+    setStaffCheckInToast('📥 শিক্ষক ও স্টাফ হাজিরা CSV ফাইল সফলভাবে ডাউনলোড হয়েছে!');
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  const filteredAttendanceRecords = useMemo(() => {
+    return attendanceRecords.filter((stf) => {
+      const matchesStatus = staffStatusFilter === 'all' || stf.status === staffStatusFilter;
+      if (!staffSearchQuery.trim()) return matchesStatus;
+      const q = staffSearchQuery.toLowerCase().trim();
+      const matchesSearch =
+        stf.teacherNameBn.toLowerCase().includes(q) ||
+        (stf.teacherNameEn && stf.teacherNameEn.toLowerCase().includes(q)) ||
+        stf.designationBn.toLowerCase().includes(q) ||
+        (stf.departmentBn && stf.departmentBn.toLowerCase().includes(q)) ||
+        (stf.phone && stf.phone.includes(q));
+      return matchesStatus && matchesSearch;
+    });
+  }, [attendanceRecords, staffStatusFilter, staffSearchQuery]);
 
   // Handle single attendance toggle
   const handleStatusChange = (teacherId: string, status: TeacherAttendanceStatus) => {
@@ -517,10 +636,189 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* TAB 2: DAILY STAFF ATTENDANCE                             */}
+      {/* TAB 2: DAILY STAFF ATTENDANCE & DIGITAL CHECK-IN          */}
       {/* ========================================================= */}
       {activeTab === 'attendance' && (
         <div className="space-y-6">
+          {/* Staff Check-In Toast */}
+          {staffCheckInToast && (
+            <div className="bg-slate-900 border-2 border-emerald-500 rounded-2xl p-4 text-white shadow-xl flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2.5 text-xs font-semibold">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{staffCheckInToast}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStaffCheckInToast(null)}
+                className="text-xs text-slate-400 hover:text-white font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Digital Check-In Hero Card */}
+          <div className="bg-white rounded-3xl border-2 border-indigo-200 p-5 sm:p-6 shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              {/* Left Column: Live Clock & Shift Rule Info */}
+              <div className="lg:col-span-5 bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white rounded-2xl p-5 space-y-3 relative overflow-hidden shadow-inner">
+                <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-indigo-500/10 pointer-events-none"></div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 bg-white/10 px-2.5 py-0.5 rounded-full">
+                    লাইভ ডিজিটাল ঘড়ি · কুষ্টিয়া
+                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                </div>
+
+                <div className="pt-1">
+                  <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white flex items-baseline gap-2">
+                    <span>{currentLiveClock}</span>
+                  </div>
+                  <span className="text-xs text-indigo-200 block mt-1">
+                    তারিখ: {new Date(selectedDate).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-indigo-700/50 text-[11px] text-indigo-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">প্রাতঃকালীন নির্ধারিত সময়:</span>
+                    <strong className="text-amber-300">সকাল ০৮:০০ ঘটিকা</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">বিলম্বিত সময় বিবেচনা:</span>
+                    <strong className="text-rose-300">সকাল ০৮:১৫ এর পর</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Teacher Digital Check-In Action Console */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <span>প্রাতঃকালীন ডিজিটাল চেক-ইন কনসোল</span>
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      সংশ্লিষ্ট শিক্ষক নির্বাচন করে "ডিজিটাল চেক-ইন" বাটনে ক্লিক করুন
+                    </p>
+                  </div>
+                </div>
+
+                {/* Teacher Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    চেক-ইনকারী শিক্ষক / কর্মী নির্বাচন করুন:
+                  </label>
+                  <select
+                    value={selectedStaffTeacherId}
+                    onChange={(e) => setSelectedStaffTeacherId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-indigo-200 rounded-xl text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    {staffList.map((t) => {
+                      const att = attendanceRecords.find((s) => s.teacherId === t.id);
+                      const isCheckedIn = att?.status === 'present' || att?.status === 'late';
+                      return (
+                        <option key={t.id} value={t.id}>
+                          {t.nameBn} — {t.designationBn} {isCheckedIn ? `✓ (চেক-ইন: ${att?.checkInTime})` : '⏳ (অপেক্ষমাণ)'}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Status Card & Check-In Button for Selected Teacher */}
+                {(() => {
+                  const currentTeacher = staffList.find((t) => t.id === selectedStaffTeacherId);
+                  const currentRecord = attendanceRecords.find((s) => s.teacherId === selectedStaffTeacherId);
+                  const isCheckedIn = currentRecord?.status === 'present' || currentRecord?.status === 'late';
+
+                  return (
+                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center font-black text-base shrink-0 overflow-hidden border border-indigo-200">
+                          {currentTeacher?.photoUrl ? (
+                            <img
+                              src={currentTeacher.photoUrl}
+                              alt={currentTeacher.nameBn}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            currentTeacher?.nameBn.slice(0, 1) || 'টি'
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">
+                            {currentTeacher?.nameBn}
+                          </h4>
+                          <span className="text-[11px] text-slate-500 block">
+                            {currentTeacher?.designationBn}
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                currentRecord?.status === 'present'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : currentRecord?.status === 'late'
+                                  ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                  : currentRecord?.status === 'leave'
+                                  ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                  : 'bg-rose-100 text-rose-800 border-rose-300'
+                              }`}
+                            >
+                              {currentRecord?.status === 'present'
+                                ? '✓ অন-টাইম উপস্থিত'
+                                : currentRecord?.status === 'late'
+                                ? '⏰ বিলম্বিত উপস্থিতি'
+                                : currentRecord?.status === 'leave'
+                                ? '🏖️ ছুটি অনুমোদিত'
+                                : '⏳ চেক-ইন অপেক্ষমাণ'}
+                            </span>
+                            {currentRecord?.checkInTime && (
+                              <span className="text-[11px] font-mono font-bold text-slate-700">
+                                সময়: {currentRecord.checkInTime}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Check-In Action Button */}
+                      <div>
+                        {isCheckedIn ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                              <span>চেক-ইন নিশ্চিত হয়েছে</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleTeacherDigitalCheckIn(selectedStaffTeacherId)}
+                              className="px-3 py-2 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer"
+                              title="বর্তমান সময়ে টাইমস্ট্যাম্প আপডেট করুন"
+                            >
+                              রিনিউ
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleTeacherDigitalCheckIn(selectedStaffTeacherId)}
+                            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                            <span>ডিজিটাল চেক-ইন</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
           {/* Attendance Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
             <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -566,145 +864,251 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
             </div>
           </div>
 
-          {/* Date Picker & Action Controls */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Calendar className="w-5 h-5 text-emerald-700" />
-              <label className="text-xs font-bold text-slate-600">হাজিরার তারিখ:</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+          {/* Filter, Search & Action Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={staffSearchQuery}
+                  onChange={(e) => setStaffSearchQuery(e.target.value)}
+                  placeholder="শিক্ষক বা কর্মীর নাম, পদবি, বিভাগ বা ফোন লিখে খুঁজুন..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+              </div>
+
+              {/* Date & Action Buttons */}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs">
+                  <Calendar className="w-4 h-4 text-indigo-600" />
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBulkCheckInStaff}
+                  className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                  title="অপেক্ষমাণ সবাইকে উপস্থিত করুন"
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  <span>এক ক্লিকে সবাইকে উপস্থিত</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportStaffCsv}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="হাজিরা CSV ডাউনলোড"
+                >
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  <span>CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="প্রিন্ট শিট"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>প্রিন্ট</span>
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              <button
-                onClick={handleMarkAllPresent}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
-              >
-                <Check className="w-4 h-4" />
-                <span>সবাইকে উপস্থিত মার্ক করুন</span>
-              </button>
-
-              <button
-                onClick={() => window.print()}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
-                title="আজকের হাজিরার তালিকা প্রিন্ট করুন"
-              >
-                <Printer className="w-4 h-4" />
-                <span>প্রিন্ট শিট</span>
-              </button>
+            {/* Quick Status Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pt-1 text-xs">
+              <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                ফিল্টার:
+              </span>
+              {[
+                { id: 'all', label: `সকল স্টাফ (${totalStaff})` },
+                { id: 'present', label: `উপস্থিত (${presentCount})` },
+                { id: 'late', label: `দেরিতে (${lateCount})` },
+                { id: 'leave', label: `ছুটিতে (${leaveCount})` },
+                { id: 'absent', label: `অনুপস্থিত (${absentCount})` },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStaffStatusFilter(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs cursor-pointer whitespace-nowrap ${
+                    staffStatusFilter === tab.id
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Attendance Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/90 flex items-center justify-between text-xs font-bold text-slate-800">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-indigo-700" />
+                <span>শিক্ষক ও স্টাফ প্রাতঃকালীন হাজিরা তালিকা</span>
+                <span className="text-slate-500 font-mono font-normal">
+                  ({filteredAttendanceRecords.length} জন কর্মী)
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-medium">
+                রিয়েল-টাইম টাইমস্ট্যাম্প সক্রিয়
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-700">
-                <thead className="bg-slate-50/90 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-[11px]">
                   <tr>
-                    <th className="px-5 py-4">শিক্ষক / স্টাফের নাম</th>
-                    <th className="px-4 py-4">পদবি ও বিভাগ</th>
-                    <th className="px-4 py-4 text-center">হাজিরা স্ট্যাটাস</th>
-                    <th className="px-4 py-4">ইন-টাইম</th>
-                    <th className="px-4 py-4">আউট-টাইম</th>
-                    <th className="px-5 py-4">মন্তব্য</th>
+                    <th className="py-3 px-4">শিক্ষক / স্টাফের নাম</th>
+                    <th className="py-3 px-3">পদবি ও বিভাগ</th>
+                    <th className="py-3 px-3">যোগাযোগ</th>
+                    <th className="py-3 px-3 text-center">চেক-ইন সময়</th>
+                    <th className="py-3 px-3 text-center">হাজিরা অবস্থা</th>
+                    <th className="py-3 px-3">মন্তব্য / নোট</th>
+                    <th className="py-3 px-4 text-right">ডিজিটাল অ্যাকশন</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {attendanceRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-emerald-50 border border-emerald-200/60 flex items-center justify-center shrink-0">
-                            {record.photoUrl ? (
-                              <img
-                                src={record.photoUrl}
-                                alt={record.teacherNameBn}
-                                className="w-full h-full object-cover"
-                              />
+                <tbody className="divide-y divide-slate-100 text-slate-800">
+                  {filteredAttendanceRecords.map((stf) => {
+                    const isCheckedIn = stf.status === 'present' || stf.status === 'late';
+
+                    return (
+                      <tr key={stf.id} className="hover:bg-slate-50/80 transition-colors">
+                        {/* Name & Photo */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-indigo-700">
+                              {stf.photoUrl ? (
+                                <img
+                                  src={stf.photoUrl}
+                                  alt={stf.teacherNameBn}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                stf.teacherNameBn.slice(0, 1)
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900 leading-tight">
+                                {stf.teacherNameBn}
+                              </div>
+                              <span className="text-[10px] text-slate-400 block font-mono">
+                                {stf.teacherNameEn || `APS-${stf.teacherId}`}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Designation & Department */}
+                        <td className="py-3 px-3">
+                          <div className="font-semibold text-slate-800">{stf.designationBn}</div>
+                          <div className="text-[10px] text-slate-500">{stf.departmentBn || 'একাডেমিক শাখা'}</div>
+                        </td>
+
+                        {/* Phone */}
+                        <td className="py-3 px-3 font-mono text-[11px] text-slate-600">
+                          {stf.phone ? (
+                            <a href={`tel:${stf.phone}`} className="hover:underline hover:text-indigo-600">
+                              {stf.phone}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+
+                        {/* Check-In Time & Timestamp */}
+                        <td className="py-3 px-3 text-center">
+                          {stf.checkInTime ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 font-bold text-xs font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                              <span>{stf.checkInTime}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Status Badge */}
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`inline-block text-[10.5px] font-bold px-2.5 py-0.5 rounded-full border ${
+                              stf.status === 'present'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : stf.status === 'late'
+                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : stf.status === 'leave'
+                                ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                : 'bg-rose-100 text-rose-800 border-rose-300'
+                            }`}
+                          >
+                            {stf.status === 'present'
+                              ? 'অন-টাইম উপস্থিত'
+                              : stf.status === 'late'
+                              ? 'বিলম্বিত উপস্থিতি'
+                              : stf.status === 'leave'
+                              ? 'ছুটি অনুমোদিত'
+                              : 'চেক-ইন অপেক্ষমাণ'}
+                          </span>
+                        </td>
+
+                        {/* Remarks */}
+                        <td className="py-3 px-3 text-slate-500 max-w-xs truncate text-[11px]">
+                          {stf.remarksBn || '—'}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {!isCheckedIn ? (
+                              <button
+                                type="button"
+                                onClick={() => handleTeacherDigitalCheckIn(stf.teacherId)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="ডিজিটাল চেক-ইন করুন"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                                <span>চেক-ইন</span>
+                              </button>
                             ) : (
-                              <Users className="w-5 h-5 text-emerald-700" />
+                              <button
+                                type="button"
+                                onClick={() => handleTeacherDigitalCheckIn(stf.teacherId)}
+                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[11px] transition cursor-pointer"
+                                title="পুনরায় চেক-ইন বা সময় আপডেট"
+                              >
+                                রিনিউ
+                              </button>
                             )}
+
+                            {/* Dropdown status toggle for Admin / Head Teacher */}
+                            <select
+                              value={stf.status}
+                              onChange={(e) => handleStatusChange(stf.teacherId, e.target.value as TeacherAttendanceStatus)}
+                              className="px-2 py-1 bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                              title="স্ট্যাটাস পরিবর্তন"
+                            >
+                              <option value="present">উপস্থিত</option>
+                              <option value="late">বিলম্বিত</option>
+                              <option value="leave">ছুটি</option>
+                              <option value="absent">অনুপস্থিত</option>
+                            </select>
                           </div>
-                          <div>
-                            <span className="font-bold text-slate-800 block text-sm">
-                              {record.teacherNameBn}
-                            </span>
-                            <span className="text-[11px] font-mono text-slate-400">
-                              APS-{record.teacherId}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <span className="font-semibold text-slate-700 block text-xs">
-                          {record.designationBn}
-                        </span>
-                        <span className="text-[11px] text-slate-400">{record.departmentBn}</span>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-center">
-                        <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl gap-1">
-                          <button
-                            onClick={() => handleStatusChange(record.teacherId, 'present')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              record.status === 'present'
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-emerald-700'
-                            }`}
-                          >
-                            উপস্থিত
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(record.teacherId, 'late')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              record.status === 'late'
-                                ? 'bg-amber-500 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-amber-600'
-                            }`}
-                          >
-                            দেরিতে
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(record.teacherId, 'leave')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              record.status === 'leave'
-                                ? 'bg-blue-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-blue-600'
-                            }`}
-                          >
-                            ছুটিতে
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(record.teacherId, 'absent')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                              record.status === 'absent'
-                                ? 'bg-rose-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-rose-600'
-                            }`}
-                          >
-                            অনুপস্থিত
-                          </button>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5 font-mono text-xs text-slate-600">
-                        {record.checkInTime || '—'}
-                      </td>
-
-                      <td className="px-4 py-3.5 font-mono text-xs text-slate-600">
-                        {record.checkOutTime || '—'}
-                      </td>
-
-                      <td className="px-5 py-3.5 text-xs text-slate-500">
-                        {record.remarksBn || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

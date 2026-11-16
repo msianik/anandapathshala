@@ -51,6 +51,7 @@ const DigitalDiaryModule = lazy(() => import('./components/DigitalDiaryModule').
 const SkillAssessmentModule = lazy(() => import('./components/SkillAssessmentModule').then(m => ({ default: m.SkillAssessmentModule })));
 const FeeAccountsModule = lazy(() => import('./components/FeeAccountsModule').then(m => ({ default: m.FeeAccountsModule })));
 const AttendanceModule = lazy(() => import('./components/AttendanceModule').then(m => ({ default: m.AttendanceModule })));
+const BiometricAttendanceWidget = lazy(() => import('./components/BiometricAttendanceWidget').then(m => ({ default: m.BiometricAttendanceWidget })));
 const StaffManagementModule = lazy(() => import('./components/StaffManagementModule').then(m => ({ default: m.StaffManagementModule })));
 const ParentTeacherChatModule = lazy(() => import('./components/ParentTeacherChatModule').then(m => ({ default: m.ParentTeacherChatModule })));
 const GoogleWorkspaceModule = lazy(() => import('./components/GoogleWorkspaceModule').then(m => ({ default: m.GoogleWorkspaceModule })));
@@ -1064,7 +1065,7 @@ export default function App() {
                     />
                   )}
 
-                  {(currentTab === 'attendance' || currentTab === 'biometric') && (
+                  {currentTab === 'attendance' && (
                     <AttendanceModule
                       students={students}
                       attendanceRecords={attendanceRecords}
@@ -1072,7 +1073,15 @@ export default function App() {
                       currentRole={currentRole}
                       loggedInTeacherNameBn={loggedInAccount?.nameBn}
                       onSendAttendanceNotification={dispatchRealTimeFcmNotification}
-                      initialViewTab={currentTab === 'biometric' ? 'biometric' : 'students'}
+                    />
+                  )}
+
+                  {currentTab === 'biometric' && (
+                    <BiometricAttendanceWidget
+                      students={students}
+                      attendanceRecords={attendanceRecords}
+                      onUpdateAttendance={handleUpdateAttendance}
+                      currentRole={currentRole}
                     />
                   )}
 

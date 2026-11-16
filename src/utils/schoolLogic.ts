@@ -2043,7 +2043,7 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       defaultTab: 'attendance',
       iconName: 'CalendarCheck',
       color: 'text-teal-600',
-      itemIds: ['attendance', 'biometric', 'staff', 'pickup', 'diary'],
+      itemIds: ['attendance', 'staff', 'biometric', 'pickup', 'diary'],
       items: [
         {
           id: 'attendance',
@@ -2052,16 +2052,16 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
           descriptionBn: 'ডিজিটাল ক্লাসরুম হাজিরা ও অনুপস্থিতির SMS',
         },
         {
+          id: 'staff',
+          labelBn: 'শিক্ষক ও স্টাফ',
+          shortLabelBn: 'শিক্ষক ও স্টাফ',
+          descriptionBn: 'শিক্ষক ডিরেক্টরি, ডিজিটাল চেক-ইন ও স্টাফ হাজিরা, ছুটির অনুমোদন',
+        },
+        {
           id: 'biometric',
           labelBn: 'ফিঙ্গারপ্রিন্ট ও ক্লাউড মেশিন',
           shortLabelBn: 'বায়োমেট্রিক মেশিন',
           descriptionBn: 'ZLink Minerva IoT ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল',
-        },
-        {
-          id: 'staff',
-          labelBn: 'শিক্ষক ও স্টাফ',
-          shortLabelBn: 'স্টাফ',
-          descriptionBn: 'শিক্ষক ডিরেক্টরি, ডিজিটাল সার্ভিস কার্ড, স্টাফ হাজিরা ও ছুটির অনুমোদন',
         },
         {
           id: 'pickup',

@@ -947,13 +947,16 @@ export interface TeacherAttendanceRecord {
   date: string; // YYYY-MM-DD
   teacherId: string;
   teacherNameBn: string;
+  teacherNameEn?: string;
   designationBn: string;
   departmentBn?: string;
   photoUrl?: string;
+  phone?: string;
   status: TeacherAttendanceStatus;
   checkInTime?: string;
   checkOutTime?: string;
   remarksBn?: string;
+  checkInMethod?: string;
 }
 
 export interface TeacherLeaveBalance {
