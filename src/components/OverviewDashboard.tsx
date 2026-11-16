@@ -32,6 +32,12 @@ import {
   normalizeIdentifier,
 } from '../utils/schoolLogic';
 import {
+  getStoredStaffMembers,
+  saveAllStaffMembers,
+  STAFF_CHANGE_EVENT,
+  TEACHERS_UPDATED_EVENT,
+} from '../utils/staffManagementLogic';
+import {
   SCHOOL_PROFILE,
   PRINCIPAL_AND_DIRECTOR_PROFILES,
   SCHOOL_TEACHERS,
@@ -458,15 +464,19 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     return () => window.removeEventListener('open-school-theme-settings', handleOpenThemeSettings);
   }, []);
 
-  const [teachersList, setTeachersList] = useState<TeacherMember[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('ananda_teachers_list_v1');
-        if (stored) return JSON.parse(stored);
-      } catch {}
-    }
-    return SCHOOL_TEACHERS;
-  });
+  const [teachersList, setTeachersList] = useState<TeacherMember[]>(() => getStoredStaffMembers());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setTeachersList(getStoredStaffMembers());
+    };
+    window.addEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
+    return () => {
+      window.removeEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+      window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+    };
+  }, []);
 
   const persistLeadershipProfiles = (updated: LeadershipProfiles) => {
     setLeadershipProfiles(updated);
@@ -490,14 +500,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
   const persistTeachersList = (updated: TeacherMember[]) => {
     setTeachersList(updated);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('ananda_teachers_list_v1', JSON.stringify(updated));
-        window.dispatchEvent(
-          new CustomEvent('ananda-teachers-updated', { detail: { teachers: updated } })
-        );
-      } catch {}
-    }
+    saveAllStaffMembers(updated);
   };
 
   // Directors Management State

@@ -20,6 +20,11 @@ import {
   toBengaliNumber,
   getSchoolClassNameBn,
 } from '../utils/schoolLogic';
+import {
+  getStoredStaffMembers,
+  STAFF_CHANGE_EVENT,
+  TEACHERS_UPDATED_EVENT,
+} from '../utils/staffManagementLogic';
 import { INITIAL_STAFF_ATTENDANCE, SCHOOL_TEACHERS } from '../data/mockData';
 import { 
   CalendarCheck, 
@@ -124,33 +129,89 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   // Staff Attendance & Digital Check-In State
   // ==========================================
   const [attendanceViewTab, setAttendanceViewTab] = useState<'students' | 'staff' | 'biometric'>(initialViewTab);
+  const [teachersList, setTeachersList] = useState<TeacherMember[]>(() => getStoredStaffMembers());
   const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>(() => {
-    const list = [...INITIAL_STAFF_ATTENDANCE];
-    const missing = SCHOOL_TEACHERS.filter(
-      (t) => !list.some((s) => s.teacherId === t.id)
-    );
-    if (missing.length > 0) {
-      missing.forEach((tch, idx) => {
-        list.push({
-          id: `stf-att-${list.length + idx + 1}`,
-          teacherId: tch.id,
+    const currentTeachers = getStoredStaffMembers();
+    return currentTeachers.map((tch, idx) => {
+      const initial = INITIAL_STAFF_ATTENDANCE.find((s) => s.teacherId === tch.id);
+      if (initial) {
+        return {
+          ...initial,
           teacherNameBn: tch.nameBn,
           teacherNameEn: tch.nameEn,
           designationBn: tch.designationBn,
           departmentBn: tch.departmentBn,
           photoUrl: tch.photoUrl,
           phone: tch.phone,
-          date: '2026-11-06',
-          dateBn: '০৬ নভেম্বর ২০২৬',
-          status: 'present',
-          checkInTime: 'সকাল ০৮:০০',
-          checkInMethod: 'self_digital',
-          remarksBn: 'স্বাভাবিক ডিজিটাল উপস্থিতি।',
+        };
+      }
+      return {
+        id: `stf-att-${idx + 1}`,
+        teacherId: tch.id,
+        teacherNameBn: tch.nameBn,
+        teacherNameEn: tch.nameEn,
+        designationBn: tch.designationBn,
+        departmentBn: tch.departmentBn,
+        photoUrl: tch.photoUrl,
+        phone: tch.phone,
+        date: '2026-11-06',
+        dateBn: '০৬ নভেম্বর ২০২৬',
+        status: 'present',
+        checkInTime: 'সকাল ০৮:০০',
+        checkInMethod: 'self_digital',
+        remarksBn: 'স্বাভাবিক ডিজিটাল উপস্থিতি।',
+      };
+    });
+  });
+
+  // Cross-module synchronization: listen to teacher edits from Dashboard & Staff Management
+  useEffect(() => {
+    const handleSync = () => {
+      const freshTeachers = getStoredStaffMembers();
+      setTeachersList(freshTeachers);
+
+      // Keep staff attendance list synced with updated teacher details (name, designation, phone, photo)
+      setStaffAttendanceList((prev) => {
+        return freshTeachers.map((tch, idx) => {
+          const existing = prev.find((p) => p.teacherId === tch.id);
+          if (existing) {
+            return {
+              ...existing,
+              teacherNameBn: tch.nameBn,
+              teacherNameEn: tch.nameEn,
+              designationBn: tch.designationBn,
+              departmentBn: tch.departmentBn,
+              photoUrl: tch.photoUrl,
+              phone: tch.phone,
+            };
+          }
+          return {
+            id: `stf-att-${idx + 1}`,
+            teacherId: tch.id,
+            teacherNameBn: tch.nameBn,
+            teacherNameEn: tch.nameEn,
+            designationBn: tch.designationBn,
+            departmentBn: tch.departmentBn,
+            photoUrl: tch.photoUrl,
+            phone: tch.phone,
+            date: '2026-11-06',
+            dateBn: '০৬ নভেম্বর ২০২৬',
+            status: 'present',
+            checkInTime: 'সকাল ০৮:০০',
+            checkInMethod: 'self_digital',
+            remarksBn: 'স্বাভাবিক ডিজিটাল উপস্থিতি।',
+          };
         });
       });
-    }
-    return list;
-  });
+    };
+
+    window.addEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
+    return () => {
+      window.removeEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+      window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+    };
+  }, []);
   const [deviceConfig, setDeviceConfig] = useState<BiometricDeviceConfig>(() => getBiometricConfig());
   const [secondsUntilNextSync, setSecondsUntilNextSync] = useState<number>(() => getBiometricConfig().autoSyncIntervalSeconds || 30);
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
@@ -235,13 +296,14 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     setTimeout(() => setAlertSuccessBanner(null), 6000);
   };
   const [selectedStaffTeacherId, setSelectedStaffTeacherId] = useState<string>(() => {
+    const list = getStoredStaffMembers();
     if (loggedInTeacherNameBn) {
-      const match = SCHOOL_TEACHERS.find(
+      const match = list.find(
         (t) => t.nameBn.includes(loggedInTeacherNameBn) || loggedInTeacherNameBn.includes(t.nameBn)
       );
       if (match) return match.id;
     }
-    return SCHOOL_TEACHERS[1]?.id || 'tch-2';
+    return list[1]?.id || 'tch-2';
   });
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [staffStatusFilter, setStaffStatusFilter] = useState<'all' | StaffAttendanceStatus>('all');
@@ -271,7 +333,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     const isLateCheckIn = currentHour > 8 || (currentHour === 8 && currentMin > 15);
     const lateMinutes = isLateCheckIn ? Math.max(1, (currentHour - 8) * 60 + (currentMin - 15)) : 0;
 
-    const teacher = SCHOOL_TEACHERS.find((t) => t.id === teacherId);
+    const teacher = teachersList.find((t) => t.id === teacherId);
     const teacherName = teacher?.nameBn || 'শিক্ষক';
 
     setStaffAttendanceList((prev) =>
@@ -1283,7 +1345,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
                     onChange={(e) => setSelectedStaffTeacherId(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-indigo-200 rounded-xl text-xs sm:text-sm font-black text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    {SCHOOL_TEACHERS.map((t) => {
+                    {teachersList.map((t) => {
                       const att = staffAttendanceList.find((s) => s.teacherId === t.id);
                       const isCheckedIn = att?.status === 'present' || att?.status === 'late';
                       return (
@@ -1297,7 +1359,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
                 {/* Status Card & Check-In Button for Selected Teacher */}
                 {(() => {
-                  const currentTeacher = SCHOOL_TEACHERS.find((t) => t.id === selectedStaffTeacherId);
+                  const currentTeacher = teachersList.find((t) => t.id === selectedStaffTeacherId);
                   const currentRecord = staffAttendanceList.find((s) => s.teacherId === selectedStaffTeacherId);
                   const isCheckedIn = currentRecord?.status === 'present' || currentRecord?.status === 'late';
 

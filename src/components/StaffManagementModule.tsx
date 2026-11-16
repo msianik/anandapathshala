@@ -19,6 +19,7 @@ import {
   updateLeaveApplicationStatus,
   getTeacherLeaveBalance,
   STAFF_CHANGE_EVENT,
+  TEACHERS_UPDATED_EVENT,
 } from '../utils/staffManagementLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
 import {
@@ -112,7 +113,11 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       setLeaveList(getStoredLeaveApplications());
     };
     window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
-    return () => window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+    window.addEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    return () => {
+      window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+      window.removeEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    };
   }, [selectedDate]);
 
   // When date changes, load attendance

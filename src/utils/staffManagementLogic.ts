@@ -7,10 +7,13 @@ import {
 } from '../types/school';
 import { SCHOOL_TEACHERS } from '../data/mockData';
 
-export const STAFF_STORAGE_KEY = 'ananda_staff_members_v1';
+export const TEACHERS_STORAGE_KEY = 'ananda_teachers_list_v1';
+export const STAFF_STORAGE_KEY = 'ananda_teachers_list_v1';
+export const LEGACY_STAFF_STORAGE_KEY = 'ananda_staff_members_v1';
 export const STAFF_ATTENDANCE_STORAGE_KEY = 'ananda_staff_attendance_v1';
 export const STAFF_LEAVE_STORAGE_KEY = 'ananda_staff_leaves_v1';
 export const STAFF_CHANGE_EVENT = 'ananda_staff_data_changed';
+export const TEACHERS_UPDATED_EVENT = 'ananda-teachers-updated';
 
 // Initial Mock Leave Applications
 export const INITIAL_STAFF_LEAVES: TeacherLeaveApplication[] = [
@@ -71,8 +74,11 @@ export const INITIAL_STAFF_LEAVES: TeacherLeaveApplication[] = [
 ];
 
 export function getStoredStaffMembers(): TeacherMember[] {
+  if (typeof window === 'undefined') return SCHOOL_TEACHERS;
   try {
-    const raw = localStorage.getItem(STAFF_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(TEACHERS_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_STAFF_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -82,7 +88,7 @@ export function getStoredStaffMembers(): TeacherMember[] {
         );
         if (missing.length > 0) {
           const merged = [...parsed, ...missing];
-          localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(merged));
+          saveAllStaffMembers(merged);
           return merged;
         }
         return parsed;
@@ -90,6 +96,22 @@ export function getStoredStaffMembers(): TeacherMember[] {
     }
   } catch {}
   return SCHOOL_TEACHERS;
+}
+
+export function saveAllStaffMembers(members: TeacherMember[]): TeacherMember[] {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(members));
+      localStorage.setItem(LEGACY_STAFF_STORAGE_KEY, JSON.stringify(members));
+      window.dispatchEvent(
+        new CustomEvent(TEACHERS_UPDATED_EVENT, { detail: { teachers: members } })
+      );
+      window.dispatchEvent(
+        new CustomEvent(STAFF_CHANGE_EVENT, { detail: { type: 'members', teachers: members } })
+      );
+    } catch {}
+  }
+  return members;
 }
 
 export function saveStaffMember(member: TeacherMember): TeacherMember[] {
@@ -102,17 +124,13 @@ export function saveStaffMember(member: TeacherMember): TeacherMember[] {
   } else {
     updated = [member, ...current];
   }
-  localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(updated));
-  window.dispatchEvent(new CustomEvent(STAFF_CHANGE_EVENT, { detail: { type: 'members' } }));
-  return updated;
+  return saveAllStaffMembers(updated);
 }
 
 export function deleteStaffMember(id: string): TeacherMember[] {
   const current = getStoredStaffMembers();
   const updated = current.filter((m) => m.id !== id);
-  localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(updated));
-  window.dispatchEvent(new CustomEvent(STAFF_CHANGE_EVENT, { detail: { type: 'members' } }));
-  return updated;
+  return saveAllStaffMembers(updated);
 }
 
 export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceRecord[] {
