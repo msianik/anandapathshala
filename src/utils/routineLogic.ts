@@ -16,10 +16,11 @@ import {
   SectionConfig,
   getSectionNameBn,
   AVAILABLE_SHIFTS_PER_CLASS,
+  STANDARD_SUBJECTS,
 } from '../data/mockRoutines';
 import { getSchoolClassNameBn, isSameSchoolClass } from './schoolLogic';
 
-export { DAYS_OF_WEEK_CONFIG, SCHOOL_RESOURCES, STANDARD_SECTIONS, getSectionNameBn, AVAILABLE_SHIFTS_PER_CLASS };
+export { DAYS_OF_WEEK_CONFIG, SCHOOL_RESOURCES, STANDARD_SECTIONS, getSectionNameBn, AVAILABLE_SHIFTS_PER_CLASS, STANDARD_SUBJECTS };
 export type { DayConfig, SchoolResourceItem, SectionConfig };
 
 /**
