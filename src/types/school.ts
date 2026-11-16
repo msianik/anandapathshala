@@ -421,11 +421,17 @@ export interface AttendanceRecord {
   rollNo: string;
   className: SchoolClass;
   status: 'present' | 'absent' | 'late';
-  checkInTime?: string;
+  checkInTime?: string; // কখন ঢুকছে (Entry Time)
+  checkOutTime?: string; // কখন বের হচ্ছে (Exit Time)
   lateReasonBn?: string;
   absentReasonBn?: string;
   dateStr?: string;
   remarks?: string;
+  biometricSynced?: boolean; // বায়োমেট্রিক মেশিন থেকে সিঙ্ককৃত কিনা
+  checkInMethod?: 'biometric' | 'manual' | 'self_digital';
+  checkOutMethod?: 'biometric' | 'manual';
+  entryTimestamp?: number;
+  exitTimestamp?: number;
 }
 
 export type StaffAttendanceStatus = 'present' | 'late' | 'leave' | 'absent';
@@ -441,13 +447,61 @@ export interface StaffAttendanceRecord {
   phone?: string;
   date: string;
   dateBn: string;
-  checkInTime?: string;
+  checkInTime?: string; // কখন ঢুকছে (Entry Time)
   checkInTimestamp?: number;
+  checkOutTime?: string; // কখন বের হচ্ছে (Exit Time)
+  checkOutTimestamp?: number;
   status: StaffAttendanceStatus;
   checkInMethod?: 'self_digital' | 'biometric' | 'admin_manual';
   remarksBn?: string;
   isLate?: boolean;
   lateMinutes?: number;
+  biometricSynced?: boolean;
+}
+
+// ==========================================
+// Digital Biometric Attendance Device Types
+// ==========================================
+export type BiometricPunchType = 'entry' | 'exit'; // 'entry' = কখন ঢুকছে, 'exit' = কখন বের হচ্ছে
+
+export interface BiometricDeviceConfig {
+  id: string;
+  nameBn: string; // যেমন: "প্রধান গেট ফিঙ্গারপ্রিন্ট টার্মিনাল - ১"
+  model: string; // যেমন: "ZKTeco K40 / Bio-Entry Pro"
+  ipAddress: string; // যেমন: "192.168.1.201"
+  port: number; // যেমন: 4370 (ZK Protocol) বা 8080 (ADMS)
+  terminalSerial: string; // যেমন: "AP-ZK-2026-X01"
+  locationBn: string; // যেমন: "স্কুলের মূল প্রবেশদ্বার"
+  connectionStatus: 'connected' | 'connecting' | 'disconnected' | 'error';
+  lastSyncTimestamp?: number;
+  lastSyncTimeStr?: string;
+  autoSyncEnabled: boolean; // অটো সিঙ্ক সক্রিয় আছে কিনা
+  autoSyncIntervalSeconds: number; // অটো সিঙ্ক বিরতি (যেমন: ১৫ বা ৩০ সেকেন্ড)
+  protocol: 'zk_tcp' | 'adms_cloud' | 'realtime_push' | 'webhook';
+  autoSmsAlertEnabled: boolean; // পাঞ্চ করার সাথে সাথে অভিভাবকের ফোনে অ্যালার্ট
+  soundAlertEnabled: boolean; // সফল পাঞ্চে অডিও বীপ
+}
+
+export interface BiometricPunchLog {
+  id: string;
+  enrollId: string; // ফিঙ্গারপ্রিন্ট মেশিনের ইউজার আইডি (যেমন: 100, 101, TCH-1)
+  personType: 'student' | 'teacher' | 'staff';
+  personId: string; // studentId বা teacherId
+  nameBn: string;
+  nameEn: string;
+  className?: SchoolClass;
+  rollNo?: string;
+  punchType: BiometricPunchType; // 'entry' = কখন ঢুকছে, 'exit' = কখন বের হচ্ছে
+  punchTimeStr: string; // যেমন: "সকাল ০৭:৫৫", "দুপুর ১২:৪০"
+  timestamp: number;
+  dateStr: string; // যেমন: "০৮ নভেম্বর ২০২৬"
+  verificationMode: 'fingerprint' | 'face' | 'card' | 'password';
+  status: 'on_time' | 'late' | 'regular_exit' | 'early_exit';
+  statusLabelBn: string;
+  deviceId: string;
+  deviceNameBn: string;
+  syncedAt: number;
+  smsNotified?: boolean;
 }
 
 export type ConsistencyTier = 'excellent' | 'regular' | 'needs_attention';
