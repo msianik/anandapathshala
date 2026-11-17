@@ -87,7 +87,10 @@ import {
   FileSpreadsheet,
   BarChart3,
   FileCheck,
+  LogOut,
+  RefreshCw,
 } from 'lucide-react';
+import { syncStaffWithBiometricMachine } from '../utils/biometricAttendanceLogic';
 
 interface StaffManagementModuleProps {
   currentRole: UserRole;
@@ -215,9 +218,15 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     };
     window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
     window.addEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    window.addEventListener('ananda_staff_changed', handleSync);
+    window.addEventListener('ananda_biometric_synced', handleSync);
+    window.addEventListener('ananda_biometric_device_updated', handleSync);
     return () => {
       window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
       window.removeEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+      window.removeEventListener('ananda_staff_changed', handleSync);
+      window.removeEventListener('ananda_biometric_synced', handleSync);
+      window.removeEventListener('ananda_biometric_device_updated', handleSync);
     };
   }, [selectedDate]);
 
@@ -341,6 +350,39 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     setTimeout(() => setStaffCheckInToast(null), 6000);
   };
 
+  const handleTeacherDigitalCheckOut = (teacherId: string) => {
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    const teacher = staffList.find((t) => t.id === teacherId);
+    const teacherName = teacher?.nameBn || 'শিক্ষক';
+    const currentRecord = attendanceRecords.find((r) => r.teacherId === teacherId);
+
+    const updatedRecord: TeacherAttendanceRecord = {
+      id: currentRecord?.id || `att-${selectedDate}-${teacherId}`,
+      date: selectedDate,
+      teacherId,
+      teacherNameBn: teacher?.nameBn || currentRecord?.teacherNameBn || 'শিক্ষক',
+      teacherNameEn: teacher?.nameEn,
+      designationBn: teacher?.designationBn || currentRecord?.designationBn || 'সহকারী শিক্ষক',
+      departmentBn: teacher?.departmentBn || currentRecord?.departmentBn,
+      photoUrl: teacher?.photoUrl || currentRecord?.photoUrl,
+      phone: teacher?.phone || currentRecord?.phone,
+      status: currentRecord?.status === 'leave' ? 'leave' : (currentRecord?.status || 'present'),
+      checkInTime: currentRecord?.checkInTime || 'সকাল ০৮:০০',
+      checkOutTime: timeFormatted,
+      checkInMethod: currentRecord?.checkInMethod || 'self_digital',
+      checkOutMethod: 'self_digital',
+      remarksBn: currentRecord?.remarksBn
+        ? `${currentRecord.remarksBn} (প্রস্থান/চেকআউট: ${timeFormatted})`
+        : `ছুটি পরবর্তী প্রস্থান সম্পন্ন (সময়: ${timeFormatted})`,
+    };
+
+    const updatedList = updateSingleStaffAttendance(selectedDate, updatedRecord);
+    setAttendanceRecords(updatedList);
+    setStaffCheckInToast(`✓ ${teacherName} এর ডিজিটাল চেকআউট সম্পন্ন হয়েছে (সময়: ${timeFormatted})!`);
+    setTimeout(() => setStaffCheckInToast(null), 6000);
+  };
+
   const handleBulkCheckInStaff = () => {
     const now = new Date();
     const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
@@ -363,8 +405,47 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
+  const handleBulkCheckOutStaff = () => {
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    let count = 0;
+    const updated: TeacherAttendanceRecord[] = attendanceRecords.map((rec) => {
+      if ((rec.status === 'present' || rec.status === 'late') && !rec.checkOutTime) {
+        count++;
+        return {
+          ...rec,
+          checkOutTime: timeFormatted,
+          checkOutMethod: 'self_digital',
+          remarksBn: rec.remarksBn
+            ? `${rec.remarksBn} (একযোগে চেকআউট: ${timeFormatted})`
+            : `প্রশাসনিক তত্ত্বাবধানে একযোগে চেকআউট সম্পন্ন (সময়: ${timeFormatted})`,
+        };
+      }
+      return rec;
+    });
+    saveStaffAttendanceList(selectedDate, updated);
+    setAttendanceRecords(updated);
+    setStaffCheckInToast(`✓ ${toBengaliNumber(count)} জন শিক্ষক ও কর্মীর চেকআউট সম্পন্ন করা হয়েছে!`);
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  const handleSyncWithBiometricDevice = () => {
+    const { updated, syncedCount, newlyCheckedOutCount } = syncStaffWithBiometricMachine(
+      selectedDate,
+      attendanceRecords,
+      staffList
+    );
+    setAttendanceRecords(updated);
+    setStaffCheckInToast(
+      `✓ ডিজিটাল বায়োমেট্রিক মেশিন থেকে ${toBengaliNumber(syncedCount)} জন শিক্ষক ও স্টাফের চেক-ইন ও চেকআউট সফলভাবে সিঙ্ক করা হয়েছে!${
+        newlyCheckedOutCount > 0 ? ` (${toBengaliNumber(newlyCheckedOutCount)} জনের চেকআউট যুক্ত)` : ''
+      }`
+    );
+    setTimeout(() => setStaffCheckInToast(null), 6000);
+  };
+
   const handleExportStaffCsv = () => {
-    const headers = ['Teacher ID', 'Name (Bengali)', 'Name (English)', 'Designation', 'Department', 'Phone', 'Date', 'Check-In Time', 'Status', 'Remarks'];
+    const headers = ['Teacher ID', 'Name (Bengali)', 'Name (English)', 'Designation', 'Department', 'Phone', 'Date', 'Check-In Time', 'Check-Out Time', 'Status', 'Remarks'];
     const rows = filteredAttendanceRecords.map((r) => [
       `"${r.teacherId}"`,
       `"${r.teacherNameBn}"`,
@@ -374,6 +455,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       `"${r.phone || ''}"`,
       `"${r.date}"`,
       `"${r.checkInTime || '—'}"`,
+      `"${r.checkOutTime || '—'}"`,
       `"${r.status}"`,
       `"${r.remarksBn || ''}"`,
     ]);
@@ -1082,9 +1164,10 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                     {staffList.map((t) => {
                       const att = attendanceRecords.find((s) => s.teacherId === t.id);
                       const isCheckedIn = att?.status === 'present' || att?.status === 'late';
+                      const isCheckedOut = !!att?.checkOutTime;
                       return (
                         <option key={t.id} value={t.id}>
-                          {t.nameBn} — {t.designationBn} {isCheckedIn ? `✓ (চেক-ইন: ${att?.checkInTime})` : '⏳ (অপেক্ষমাণ)'}
+                          {t.nameBn} — {t.designationBn} {isCheckedIn ? `✓ (ইন: ${att?.checkInTime || '—'}${isCheckedOut ? `, আউট: ${att.checkOutTime}` : ''})` : '⏳ (অপেক্ষমাণ)'}
                         </option>
                       );
                     })}
@@ -1139,27 +1222,33 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                                 : '⏳ চেক-ইন অপেক্ষমাণ'}
                             </span>
                             {currentRecord?.checkInTime && (
-                              <span className="text-[11px] font-mono font-bold text-slate-700">
-                                সময়: {currentRecord.checkInTime}
+                              <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                ইন: {currentRecord.checkInTime}
+                              </span>
+                            )}
+                            {currentRecord?.checkOutTime && (
+                              <span className="text-[11px] font-mono font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                                আউট: {currentRecord.checkOutTime}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Check-In Action Button */}
-                      <div>
+                      {/* Check-In & Check-Out Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* 1. Check-In Action */}
                         {isCheckedIn ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5">
                               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                              <span>চেক-ইন নিশ্চিত হয়েছে</span>
+                              <span>চেক-ইন নিশ্চিত</span>
                             </span>
                             <button
                               type="button"
                               onClick={() => handleTeacherDigitalCheckIn(selectedStaffTeacherId)}
-                              className="px-3 py-2 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer"
-                              title="বর্তমান সময়ে টাইমস্ট্যাম্প আপডেট করুন"
+                              className="px-2.5 py-2 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer"
+                              title="চেক-ইন টাইমস্ট্যাম্প রিনিউ করুন"
                             >
                               রিনিউ
                             </button>
@@ -1168,10 +1257,38 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                           <button
                             type="button"
                             onClick={() => handleTeacherDigitalCheckIn(selectedStaffTeacherId)}
-                            className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <UserCheck className="w-4 h-4" />
                             <span>ডিজিটাল চেক-ইন</span>
+                          </button>
+                        )}
+
+                        {/* 2. Check-Out Action */}
+                        {currentRecord?.checkOutTime ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-2 rounded-xl border border-purple-200 flex items-center gap-1.5">
+                              <LogOut className="w-4 h-4 text-purple-600" />
+                              <span>চেকআউট নিশ্চিত</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleTeacherDigitalCheckOut(selectedStaffTeacherId)}
+                              className="px-2.5 py-2 text-xs font-bold text-purple-700 bg-white hover:bg-purple-50 border border-purple-300 rounded-xl transition cursor-pointer"
+                              title="চেকআউট টাইমস্ট্যাম্প রিনিউ করুন"
+                            >
+                              রিনিউ
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleTeacherDigitalCheckOut(selectedStaffTeacherId)}
+                            className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            title="ছুটি বা প্রস্থানকালীন ডিজিটাল চেকআউট সম্পন্ন করুন"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>ডিজিটাল চেকআউট</span>
                           </button>
                         )}
                       </div>
@@ -1256,12 +1373,32 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
                 <button
                   type="button"
+                  onClick={handleSyncWithBiometricDevice}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  title="ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিন থেকে শিক্ষক ও স্টাফদের লাইভ চেক-ইন ও চেকআউট সিঙ্ক করুন"
+                >
+                  <Fingerprint className="w-4 h-4 text-emerald-200" />
+                  <span>বায়োমেট্রিক মেশিন সিঙ্ক</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleBulkCheckInStaff}
                   className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
                   title="অপেক্ষমাণ সবাইকে উপস্থিত করুন"
                 >
                   <CheckCheck className="w-4 h-4" />
                   <span>এক ক্লিকে সবাইকে উপস্থিত</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBulkCheckOutStaff}
+                  className="px-3.5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                  title="ছুটির সময়ে উপস্থিত সকল শিক্ষক ও কর্মীকে একযোগে চেকআউট করুন"
+                >
+                  <LogOut className="w-4 h-4 text-purple-700" />
+                  <span>একযোগে চেকআউট</span>
                 </button>
 
                 <button
@@ -1370,6 +1507,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                     <th className="py-3 px-3">পদবি ও বিভাগ</th>
                     <th className="py-3 px-3">যোগাযোগ</th>
                     <th className="py-3 px-3 text-center">চেক-ইন সময়</th>
+                    <th className="py-3 px-3 text-center">চেকআউট সময়</th>
                     <th className="py-3 px-3 text-center">হাজিরা অবস্থা</th>
                     <th className="py-3 px-3">মন্তব্য / নোট</th>
                     <th className="py-3 px-4 text-right">ডিজিটাল অ্যাকশন</th>
@@ -1431,6 +1569,36 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                               <span>{stf.checkInTime}</span>
                             </div>
                           ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleTeacherDigitalCheckIn(stf.teacherId)}
+                              className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 cursor-pointer inline-flex items-center gap-1"
+                              title="প্রাতঃকালীন চেক-ইন করুন"
+                            >
+                              <Plus className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>চেক-ইন</span>
+                            </button>
+                          )}
+                        </td>
+
+                        {/* Check-Out Time & Timestamp */}
+                        <td className="py-3 px-3 text-center">
+                          {stf.checkOutTime ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-50 text-purple-900 border border-purple-200 font-bold text-xs font-mono">
+                              <LogOut className="w-3 h-3 text-purple-600" />
+                              <span>{stf.checkOutTime}</span>
+                            </div>
+                          ) : isCheckedIn ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTeacherDigitalCheckOut(stf.teacherId)}
+                              className="px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200 cursor-pointer inline-flex items-center gap-1"
+                              title="ছুটি পরবর্তী চেকআউট করুন"
+                            >
+                              <LogOut className="w-2.5 h-2.5 text-purple-600" />
+                              <span>চেকআউট</span>
+                            </button>
+                          ) : (
                             <span className="text-[11px] text-slate-400 font-mono">—</span>
                           )}
                         </td>
@@ -1466,6 +1634,20 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                         {/* Direct Attendance Status Buttons (Student Roll Call Style) */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleTeacherDigitalCheckOut(stf.teacherId)}
+                              className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                                stf.checkOutTime
+                                  ? 'bg-purple-700 text-white shadow-xs'
+                                  : 'bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200'
+                              }`}
+                              title={stf.checkOutTime ? `চেকআউট সম্পন্ন: ${stf.checkOutTime}` : 'ছুটি পরবর্তী চেকআউট করুন'}
+                            >
+                              <LogOut className="w-3.5 h-3.5" />
+                              <span>{stf.checkOutTime ? 'আউট ✓' : 'চেকআউট'}</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => {

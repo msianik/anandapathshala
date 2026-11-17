@@ -681,6 +681,18 @@ export default function App() {
     setAttendanceRecords(records);
   };
 
+  const handleUpdateStaffAttendance = (records: any[]) => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const raw = localStorage.getItem('ananda_staff_attendance_v1');
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed[todayStr] = records;
+      localStorage.setItem('ananda_staff_attendance_v1', JSON.stringify(parsed));
+      window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
+    } catch {}
+  };
+
   const handleAddStudent = (newStudent: Student) => {
     // Automatically register and sync student with biometric fingerprint machine & ZLink cloud
     const enrichedStudent: Student = {
@@ -1213,6 +1225,7 @@ export default function App() {
                       students={students}
                       attendanceRecords={attendanceRecords}
                       onUpdateAttendance={handleUpdateAttendance}
+                      onUpdateStaffAttendance={handleUpdateStaffAttendance}
                       currentRole={currentRole}
                     />
                   )}
