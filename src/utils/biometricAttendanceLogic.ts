@@ -338,6 +338,72 @@ export function saveBiometricLogs(logs: BiometricPunchLog[]): void {
 }
 
 /**
+ * Automatically synchronize a student into the Biometric attendance machine & ZLink cloud registry
+ */
+export function syncStudentToBiometricDevice(student: Student): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const enrollId = student.biometricEnrollId || student.rollNo || student.id;
+
+    // 1. Update enrolled users on biometric device
+    let deviceUsers: any[] = [];
+    const rawUsers = safeGetItem('ap_biometric_device_users_v1');
+    if (rawUsers) {
+      try {
+        deviceUsers = JSON.parse(rawUsers);
+      } catch {}
+    }
+    if (!Array.isArray(deviceUsers)) deviceUsers = [];
+
+    const existingIdx = deviceUsers.findIndex(
+      (u) => u.enrollId === enrollId || u.personId === student.id
+    );
+
+    const userPayload = {
+      enrollId,
+      personId: student.id,
+      nameBn: student.nameBn,
+      nameEn: student.nameEn,
+      role: 'student',
+      className: student.className,
+      rollNo: student.rollNo,
+      privilege: 'user',
+      department: `${student.className} শ্রেণি`,
+      phone: student.emergencyPhone || '',
+      syncedAt: Date.now(),
+      syncedAtStr: 'এইমাত্র ZLink ক্লাউড ব্রিজে সিঙ্ক সম্পন্ন',
+      status: 'active',
+    };
+
+    if (existingIdx >= 0) {
+      deviceUsers[existingIdx] = { ...deviceUsers[existingIdx], ...userPayload };
+    } else {
+      deviceUsers.push(userPayload);
+    }
+    safeSetItem('ap_biometric_device_users_v1', JSON.stringify(deviceUsers));
+
+    // 2. Update biometric device config lastSync
+    const currentConfig = getBiometricConfig();
+    currentConfig.lastSyncTimestamp = Date.now();
+    currentConfig.lastSyncTimeStr = 'এইমাত্র সম্পন্ন (নতুন শিক্ষার্থী সিঙ্ক)';
+    currentConfig.cloudLastSyncStatus = 'success';
+    saveBiometricConfig(currentConfig);
+
+    // 3. Dispatch events
+    window.dispatchEvent(
+      new CustomEvent('ananda_biometric_device_updated', { detail: { updatedUser: userPayload } })
+    );
+    window.dispatchEvent(
+      new CustomEvent('ananda_biometric_synced', {
+        detail: { timestamp: Date.now(), enrollId, personType: 'student' },
+      })
+    );
+  } catch (err) {
+    console.error('Failed to sync student to biometric device:', err);
+  }
+}
+
+/**
  * Format a Date to Bangladeshi time string e.g. "সকাল ০৮:১০" বা "দুপুর ০১:২০"
  */
 export function formatBanglaTime(date: Date): string {

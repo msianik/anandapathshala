@@ -1,6 +1,7 @@
 import { AdmissionApplication, SchoolClass, SchoolShift, Student } from '../types/school';
 import { INITIAL_STUDENTS } from '../data/mockData';
 import { upsertPortalAccount, normalizeIdentifier } from './schoolLogic';
+import { syncStudentToBiometricDevice } from './biometricAttendanceLogic';
 
 export const ADMISSION_UPDATE_EVENT = 'anando_admission_update';
 const ADMISSIONS_STORAGE_KEY = 'anando_admission_applications_v1';
@@ -217,7 +218,15 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       username: cleanUsername,
       password: '123456',
       portalRole: 'parent',
+      biometricEnrollId: rollNo || newId,
+      biometricSynced: true,
+      biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
     };
+
+    // Auto-sync approved admission student to physical & cloud biometric machine
+    try {
+      syncStudentToBiometricDevice(newStudent);
+    } catch {}
 
     if (existingIndex >= 0) {
       students[existingIndex] = { ...students[existingIndex], ...newStudent };

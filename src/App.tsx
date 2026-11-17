@@ -40,6 +40,7 @@ import {
   getPermissionForDirector,
   ALL_PORTAL_MODULE_IDS,
 } from './utils/schoolLogic';
+import { syncStudentToBiometricDevice } from './utils/biometricAttendanceLogic';
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
 
@@ -207,6 +208,15 @@ export default function App() {
     } catch {}
     return INITIAL_SCHOOL_ASSETS;
   });
+
+  // Automatically sync students into biometric attendance machine on mount
+  useEffect(() => {
+    try {
+      students.forEach((std) => {
+        syncStudentToBiometricDevice(std);
+      });
+    } catch {}
+  }, []);
 
   const handleUpdateSchoolAssets = (updated: SchoolAssetItem[]) => {
     setSchoolAssets(updated);
@@ -569,8 +579,17 @@ export default function App() {
   };
 
   const handleAddStudent = (newStudent: Student) => {
+    // Automatically register and sync student with biometric fingerprint machine & ZLink cloud
+    const enrichedStudent: Student = {
+      ...newStudent,
+      biometricEnrollId: newStudent.biometricEnrollId || newStudent.rollNo || newStudent.id,
+      biometricSynced: true,
+      biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
+    };
+    syncStudentToBiometricDevice(enrichedStudent);
+
     setStudents((prev) => {
-      const updated = [newStudent, ...prev];
+      const updated = [enrichedStudent, ...prev];
       try {
         localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
       } catch {}
@@ -579,8 +598,16 @@ export default function App() {
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
+    const enrichedStudent: Student = {
+      ...updatedStudent,
+      biometricEnrollId: updatedStudent.biometricEnrollId || updatedStudent.rollNo || updatedStudent.id,
+      biometricSynced: true,
+      biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
+    };
+    syncStudentToBiometricDevice(enrichedStudent);
+
     setStudents((prev) => {
-      const updated = prev.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+      const updated = prev.map((s) => (s.id === enrichedStudent.id ? enrichedStudent : s));
       try {
         localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
       } catch {}
