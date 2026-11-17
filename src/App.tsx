@@ -1085,9 +1085,16 @@ export default function App() {
                     />
                   )}
 
-                  {currentTab === 'staff' && (
+                  {(currentTab === 'staff' || currentTab === 'staff_attendance' || currentTab === 'staff_idcards') && (
                     <StaffManagementModule
                       currentRole={currentRole}
+                      initialTab={
+                        currentTab === 'staff_attendance'
+                          ? 'attendance'
+                          : currentTab === 'staff_idcards'
+                          ? 'idcards'
+                          : 'directory'
+                      }
                     />
                   )}
 

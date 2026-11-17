@@ -25,6 +25,7 @@ import {
 import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
 import { StaffDetailsModal } from './StaffDetailsModal';
+import { StaffIdCardTab } from './StaffIdCardTab';
 import { createPortalUserAccount } from '../utils/schoolLogic';
 import {
   Users,
@@ -69,12 +70,20 @@ import {
 interface StaffManagementModuleProps {
   currentRole: UserRole;
   onOpenLeaveModal?: () => void;
+  initialTab?: 'directory' | 'attendance' | 'idcards' | 'payroll' | 'leaves';
 }
 
 export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   currentRole,
+  initialTab = 'directory',
 }) => {
-  const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'payroll' | 'leaves'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'idcards' | 'payroll' | 'leaves'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Dedicated View & Edit Staff States
   const [selectedStaffDetails, setSelectedStaffDetails] = useState<TeacherMember | null>(null);
@@ -574,6 +583,18 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('idcards')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'idcards'
+                ? 'bg-white text-emerald-900 shadow-md'
+                : 'text-emerald-100 hover:bg-white/10'
+            }`}
+          >
+            <IdCard className="w-4 h-4" />
+            <span>ডিজিটাল আইডি কার্ড ({staffList.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('payroll')}
             className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               activeTab === 'payroll'
@@ -1059,6 +1080,28 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => {
+                    if (confirm('আজকের স্টাফ হাজিরা কি রিসেট করতে চান?')) {
+                      const resetList = attendanceRecords.map((r) => ({
+                        ...r,
+                        status: 'absent' as const,
+                        checkInTime: undefined,
+                        remarksBn: 'হাজিরা রিসেট করা হয়েছে',
+                      }));
+                      saveStaffAttendanceList(selectedDate, resetList);
+                      setAttendanceRecords(resetList);
+                      setStaffCheckInToast('✓ আজকের স্টাফ হাজিরা রিসেট করা হয়েছে।');
+                      setTimeout(() => setStaffCheckInToast(null), 3000);
+                    }
+                  }}
+                  className="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200"
+                  title="হাজিরা রিসেট করুন"
+                >
+                  <span>রিসেট</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleExportStaffCsv}
                   className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="হাজিরা CSV ডাউনলোড"
@@ -1224,42 +1267,82 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                           {stf.remarksBn || '—'}
                         </td>
 
-                        {/* Actions */}
+                        {/* Direct Attendance Status Buttons (Student Roll Call Style) */}
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {!isCheckedIn ? (
-                              <button
-                                type="button"
-                                onClick={() => handleTeacherDigitalCheckIn(stf.teacherId)}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                                title="ডিজিটাল চেক-ইন করুন"
-                              >
-                                <UserCheck className="w-3.5 h-3.5" />
-                                <span>চেক-ইন</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleTeacherDigitalCheckIn(stf.teacherId)}
-                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[11px] transition cursor-pointer"
-                                title="পুনরায় চেক-ইন বা সময় আপডেট"
-                              >
-                                রিনিউ
-                              </button>
-                            )}
-
-                            {/* Dropdown status toggle for Admin / Head Teacher */}
-                            <select
-                              value={stf.status}
-                              onChange={(e) => handleStatusChange(stf.teacherId, e.target.value as TeacherAttendanceStatus)}
-                              className="px-2 py-1 bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
-                              title="স্ট্যাটাস পরিবর্তন"
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStatusChange(stf.teacherId, 'present');
+                                const now = new Date();
+                                const timeFormatted = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+                                setStaffCheckInToast(`✓ ${stf.teacherNameBn} কে উপস্থিত মার্ক করা হয়েছে (সময়: ${timeFormatted})!`);
+                                setTimeout(() => setStaffCheckInToast(null), 3000);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                                stf.status === 'present'
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title="উপস্থিত মার্ক করুন"
                             >
-                              <option value="present">উপস্থিত</option>
-                              <option value="late">বিলম্বিত</option>
-                              <option value="leave">ছুটি</option>
-                              <option value="absent">অনুপস্থিত</option>
-                            </select>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>উপস্থিত</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStatusChange(stf.teacherId, 'late');
+                                setStaffCheckInToast(`⚠️ ${stf.teacherNameBn} কে বিলম্বিত হিসেবে চিহ্নিত করা হয়েছে!`);
+                                setTimeout(() => setStaffCheckInToast(null), 3000);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                                stf.status === 'late'
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title="বিলম্বিত মার্ক করুন"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>বিলম্ব</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStatusChange(stf.teacherId, 'leave');
+                                setStaffCheckInToast(`🌴 ${stf.teacherNameBn} কে ছুটিতে চিহ্নিত করা হয়েছে!`);
+                                setTimeout(() => setStaffCheckInToast(null), 3000);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                                stf.status === 'leave'
+                                  ? 'bg-indigo-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title="ছুটিতে মার্ক করুন"
+                            >
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>ছুটি</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStatusChange(stf.teacherId, 'absent');
+                                setStaffCheckInToast(`✕ ${stf.teacherNameBn} কে অনুপস্থিত মার্ক করা হয়েছে!`);
+                                setTimeout(() => setStaffCheckInToast(null), 3000);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                                stf.status === 'absent'
+                                  ? 'bg-rose-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title="অনুপস্থিত মার্ক করুন"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>অনুপস্থিত</span>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1273,6 +1356,16 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       )}
 
       {/* ========================================================= */}
+      {/* TAB: TEACHER & STAFF DIGITAL ID CARD STUDIO               */}
+      {/* ========================================================= */}
+      {activeTab === 'idcards' && (
+        <StaffIdCardTab
+          staffList={staffList}
+          onOpenSingleModal={(teacher) => setIdCardTeacher(teacher)}
+        />
+      )}
+
+            {/* ========================================================= */}
       {/* TAB 3: STAFF SALARY & PAYROLL REGISTER                    */}
       {/* ========================================================= */}
       {activeTab === 'payroll' && (
