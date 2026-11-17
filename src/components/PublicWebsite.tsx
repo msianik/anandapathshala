@@ -1332,7 +1332,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
             আমাদের শ্রেণি কার্যক্রম
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm sm:text-base font-bold text-emerald-800 pt-1">
-            <span>হাতেখড়ি (Pre-Play)</span>
+            <span>হাতেখড়ি</span>
             <span className="text-slate-300 select-none">·</span>
             <span>প্লে (Play)</span>
             <span className="text-slate-300 select-none">·</span>
@@ -1355,7 +1355,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
             <span className="text-[10px] font-bold text-pink-800 bg-pink-200/80 px-2 py-0.5 rounded uppercase">
               বয়স: ২.৫+ বছর
             </span>
-            <h3 className="text-lg font-bold text-slate-900">হাতেখড়ি (Pre-Play)</h3>
+            <h3 className="text-lg font-bold text-slate-900">হাতেখড়ি</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
               রঙের সাথে পরিচয়, সেন্সরি অ্যাক্টিভিটি, হাততালি ছড়া ও জড়িয়ে থাকার মায়াময় পরিবেশ
             </p>

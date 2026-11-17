@@ -212,7 +212,22 @@ export default function App() {
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(() => {
     try {
       const stored = localStorage.getItem('ananda_school_profile_v1');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        let changed = false;
+        if (parsed.classesBn && parsed.classesBn.includes('(Pre-Play)')) {
+          parsed.classesBn = parsed.classesBn.replace(/\s*\(Pre-Play\)/gi, '').trim();
+          changed = true;
+        }
+        if (parsed.classesSummaryBn && parsed.classesSummaryBn.includes('(Pre-Play)')) {
+          parsed.classesSummaryBn = parsed.classesSummaryBn.replace(/\s*\(Pre-Play\)/gi, '').trim();
+          changed = true;
+        }
+        if (changed) {
+          localStorage.setItem('ananda_school_profile_v1', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
     } catch {}
     return SCHOOL_PROFILE;
   });

@@ -1050,7 +1050,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               </h2>
 
               <p className="text-amber-200 font-semibold text-xs sm:text-sm">
-                “{schoolProfile.sloganBn}” · শ্রেণি: {schoolProfile.classesBn}
+                “{schoolProfile.sloganBn}” · শ্রেণি: {schoolProfile.classesBn ? schoolProfile.classesBn.replace(/\s*\(Pre-Play\)/gi, '') : ''}
               </p>
 
               <div className="flex flex-wrap items-center gap-4 text-xs text-white/90 pt-0.5">
@@ -1205,7 +1205,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </div>
           <span className="text-2xl font-bold text-slate-900 font-mono">{students.length} জন</span>
           <span className="text-[10px] text-slate-400 block mt-0.5">
-            {SCHOOL_PROFILE.classesBn}
+            {SCHOOL_PROFILE.classesBn ? SCHOOL_PROFILE.classesBn.replace(/\s*\(Pre-Play\)/gi, '') : ''}
           </span>
         </div>
 

@@ -116,7 +116,7 @@ export const EditSchoolProfileModal: React.FC<EditSchoolProfileModalProps> = ({
       setSchoolNameEn(schoolProfile.nameEn || 'Ananda Pathshala | Kushtia');
       setSloganBn(schoolProfile.sloganBn || 'শিক্ষায় আছে আনন্দ, আনন্দে গড়বো দিগন্ত');
       setTaglineBn(schoolProfile.taglineBn || 'কুষ্টিয়ার একমাত্র প্রি-স্কুল ও কিন্ডারগার্টেন · গোশালা, কুষ্টিয়া');
-      setClassesBn(schoolProfile.classesBn || 'হাতেখড়ি | প্লে | নার্সারি | কেজি | প্রথম শ্রেণি');
+      setClassesBn((schoolProfile.classesBn || 'হাতেখড়ি | প্লে | নার্সারি | কেজি | প্রথম শ্রেণি').replace(/\s*\(Pre-Play\)/gi, ''));
       setAddressBn(schoolProfile.addressBn || '১৯/২২, পূর্ণ চন্দ্র লাহিড়ী লেন (গোশালা), কোর্টপাড়া, কুষ্টিয়া');
       setAddressEn(schoolProfile.addressEn || '19/22, Purna Chandra Lahiri Lane (Goshala), Courtpara, Kushtia, Bangladesh');
       setPhoneBn(schoolProfile.phoneBn || '০১৯১৪-০৫৭৫১১');

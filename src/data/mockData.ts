@@ -23,8 +23,8 @@ export const SCHOOL_PROFILE = {
   nameEn: 'Ananda Pathshala | Kushtia',
   sloganBn: 'শিক্ষায় আছে আনন্দ, আনন্দে গড়বো দিগন্ত',
   taglineBn: 'কুষ্টিয়ার একমাত্র প্রি-স্কুল ও কিন্ডারগার্টেন · গোশালা, কুষ্টিয়া',
-  classesSummaryBn: 'হাতেখড়ি (Pre-Play) | প্লে | নার্সারি | কেজি | ওয়ান | টু (২.৫+ বছর বয়স থেকে ভর্তি)',
-  classesBn: 'হাতেখড়ি (Pre-Play) | প্লে | নার্সারি | কেজি | ওয়ান | টু',
+  classesSummaryBn: 'হাতেখড়ি | প্লে | নার্সারি | কেজি | ওয়ান | টু (২.৫+ বছর বয়স থেকে ভর্তি)',
+  classesBn: 'হাতেখড়ি | প্লে | নার্সারি | কেজি | ওয়ান | টু',
   addressBn: '১৯/২২, পূর্ণ চন্দ্র লাহিড়ী লেন (গোশালা), কোর্টপাড়া, কুষ্টিয়া',
   addressEn: '19/22, Purna Chandra Lahiri Lane (Goshala), Courtpara, Kushtia, Bangladesh',
   phoneBn: '০১৯১৪-০৫৭৫১১',
@@ -41,7 +41,7 @@ export const SCHOOL_PROFILE = {
   totalClassroomsCount: 6,
   themeColor: '#065f46',
   classWiseBreakdown: [
-    { classBn: 'হাতেখড়ি (Pre-Play)', section: 'A', studentsCount: 10 },
+    { classBn: 'হাতেখড়ি', section: 'A', studentsCount: 10 },
     { classBn: 'প্লে (Play)', section: 'A', studentsCount: 15 },
     { classBn: 'নার্সারি (Nursery)', section: 'A', studentsCount: 14 },
     { classBn: 'কেজি (KG)', section: 'A', studentsCount: 12 },
@@ -1244,7 +1244,7 @@ export const INITIAL_SCHOOL_NOTICES: SchoolNotice[] = [
     validUntilBn: '১৬ ডিসেম্বর ২০২৬',
     priority: 'high',
     badgeBn: 'ফ্রি ক্লাস ও ছাড়',
-    targetAudienceBn: 'হাতেখড়ি (Pre-Play), প্লে ও নার্সারি ভর্তির আগ্রহী নতুন পরিবার',
+    targetAudienceBn: 'হাতেখড়ি, প্লে ও নার্সারি ভর্তির আগ্রহী নতুন পরিবার',
     descriptionBn:
       'আনন্দ পাঠশালায় নতুন শিক্ষাবর্ষে ভর্তির পূর্বে শিশুদের ভয়হীন আনন্দের পরিবেশ উপভোগ করার জন্য ফ্রি ক্লাসের আয়োজন করা হয়েছে। নতুন ভর্তিতে থাকছে ২৫০০ টাকা আর্লি বার্ড বিশেষ ছাড়। মোট ১৪,৭০০ টাকার প্যাকেজ ছাড়ের পর ১২,২০০ টাকা। অগ্রিম ৩,০০০ টাকা দিয়ে বাকি ৯,২০০ টাকা আগামী ১৬ই ডিসেম্বর ২০২৬-এর মধ্যে পরিশোধযোগ্য।',
     actionLink: '#apply',
@@ -1277,7 +1277,7 @@ export const INITIAL_SCHOOL_NOTICES: SchoolNotice[] = [
     validUntilBn: '১৯ নভেম্বর ২০২৬',
     priority: 'urgent',
     badgeBn: 'পরীক্ষার নোটিশ',
-    targetAudienceBn: 'হাতেখড়ি (Pre-Play), প্লে, নার্সারি, কেজি ও ১ম শ্রেণির শিক্ষার্থী',
+    targetAudienceBn: 'হাতেখড়ি, প্লে, নার্সারি, কেজি ও ১ম শ্রেণির শিক্ষার্থী',
     descriptionBn:
       'আগামী ১৫ নভেম্বর থেকে ১৯ নভেম্বর ২০২৬ প্রতিদিন সকাল ৯:৩০ থেকে দুপুর ১২:০০ পর্যন্ত স্ব স্ব শ্রেণিকক্ষে বার্ষিক আনন্দময় শিখন মূল্যায়ন অনুষ্ঠিত হবে। শিশুদের মুখস্থ পরীক্ষার কোনো চাপ নেই; খেলার ছলে ছড়া আবৃত্তি, বর্ণ ও সংখ্যা চেনা, গল্প বলা, ছবি আঁকা ও মানসিক বিকাশ পর্যবেক্ষণ করা হবে।',
     actionLink: '#curriculum',
