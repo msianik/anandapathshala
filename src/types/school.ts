@@ -915,6 +915,11 @@ export interface TeacherMember {
   bloodGroup?: string;
   joiningDateBn?: string;
   status?: 'active' | 'on_leave' | 'inactive';
+  basicSalary?: number;
+  salaryStatus?: 'paid' | 'due' | 'partial';
+  lastPaidMonth?: string;
+  nationalId?: string;
+  addressBn?: string;
 }
 
 export type TeacherLeaveType = 'casual' | 'sick' | 'maternity' | 'emergency';

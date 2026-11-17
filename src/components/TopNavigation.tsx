@@ -66,6 +66,7 @@ const PILLAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }
   pillar_overview: UserCheck,
   pillar_routine: Clock,
   pillar_students: Users,
+  pillar_staff: GraduationCap,
   pillar_academics: BookOpen,
   pillar_operations: CalendarCheck,
   pillar_chat: MessageSquare,

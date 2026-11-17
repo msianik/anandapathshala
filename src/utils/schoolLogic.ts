@@ -1564,6 +1564,12 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
       descriptionBn: 'ক্লাস ভিত্তিক ছাত্র-ছাত্রীর তালিকা ও প্রোফাইল আপডেট',
     },
     {
+      id: 'staff',
+      labelBn: 'শিক্ষক ও স্টাফ',
+      shortLabelBn: 'স্টাফ',
+      descriptionBn: 'শিক্ষক ডিরেক্টরি, ডিজিটাল সার্ভিস কার্ড, স্টাফ হাজিরা, বেতন ও ছুটির অনুমোদন',
+    },
+    {
       id: 'idcards',
       labelBn: 'ডিজিটাল আইডি কার্ড',
       shortLabelBn: 'আইডি কার্ড',
@@ -1628,12 +1634,6 @@ export function getRoleNavMetadata(role: string, directorId?: string): RoleNavIt
       labelBn: 'ফিঙ্গারপ্রিন্ট মেশিন',
       shortLabelBn: 'বায়োমেট্রিক',
       descriptionBn: 'ZLink ক্লাউড কানেকশন, লাইভ পাঞ্চ সিঙ্ক ও ডিভাইস কনসোল',
-    },
-    {
-      id: 'staff',
-      labelBn: 'শিক্ষক ও স্টাফ',
-      shortLabelBn: 'স্টাফ',
-      descriptionBn: 'শিক্ষক ডিরেক্টরি, ডিজিটাল সার্ভিস কার্ড, স্টাফ হাজিরা ও ছুটির অনুমোদন',
     },
     {
       id: 'fees',
@@ -1990,6 +1990,23 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       ],
     },
     {
+      id: 'pillar_staff',
+      labelBn: 'শিক্ষক ও স্টাফ',
+      shortLabelBn: 'স্টাফ',
+      defaultTab: 'staff',
+      iconName: 'GraduationCap',
+      color: 'text-indigo-600',
+      itemIds: ['staff'],
+      items: [
+        {
+          id: 'staff',
+          labelBn: 'শিক্ষক ও স্টাফ ম্যানেজমেন্ট',
+          shortLabelBn: 'স্টাফ',
+          descriptionBn: 'শিক্ষক ও স্টাফ ডিরেক্টরি, নতুন নিয়োগ, হাজিরা, বেতন ও প্রোফাইল',
+        },
+      ],
+    },
+    {
       id: 'pillar_academics',
       labelBn: 'একাডেমিক',
       shortLabelBn: 'একাডেমিক',
@@ -2043,19 +2060,13 @@ export function getGroupedNavPillars(role: string, directorId?: string): NavPill
       defaultTab: 'attendance',
       iconName: 'CalendarCheck',
       color: 'text-teal-600',
-      itemIds: ['attendance', 'staff', 'biometric', 'pickup', 'diary'],
+      itemIds: ['attendance', 'biometric', 'pickup', 'diary'],
       items: [
         {
           id: 'attendance',
           labelBn: 'শিক্ষার্থী হাজিরা',
           shortLabelBn: 'শিক্ষার্থী হাজিরা',
           descriptionBn: 'ডিজিটাল ক্লাসরুম হাজিরা ও অনুপস্থিতির SMS',
-        },
-        {
-          id: 'staff',
-          labelBn: 'শিক্ষক ও স্টাফ',
-          shortLabelBn: 'শিক্ষক ও স্টাফ',
-          descriptionBn: 'শিক্ষক ডিরেক্টরি, ডিজিটাল চেক-ইন ও স্টাফ হাজিরা, ছুটির অনুমোদন',
         },
         {
           id: 'biometric',

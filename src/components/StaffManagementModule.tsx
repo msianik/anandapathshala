@@ -24,6 +24,8 @@ import {
 } from '../utils/staffManagementLogic';
 import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
+import { StaffDetailsModal } from './StaffDetailsModal';
+import { createPortalUserAccount } from '../utils/schoolLogic';
 import {
   Users,
   CalendarCheck,
@@ -53,6 +55,15 @@ import {
   Briefcase,
   Download,
   CheckCheck,
+  Eye,
+  Edit3,
+  CreditCard,
+  Wallet,
+  Banknote,
+  DollarSign,
+  Key,
+  MapPin,
+  TrendingUp,
 } from 'lucide-react';
 
 interface StaffManagementModuleProps {
@@ -63,7 +74,15 @@ interface StaffManagementModuleProps {
 export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   currentRole,
 }) => {
-  const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'leaves'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'payroll' | 'leaves'>('directory');
+
+  // Dedicated View & Edit Staff States
+  const [selectedStaffDetails, setSelectedStaffDetails] = useState<TeacherMember | null>(null);
+  const [editingStaff, setEditingStaff] = useState<TeacherMember | null>(null);
+
+  // Payroll filter states
+  const [payrollSearchQuery, setPayrollSearchQuery] = useState('');
+  const [payrollStatusFilter, setPayrollStatusFilter] = useState<'all' | 'paid' | 'due'>('all');
 
   // Staff members state
   const [staffList, setStaffList] = useState<TeacherMember[]>(() => getStoredStaffMembers());
@@ -92,12 +111,22 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     nameEn: '',
     designationBn: '',
     designationEn: '',
-    departmentBn: 'একাডেমিক বিভাগ',
+    departmentBn: 'একাডেমিক শিক্ষণ ও শিশু পরিচর্যা শাখা',
     staffCategory: 'teacher',
     phone: '',
     email: '',
     bloodGroup: 'B+',
     photoUrl: '/assets/biddalay/fatema_akter.jpg',
+    assignedClass: 'Nursery',
+    basicSalary: 15000,
+    salaryStatus: 'paid',
+    qualificationBn: 'স্নাতকোত্তর / বি.এড',
+    joiningDateBn: '০১ জানুয়ারি ২০২৪',
+    nationalId: '',
+    addressBn: 'কুষ্টিয়া সদর, কুষ্টিয়া',
+    username: '',
+    password: '',
+    portalRole: 'teacher',
   });
 
   // Form states for submitting leave
@@ -349,6 +378,57 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     setActiveTab('leaves');
   };
 
+  // Toggle Salary Payment Status (Paid / Due)
+  const handleToggleSalaryStatus = (teacherId: string) => {
+    const teacher = staffList.find((t) => t.id === teacherId);
+    if (!teacher) return;
+    const nextStatus = (teacher.salaryStatus === 'due' ? 'paid' : 'due') as 'paid' | 'due';
+    const updatedMember: TeacherMember = {
+      ...teacher,
+      salaryStatus: nextStatus,
+      lastPaidMonth: nextStatus === 'paid' ? 'নভেম্বর ২০২৬' : teacher.lastPaidMonth,
+    };
+    const updatedList = saveStaffMember(updatedMember);
+    setStaffList(updatedList);
+    if (selectedStaffDetails && selectedStaffDetails.id === teacherId) {
+      setSelectedStaffDetails(updatedMember);
+    }
+    setStaffCheckInToast(`✓ ${teacher.nameBn} এর বেতন স্ট্যাটাস "${nextStatus === 'paid' ? 'পরিশোধিত ✅' : 'বকেয়া ⚠️'}" হিসেবে মার্ক করা হয়েছে!`);
+    setTimeout(() => setStaffCheckInToast(null), 4000);
+  };
+
+  // Bulk mark all staff salaries paid for current month
+  const handleBulkMarkAllSalaryPaid = () => {
+    const updatedList = staffList.map((t) => ({
+      ...t,
+      salaryStatus: 'paid' as const,
+      lastPaidMonth: 'নভেম্বর ২০২৬',
+    }));
+    try {
+      localStorage.setItem('ananda_teachers_list_v1', JSON.stringify(updatedList));
+      localStorage.setItem('ananda_staff_members_v1', JSON.stringify(updatedList));
+      window.dispatchEvent(new CustomEvent('ananda-teachers-updated', { detail: { teachers: updatedList } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'members', teachers: updatedList } }));
+    } catch {}
+    setStaffList(updatedList);
+    setStaffCheckInToast('✓ সকল শিক্ষক ও স্টাফদের নভেম্বর ২০২৬ মাসের বেতন সফলভাবে "পরিশোধিত" মার্ক করা হয়েছে!');
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  // Handle Save Edited Staff Member
+  const handleSaveEditStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStaff) return;
+    const updatedList = saveStaffMember(editingStaff);
+    setStaffList(updatedList);
+    if (selectedStaffDetails && selectedStaffDetails.id === editingStaff.id) {
+      setSelectedStaffDetails(editingStaff);
+    }
+    setEditingStaff(null);
+    setStaffCheckInToast(`✓ "${editingStaff.nameBn}" এর তথ্য, বেতন ও পোর্টাল ক্রেডেনশিয়াল সফলভাবে আপডেট করা হয়েছে!`);
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
   // Handle Add New Staff Form
   const handleAddStaff = (e: React.FormEvent) => {
     e.preventDefault();
@@ -357,6 +437,11 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       return;
     }
     const memberId = `tch-${Date.now()}`;
+    const generatedUsername =
+      newStaff.username?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '') ||
+      newStaff.nameEn?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) ||
+      `tch_${memberId.slice(-4)}`;
+
     const member: TeacherMember = {
       id: memberId,
       nameBn: newStaff.nameBn,
@@ -364,14 +449,37 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       designationBn: newStaff.designationBn,
       designationEn: newStaff.designationEn || 'Teacher',
       photoUrl: newStaff.photoUrl || '/assets/biddalay/fatema_akter.jpg',
-      departmentBn: newStaff.departmentBn || 'একাডেমিক বিভাগ',
+      departmentBn: newStaff.departmentBn || 'একাডেমিক শিক্ষণ ও শিশু পরিচর্যা শাখা',
       staffCategory: newStaff.staffCategory || 'teacher',
-      phone: newStaff.phone || '০১৭১১-xxxxxx',
-      email: newStaff.email || `${memberId}@anandapathshala.edu.bd`,
+      phone: newStaff.phone || '০১৯১৪-xxxxxx',
+      email: newStaff.email || `${generatedUsername}@anandapathshala.edu.bd`,
       bloodGroup: newStaff.bloodGroup || 'B+',
       status: 'active',
       assignedClass: newStaff.assignedClass,
+      basicSalary: Number(newStaff.basicSalary) || 15000,
+      salaryStatus: newStaff.salaryStatus || 'paid',
+      qualificationBn: newStaff.qualificationBn || 'স্নাতকোত্তর / বি.এড',
+      joiningDateBn: newStaff.joiningDateBn || '০১ নভেম্বর ২০২৬',
+      nationalId: newStaff.nationalId || '',
+      addressBn: newStaff.addressBn || 'কুষ্টিয়া সদর, কুষ্টিয়া',
+      username: generatedUsername,
+      password: newStaff.password || '123456',
+      portalRole: newStaff.portalRole || (newStaff.staffCategory === 'support_staff' ? 'gate_security' : 'teacher'),
     };
+
+    // Also register a portal login account so they can log in
+    try {
+      createPortalUserAccount({
+        nameBn: member.nameBn,
+        nameEn: member.nameEn,
+        role: member.portalRole || 'teacher',
+        phone: member.phone || '01914057511',
+        username: member.username || generatedUsername,
+        passwordHint: member.password || '123456',
+        avatarUrl: member.photoUrl,
+        assignedClass: member.assignedClass,
+      });
+    } catch {}
 
     const updated = saveStaffMember(member);
     setStaffList(updated);
@@ -381,13 +489,25 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       nameEn: '',
       designationBn: '',
       designationEn: '',
-      departmentBn: 'একাডেমিক বিভাগ',
+      departmentBn: 'একাডেমিক শিক্ষণ ও শিশু পরিচর্যা শাখা',
       staffCategory: 'teacher',
       phone: '',
       email: '',
       bloodGroup: 'B+',
       photoUrl: '/assets/biddalay/fatema_akter.jpg',
+      assignedClass: 'Nursery',
+      basicSalary: 15000,
+      salaryStatus: 'paid',
+      qualificationBn: 'স্নাতকোত্তর / বি.এড',
+      joiningDateBn: '০১ জানুয়ারি ২০২৪',
+      nationalId: '',
+      addressBn: 'কুষ্টিয়া সদর, কুষ্টিয়া',
+      username: '',
+      password: '',
+      portalRole: 'teacher',
     });
+    setStaffCheckInToast(`✓ নতুন শিক্ষক/কর্মী "${member.nameBn}" সফলভাবে যুক্ত হয়েছে এবং পোর্টাল আইডি সক্রিয় করা হয়েছে!`);
+    setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
   return (
@@ -451,6 +571,18 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
           >
             <CalendarCheck className="w-4 h-4" />
             <span>দৈনিক হাজিরা ({attendanceRate}%)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('payroll')}
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+              activeTab === 'payroll'
+                ? 'bg-white text-emerald-900 shadow-md'
+                : 'text-emerald-100 hover:bg-white/10'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>বেতন ও পারিশ্রমিক</span>
           </button>
 
           <button
@@ -603,22 +735,46 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                   </div>
 
                   {/* Card Bottom Actions */}
-                  <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="p-3 bg-slate-50 border-t border-slate-100 flex flex-col gap-2">
                     <button
-                      onClick={() => setIdCardTeacher(teacher)}
-                      className="flex-1 py-1.5 px-2.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs"
+                      type="button"
+                      onClick={() => setSelectedStaffDetails(teacher)}
+                      className="w-full py-2 px-3 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                     >
-                      <IdCard className="w-3.5 h-3.5" />
-                      <span>আইডি কার্ড</span>
+                      <Eye className="w-3.5 h-3.5 text-amber-300" />
+                      <span>পূর্ণাঙ্গ প্রোফাইল ও হিস্ট্রি ➜</span>
                     </button>
 
-                    <button
-                      onClick={() => setBalanceTeacher(teacher)}
-                      className="py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition-all"
-                      title="ছুটির ব্যালেন্স দেখুন"
-                    >
-                      ব্যালেন্স
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditingStaff(teacher)}
+                        className="flex-1 py-1.5 px-2 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
+                        title="তথ্য এডিট ও পরিবর্তন করুন"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>এডিট</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIdCardTeacher(teacher)}
+                        className="flex-1 py-1.5 px-2 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs"
+                        title="ডিজিটাল আইডি কার্ড"
+                      >
+                        <IdCard className="w-3 h-3" />
+                        <span>আইডি কার্ড</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBalanceTeacher(teacher)}
+                        className="py-1.5 px-2.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                        title="ছুটির ব্যালেন্স দেখুন"
+                      >
+                        ছুটি
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1117,6 +1273,263 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       )}
 
       {/* ========================================================= */}
+      {/* TAB 3: STAFF SALARY & PAYROLL REGISTER                    */}
+      {/* ========================================================= */}
+      {activeTab === 'payroll' && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Payroll Top Hero Banner */}
+          <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 rounded-3xl p-6 sm:p-7 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 border-b-4 border-amber-400">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-amber-200">
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>মাসিক বেতন ও আর্থিক বিবরণী · নভেম্বর ২০২৬</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                শিক্ষক ও স্টাফ বেতন ও সম্মানী রেজিস্টার
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
+                বিদ্যালয়ের শিক্ষক ও কর্মচারীদের মাসিক মূল বেতন, পরিশোধের স্ট্যাটাস এবং পে-স্লিপ ব্যবস্থাপনা কনসোল।
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={handleBulkMarkAllSalaryPaid}
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-200 active:scale-95 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                title="চলতি মাসের সকল শিক্ষকের বেতন পরিশোধিত মার্ক করুন"
+              >
+                <Check className="w-4 h-4 text-slate-900" />
+                <span>একযোগে সবাইকে পরিশোধ মার্ক করুন</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Payroll KPI Cards */}
+          {(() => {
+            const totalBudget = staffList.reduce((acc, t) => acc + (t.basicSalary || 15000), 0);
+            const paidTotal = staffList.filter((t) => t.salaryStatus !== 'due').reduce((acc, t) => acc + (t.basicSalary || 15000), 0);
+            const dueTotal = staffList.filter((t) => t.salaryStatus === 'due').reduce((acc, t) => acc + (t.basicSalary || 15000), 0);
+            const paidCount = staffList.filter((t) => t.salaryStatus !== 'due').length;
+            const dueCount = staffList.filter((t) => t.salaryStatus === 'due').length;
+            const paidRate = totalBudget > 0 ? Math.round((paidTotal / totalBudget) * 100) : 0;
+
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    মোট মাসিক বেতন বাজেট
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono mt-1 block">
+                    ৳ {toBengaliNumber(totalBudget)}
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium mt-1 block">
+                    মোট {toBengaliNumber(staffList.length)} জন শিক্ষক ও স্টাফ
+                  </span>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-emerald-50/70 border border-emerald-200 rounded-2xl shadow-2xs">
+                  <span className="text-[10px] sm:text-xs font-bold text-emerald-800 uppercase tracking-wider block">
+                    চলতি মাসে পরিশোধিত
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-950 font-mono mt-1 block">
+                    ৳ {toBengaliNumber(paidTotal)}
+                  </span>
+                  <span className="text-[11px] text-emerald-700 font-semibold mt-1 block">
+                    {toBengaliNumber(paidCount)} জনের বেতন পরিশোধ সম্পন্ন ({toBengaliNumber(paidRate)}%)
+                  </span>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-rose-50/70 border border-rose-200 rounded-2xl shadow-2xs">
+                  <span className="text-[10px] sm:text-xs font-bold text-rose-800 uppercase tracking-wider block">
+                    চলতি মাসে বকেয়া বেতন
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-rose-950 font-mono mt-1 block">
+                    ৳ {toBengaliNumber(dueTotal)}
+                  </span>
+                  <span className="text-[11px] text-rose-700 font-semibold mt-1 block">
+                    {toBengaliNumber(dueCount)} জনের বেতন এখনো বাকি
+                  </span>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-indigo-50/70 border border-indigo-200 rounded-2xl shadow-2xs">
+                  <span className="text-[10px] sm:text-xs font-bold text-indigo-800 uppercase tracking-wider block">
+                    পরিশোধের অগ্রগতি
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-indigo-950 font-mono mt-1 block">
+                    {toBengaliNumber(paidRate)}%
+                  </span>
+                  <div className="w-full bg-indigo-200/60 rounded-full h-2 mt-2 overflow-hidden">
+                    <div
+                      className="bg-indigo-600 h-full rounded-full transition-all"
+                      style={{ width: `${paidRate}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Payroll Search & Filter Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="শিক্ষক বা কর্মীর নাম খুঁজুন..."
+                value={payrollSearchQuery}
+                onChange={(e) => setPayrollSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+              <span className="text-xs font-semibold text-slate-400 mr-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" /> ফিল্টার:
+              </span>
+              {[
+                { id: 'all', label: `সকল স্টাফ (${staffList.length})` },
+                { id: 'paid', label: `পরিশোধিত (${staffList.filter((t) => t.salaryStatus !== 'due').length})` },
+                { id: 'due', label: `বকেয়া (${staffList.filter((t) => t.salaryStatus === 'due').length})` },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPayrollStatusFilter(f.id as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    payrollStatusFilter === f.id
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payroll Register Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="bg-slate-900 text-white font-bold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">ক্রমিক</th>
+                    <th className="py-3 px-4">শিক্ষক ও স্টাফের নাম</th>
+                    <th className="py-3 px-3">পদবি ও শ্রেণি</th>
+                    <th className="py-3 px-3 text-right">মূল বেতন</th>
+                    <th className="py-3 px-3 text-center">চলতি মাস (নভেম্বর)</th>
+                    <th className="py-3 px-4 text-right">অ্যাকশন</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-800">
+                  {staffList
+                    .filter((t) => {
+                      const matchesStatus =
+                        payrollStatusFilter === 'all' ||
+                        (payrollStatusFilter === 'paid' && t.salaryStatus !== 'due') ||
+                        (payrollStatusFilter === 'due' && t.salaryStatus === 'due');
+                      if (!payrollSearchQuery.trim()) return matchesStatus;
+                      const q = payrollSearchQuery.toLowerCase().trim();
+                      const matchesSearch =
+                        t.nameBn.toLowerCase().includes(q) ||
+                        t.nameEn.toLowerCase().includes(q) ||
+                        t.designationBn.toLowerCase().includes(q) ||
+                        (t.phone && t.phone.includes(q));
+                      return matchesStatus && matchesSearch;
+                    })
+                    .map((teacher, idx) => {
+                      const isPaid = teacher.salaryStatus !== 'due';
+                      const salaryAmt = teacher.basicSalary || 15000;
+
+                      return (
+                        <tr key={teacher.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3 px-4 font-mono text-slate-400 font-bold">{idx + 1}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-slate-700">
+                                {teacher.photoUrl ? (
+                                  <img
+                                    src={teacher.photoUrl}
+                                    alt={teacher.nameBn}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  teacher.nameBn.charAt(0)
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-900 leading-tight">
+                                  {teacher.nameBn}
+                                </div>
+                                <span className="text-[10px] text-slate-400 block font-mono">
+                                  {teacher.phone || teacher.nameEn}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-3">
+                            <span className="font-semibold text-slate-800 block">{teacher.designationBn}</span>
+                            <span className="text-[10px] text-slate-500 block">
+                              শ্রেণি: {teacher.assignedClass || 'সাধারণ শাখা'}
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-3 text-right">
+                            <span className="font-black text-slate-900 font-mono text-sm block">
+                              ৳ {toBengaliNumber(salaryAmt)}
+                            </span>
+                            <span className="text-[9.5px] text-slate-400 block">মাসিক স্কেল</span>
+                          </td>
+
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={`inline-block text-[10.5px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                isPaid
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                  : 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse'
+                              }`}
+                            >
+                              {isPaid ? 'পরিশোধিত ✅' : 'বকেয়া ⚠️'}
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSalaryStatus(teacher.id)}
+                                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1 cursor-pointer shadow-2xs ${
+                                  isPaid
+                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                                }`}
+                              >
+                                {isPaid ? 'বকেয়া মার্ক' : 'পরিশোধ মার্ক'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStaffDetails(teacher)}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                                title="পূর্ণাঙ্গ প্রোফাইল ও বিবরণী দেখুন"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-700" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+            {/* ========================================================= */}
       {/* TAB 3: LEAVE APPLICATIONS & APPROVAL PIPELINE             */}
       {/* ========================================================= */}
       {activeTab === 'leaves' && (
@@ -1319,7 +1732,10 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleAddStaff} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleAddStaff} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+              <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 text-xs text-emerald-900 font-semibold mb-2">
+                🌟 নতুন শিক্ষক বা স্টাফ যুক্ত করার সাথে সাথে তাঁর জন্য স্বয়ংক্রিয়ভাবে একটি পোর্টাল লগইন অ্যাকাউন্ট তৈরি হবে।
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -1445,19 +1861,113 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="15000"
+                    value={newStaff.basicSalary || ''}
+                    onChange={(e) => setNewStaff({ ...newStaff, basicSalary: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
+                  <select
+                    value={newStaff.salaryStatus || 'paid'}
+                    onChange={(e) => setNewStaff({ ...newStaff, salaryStatus: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="paid">পরিশোধিত (Paid)</option>
+                    <option value="due">বকেয়া (Due)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষাগত যোগ্যতা</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: বি.এস.সি (অনার্স), এম.এস.সি"
+                    value={newStaff.qualificationBn || ''}
+                    onChange={(e) => setNewStaff({ ...newStaff, qualificationBn: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">জাতীয় পরিচয়পত্র (NID)</label>
+                  <input
+                    type="text"
+                    placeholder="জাতীয় পরিচয়পত্র নম্বর"
+                    value={newStaff.nationalId || ''}
+                    onChange={(e) => setNewStaff({ ...newStaff, nationalId: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-indigo-700" />
+                  <span className="text-xs font-black text-indigo-950">পোর্টাল লগইন ক্রেডেনশিয়াল ও সিকিউরিটি</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">ইউজারনেম (Username)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. fatema"
+                      value={newStaff.username || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, username: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পাসওয়ার্ড (Password)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 123456"
+                      value={newStaff.password || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পোর্টাল রোল</label>
+                    <select
+                      value={newStaff.portalRole || 'teacher'}
+                      onChange={(e) => setNewStaff({ ...newStaff, portalRole: e.target.value as any })}
+                      className="w-full px-2 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-bold"
+                    >
+                      <option value="teacher">শিক্ষক পোর্টাল</option>
+                      <option value="gate_security">গেট সিকিউরিটি</option>
+                      <option value="principal">প্রিন্সিপাল পোর্টাল</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAddStaffOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-md"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer transition-all"
                 >
-                  স্টাফ সংরক্ষণ করুন
+                  স্টাফ ও অ্যাকাউন্ট সংরক্ষণ করুন
                 </button>
               </div>
             </form>
@@ -1695,6 +2205,226 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
         onClose={() => setIdCardTeacher(null)}
         teacher={idCardTeacher}
       />
+
+      {/* ========================================================= */}
+      {/* MODAL: STAFF DETAILS & PROFILE OVERVIEW                   */}
+      {/* ========================================================= */}
+      <StaffDetailsModal
+        isOpen={!!selectedStaffDetails}
+        onClose={() => setSelectedStaffDetails(null)}
+        staff={selectedStaffDetails}
+        attendanceRecord={attendanceRecords.find((r) => r.teacherId === selectedStaffDetails?.id)}
+        onOpenEdit={(staff) => {
+          setSelectedStaffDetails(null);
+          setEditingStaff(staff);
+        }}
+        onOpenIdCard={(staff) => {
+          setIdCardTeacher(staff);
+        }}
+        onToggleSalaryStatus={handleToggleSalaryStatus}
+        onUpdateAttendanceStatus={(teacherId, status) => {
+          handleStatusChange(teacherId, status);
+        }}
+        currentRole={currentRole}
+      />
+
+      {/* ========================================================= */}
+      {/* MODAL: EDIT STAFF MEMBER DETAILS & PERMISSIONS            */}
+      {/* ========================================================= */}
+      {editingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 bg-indigo-800 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-amber-300" />
+                <h3 className="font-bold text-lg">স্টাফ তথ্য ও অ্যাকাউন্ট এডিট</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingStaff(null)}
+                className="p-1.5 text-indigo-200 hover:text-white rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditStaff} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষকের নাম (বাংলায়) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingStaff.nameBn}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, nameBn: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষকের নাম (English)</label>
+                  <input
+                    type="text"
+                    value={editingStaff.nameEn}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, nameEn: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">পদবি (বাংলায়) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingStaff.designationBn}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, designationBn: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">স্টাফ ক্যাটাগরি</label>
+                  <select
+                    value={editingStaff.staffCategory || 'teacher'}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, staffCategory: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="teacher">শিক্ষকমণ্ডলী (Teacher)</option>
+                    <option value="principal">প্রশাসন ও কর্মকর্তা (Admin)</option>
+                    <option value="support_staff">সহায়ক ও গেট স্টাফ (Support Staff)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">মোবাইল নম্বর</label>
+                  <input
+                    type="text"
+                    value={editingStaff.phone || ''}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
+                  <select
+                    value={editingStaff.bloodGroup || 'B+'}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, bloodGroup: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">দায়িত্বপ্রাপ্ত শ্রেণি</label>
+                  <select
+                    value={editingStaff.assignedClass || ''}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, assignedClass: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="">কোনো শ্রেণি নয়</option>
+                    <option value="HateKhori">হাতেখড়ি</option>
+                    <option value="Play">প্লে</option>
+                    <option value="Nursery">নার্সারি</option>
+                    <option value="KG">কেজি</option>
+                    <option value="Class-1">ওয়ান</option>
+                    <option value="Class-2">টু</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳)</label>
+                  <input
+                    type="number"
+                    value={editingStaff.basicSalary || 15000}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, basicSalary: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
+                  <select
+                    value={editingStaff.salaryStatus || 'paid'}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, salaryStatus: e.target.value as any })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="paid">পরিশোধিত (Paid)</option>
+                    <option value="due">বকেয়া (Due)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-indigo-700" />
+                  <span className="text-xs font-black text-indigo-950">পোর্টাল লগইন ক্রেডেনশিয়াল সেটিংস</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">ইউজারনেম</label>
+                    <input
+                      type="text"
+                      value={editingStaff.username || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, username: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পাসওয়ার্ড</label>
+                    <input
+                      type="text"
+                      value={editingStaff.password || '123456'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, password: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">রোল</label>
+                    <select
+                      value={editingStaff.portalRole || 'teacher'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, portalRole: e.target.value as any })}
+                      className="w-full px-2 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-bold"
+                    >
+                      <option value="teacher">শিক্ষক পোর্টাল</option>
+                      <option value="gate_security">গেট সিকিউরিটি</option>
+                      <option value="principal">প্রিন্সিপাল পোর্টাল</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingStaff(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer transition-all"
+                >
+                  আপডেট সংরক্ষণ করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

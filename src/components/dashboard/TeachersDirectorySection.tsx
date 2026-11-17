@@ -27,6 +27,7 @@ interface TeachersDirectorySectionProps {
   onOpenAddNewTeacher: () => void;
   onOpenAddNewSupportStaff: () => void;
   onOpenEditTeacher: (teacher: TeacherMember) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const TeachersDirectorySection: React.FC<
@@ -40,6 +41,7 @@ export const TeachersDirectorySection: React.FC<
   onOpenAddNewTeacher,
   onOpenAddNewSupportStaff,
   onOpenEditTeacher,
+  onNavigateTab,
 }) => {
   return (
     <div
@@ -79,6 +81,17 @@ export const TeachersDirectorySection: React.FC<
             <Building2 className="w-3.5 h-3.5 text-amber-700" />
             <span>পরিচালনা পর্ষদ কনসোল ⬇</span>
           </a>
+          {onNavigateTab && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('staff')}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 px-3.5 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer"
+              title="শিক্ষক ও স্টাফদের ডেডিকেটেড ম্যানেজমেন্ট ও পূর্ণাঙ্গ কনসোলে যান"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+              <span>শিক্ষক ও স্টাফ পোর্টালে যান ➜</span>
+            </button>
+          )}
           {isPrincipal && (
             <>
               <button

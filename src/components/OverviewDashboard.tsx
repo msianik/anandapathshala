@@ -1530,6 +1530,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             onOpenAddNewTeacher={openAddNewTeacherModal}
             onOpenAddNewSupportStaff={openAddNewSupportStaffModal}
             onOpenEditTeacher={openEditTeacherModal}
+            onNavigateTab={onNavigateTab}
           />
         )}
 
