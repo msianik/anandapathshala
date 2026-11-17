@@ -172,9 +172,9 @@ export const MANAGEMENT_COMMITTEE: CommitteeDirector[] = [
     facebookUrl: 'https://www.facebook.com/AnandaPathshalaKushtia',
     addressBn: 'মজমপুর গেট, কুষ্টিয়া',
     order: 4,
-    username: 'superadmin',
+    username: 'mamun',
     password: '123456',
-    portalRole: 'super_admin',
+    portalRole: 'admin',
     messageBn:
       'বিদ্যালয়ের সার্বিক সুষ্ঠু পরিচালনা, স্বচ্ছতা ও প্রতিটি শিক্ষার্থীর শারীরিক ও মানসিক নিরাপত্তা নিশ্চিত করতে আমাদের পরিচালনা পর্ষদ নিয়মিত তদারকি করে। অভিভাবকদের আন্তরিক পরামর্শ ও সহযোগিতা আমাদের চলার পথের শক্তি।',
     messageEn:
@@ -184,10 +184,10 @@ export const MANAGEMENT_COMMITTEE: CommitteeDirector[] = [
     id: 'dir-5',
     nameBn: 'এম এস আই অনিক',
     nameEn: 'MSI Anik',
-    roleBn: 'সম্মানিত পরিচালক (Director)',
-    roleEn: 'Honorable Director',
-    designationBn: 'সম্মানিত পরিচালক ও আইটি হেড',
-    designationEn: 'Honorable Director & IT Head',
+    roleBn: 'সম্মানিত পরিচালক ও সুপার অ্যাডমিন',
+    roleEn: 'Honorable Director & Super Admin',
+    designationBn: 'সম্মানিত পরিচালক ও আইটি হেড (সুপার অ্যাডমিন)',
+    designationEn: 'Honorable Director & IT Head (Super Admin)',
     isManagingDirector: false,
     photoUrl: '/assets/fb/msi_anik.webp',
     professionBn: 'প্রযুক্তি উদ্যোক্তা ও আইটি বিশেষজ্ঞ',
@@ -198,7 +198,7 @@ export const MANAGEMENT_COMMITTEE: CommitteeDirector[] = [
     order: 5,
     username: 'anik',
     password: '123456',
-    portalRole: 'director',
+    portalRole: 'super_admin',
     messageBn:
       'শিশুদের জন্য একটি নিরাপদ, আধুনিক প্রযুক্তি ও বাস্তব জীবনমুখী আনন্দময় পাঠদান ব্যবস্থার প্রবর্তন করাই আনন্দ পাঠশালার বিশেষত্ব। ডিজিটাল ক্লাসরুম ডায়েরি, গেট পিক-আপ সিকিউরিটি ও মন্টেসরি পাঠক্রমের মাধ্যমে আমরা কুষ্টিয়ায় আধুনিক শিশুশিক্ষার সর্বোচ্চ আন্তর্জাতিক মানদণ্ড বাস্তবায়ন করছি।',
     messageEn:

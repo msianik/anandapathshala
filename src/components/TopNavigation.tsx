@@ -169,6 +169,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   }, [currentRole, loggedInAccount]);
 
   const isSuperAdmin = currentRole === 'super_admin';
+  const isAdmin = currentRole === 'admin';
   const isDirector = currentRole === 'director';
   const isPrincipal = currentRole === 'principal';
   const isTeacher = currentRole === 'teacher';
@@ -176,6 +177,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
   const topStripBg = isSuperAdmin
     ? 'bg-gradient-to-r from-amber-800 via-emerald-900 to-slate-950'
+    : isAdmin
+    ? 'bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900'
     : isDirector
     ? 'bg-gradient-to-r from-teal-900 via-emerald-800 to-amber-800'
     : isPrincipal
@@ -187,9 +190,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     : 'bg-gradient-to-r from-slate-800 to-emerald-800';
 
   const portalLabelBn = isSuperAdmin
-    ? '👑 সুপার অ্যাডমিন পোর্টাল (সেক্রেটারি)'
+    ? '👑 সুপার অ্যাডমিন পোর্টাল (পরিচালক এম এস আই অনিক)'
+    : isAdmin
+    ? '🛡️ অ্যাডমিন পোর্টাল'
     : isDirector
-    ? '🏛️ পরিচালক পর্ষদ পোর্টাল (সবকিছু ভিউ)'
+    ? '🏛️ পরিচালনা পর্ষদ পোর্টাল (সবকিছু ভিউ)'
     : isPrincipal
     ? '🎓 প্রিন্সিপাল ও অ্যাডমিন পোর্টাল'
     : isTeacher
@@ -228,12 +233,12 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             </div>
 
             <div className="flex items-center gap-1 bg-black/25 px-2 py-0.5 rounded-xl border border-white/10 shrink-0">
-              {isSuperAdmin && (
+              {(isSuperAdmin || isAdmin) && (
                 <span className="hidden sm:inline text-[10px] font-bold opacity-80 mr-0.5 whitespace-nowrap">
                   রোল:
                 </span>
               )}
-              {isSuperAdmin && (
+              {(isSuperAdmin || isAdmin) && (
                 <>
                   <button
                     type="button"
@@ -245,6 +250,17 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                     }`}
                   >
                     সুপার অ্যাডমিন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSelectRole('admin')}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] transition-all whitespace-nowrap cursor-pointer ${
+                      isAdmin
+                        ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                        : 'bg-white/15 hover:bg-white/25 text-white font-medium'
+                    }`}
+                  >
+                    অ্যাডমিন
                   </button>
                   <button
                     type="button"

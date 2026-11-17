@@ -1,5 +1,6 @@
 export type UserRole = 
   | 'super_admin'
+  | 'admin'
   | 'director'
   | 'principal' 
   | 'teacher' 
@@ -186,6 +187,7 @@ export interface PickupEvent {
 
 export type PortalAccountRole =
   | 'super_admin'
+  | 'admin'
   | 'director'
   | 'principal'
   | 'teacher'

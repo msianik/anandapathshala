@@ -936,6 +936,7 @@ export default function App() {
                       currentRole={currentRole}
                       canEdit={
                         currentRole === 'super_admin' ||
+                        currentRole === 'admin' ||
                         currentRole === 'principal' ||
                         currentRole === 'director' ||
                         currentRole === 'teacher'
@@ -1063,7 +1064,7 @@ export default function App() {
                   {currentTab === 'notices' && (
                     <NoticeBoard
                       notices={notices}
-                      isAdmin={currentRole === 'super_admin' || currentRole === 'principal'}
+                      isAdmin={currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal'}
                       onNavigateApply={() => setCurrentTab('public')}
                       onSendBroadcastNotification={dispatchRealTimeFcmNotification}
                     />

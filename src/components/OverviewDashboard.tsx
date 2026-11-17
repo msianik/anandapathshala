@@ -181,6 +181,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   }, []);
 
   const isSuperAdmin = currentRole === 'super_admin';
+  const isAdmin = currentRole === 'admin';
   const isDirector = currentRole === 'director';
 
   const activeDirectorPerm = isDirector
@@ -198,6 +199,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
   const isPrincipal =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     (currentRole === 'director' && hasDirectorEditAccess);
 
@@ -212,7 +214,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         ...perm,
         viewAllModules: willEnable,
         allowedModules: willEnable ? [...ALL_PORTAL_MODULE_IDS] : ['overview'],
-        lastUpdatedByBn: 'মোস্তফা আল মামুন (সুপার অ্যাডমিন)',
+        lastUpdatedByBn: 'এম এস আই অনিক (সুপার অ্যাডমিন)',
         lastUpdatedAtBn: willEnable ? 'সকল ভিউ সক্রিয়' : 'কাস্টম ভিউ মোড',
       };
     });

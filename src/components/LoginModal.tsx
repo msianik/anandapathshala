@@ -608,7 +608,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       setIdentifier(e.target.value);
                       setErrorBn(null);
                     }}
-                    placeholder="যেমন: superadmin বা 01788990011"
+                    placeholder="যেমন: anik বা mamun বা principal বা মোবাইল নম্বর"
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium text-slate-900 transition-all placeholder:text-slate-400 disabled:opacity-60"
                   />
                 </div>

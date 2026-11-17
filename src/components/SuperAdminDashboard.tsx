@@ -652,8 +652,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center gap-5 max-w-3xl">
             <div className="relative shrink-0">
               <img
-                src={superAdminPerm.photoUrl || '/assets/biddalay/mostofa_mamun.jpg'}
-                alt="মোস্তফা আল মামুন — সুপার অ্যাডমিন"
+                src={superAdminPerm.photoUrl || '/assets/fb/msi_anik.webp'}
+                alt={`${superAdminPerm.nameBn} — সুপার অ্যাডমিন`}
                 referrerPolicy="no-referrer"
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover border-3 border-amber-400 shadow-xl bg-white p-0.5"
               />
@@ -676,20 +676,20 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {superAdminPerm.nameBn}{' '}
                 <span className="text-amber-300 text-lg sm:text-xl font-bold block sm:inline">
-                  (পরিচালক ও সদস্য সচিব — Director &amp; Secretary)
+                  ({superAdminPerm.roleTitleBn})
                 </span>
               </h1>
 
               <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                আনন্দ পাঠশালার অন্যান্য সম্মানিত পরিচালকদের কোন কোন <strong>পোর্টাল মডিউল দেখার অ্যাক্সেস (View Access)</strong> এবং কোন কোন <strong>অ্যাডমিন ফিচার এডিট করার ক্ষমতা</strong> থাকবে তা নিচের টগল বা সুইচ (Toggle Switch) অন/অফ করে তাৎক্ষণিকভাবে নিয়ন্ত্রণ করুন।
+                আনন্দ পাঠশালার অন্যান্য সম্মানিত পরিচালক ও অ্যাডমিনদের কোন কোন <strong>পোর্টাল মডিউল দেখার অ্যাক্সেস (View Access)</strong> এবং কোন কোন <strong>অ্যাডমিন ফিচার এডিট করার ক্ষমতা</strong> থাকবে তা নিচের টগল বা সুইচ (Toggle Switch) অন/অফ করে তাৎক্ষণিকভাবে নিয়ন্ত্রণ করুন।
               </p>
 
               <div className="flex flex-wrap items-center gap-3 text-[11px] text-amber-200/90 font-mono pt-0.5">
-                <span>ইউজার আইডি: superadmin</span>
+                <span>ইউজার আইডি: {superAdminPerm.username || 'anik'}</span>
                 <span>·</span>
-                <span>মোবাইল: ০১৭৮৮-৯৯০০১১</span>
+                <span>মোবাইল: {superAdminPerm.phone || '০১৯১৪-০৫৭৫১১'}</span>
                 <span>·</span>
-                <span>ইমেইল: mostofa.mamun@anandapathshala.edu.bd</span>
+                <span>ইমেইল: {superAdminPerm.email || 'msianik.bd@gmail.com'}</span>
               </div>
             </div>
           </div>

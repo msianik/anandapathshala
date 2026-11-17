@@ -31,10 +31,13 @@ export function getAllStaffChatMembers(studentsList?: Student[]): StaffChatMembe
 
   // 1. Directors & Governing Body
   for (const dir of MANAGEMENT_COMMITTEE) {
-    const role: UserRole =
-      dir.portalRole === 'super_admin' || dir.id === 'dir-3' || dir.username === 'superadmin'
-        ? 'super_admin'
-        : 'director';
+    const isDir5 = dir.portalRole === 'super_admin' || dir.id === 'dir-5' || dir.username === 'anik';
+    const isDir3 = dir.portalRole === 'admin' || dir.id === 'dir-3' || dir.username === 'mamun';
+    const role: UserRole = isDir5
+      ? 'super_admin'
+      : isDir3
+      ? 'admin'
+      : 'director';
 
     const memberId = dir.id;
     if (!seenIds.has(memberId)) {
@@ -51,7 +54,7 @@ export function getAllStaffChatMembers(studentsList?: Student[]): StaffChatMembe
         phone: dir.phone,
         email: dir.email,
         username: dir.username,
-        category: role === 'super_admin' ? 'principal' : 'director',
+        category: (role === 'super_admin' || role === 'admin') ? 'principal' : 'director',
       });
     }
   }
@@ -212,7 +215,10 @@ export function getStaffMemberIdentity(
 
   // Role based intelligent fallbacks
   if (currentRole === 'super_admin') {
-    return allMembers.find((m) => m.id === 'dir-3') || allMembers[0];
+    return allMembers.find((m) => m.id === 'dir-5') || allMembers[0];
+  }
+  if (currentRole === 'admin') {
+    return allMembers.find((m) => m.id === 'dir-3') || allMembers.find((m) => m.id === 'tch-1') || allMembers[0];
   }
   if (currentRole === 'director') {
     return allMembers.find((m) => m.id === 'dir-4') || allMembers[0];
@@ -252,8 +258,8 @@ export function canUserAccessChannel(
     return true;
   }
 
-  // 2. Super Admin & Principal have supervisor access across all school channels
-  if (currentRole === 'super_admin' || currentRole === 'principal') {
+  // 2. Super Admin, Admin & Principal have supervisor access across all school channels
+  if (currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal') {
     return true;
   }
 
@@ -286,15 +292,15 @@ export function canUserAccessChannel(
 }
 
 /**
- * Editing power is strictly restricted to Principal or Admin!
+ * Editing power is strictly restricted to Principal, Admin, or Super Admin!
  * Satisfies: "এবং এডিট করার ক্ষমতা শুধুমাত্র প্রিন্সিপাল অথবা এডমিনকে দেওয়ার জন্য অনুরোধ করছি।"
  */
 export function canUserEditChat(
   currentRole: UserRole,
   loggedInAccount?: PortalAccount | null
 ): boolean {
-  if (currentRole === 'principal' || currentRole === 'super_admin') return true;
-  if (loggedInAccount?.role === 'principal' || loggedInAccount?.role === 'super_admin') return true;
+  if (currentRole === 'principal' || currentRole === 'admin' || currentRole === 'super_admin') return true;
+  if (loggedInAccount?.role === 'principal' || loggedInAccount?.role === 'admin' || loggedInAccount?.role === 'super_admin') return true;
   return false;
 }
 
@@ -310,7 +316,7 @@ export const DEFAULT_STAFF_CHANNELS: StaffChannelMeta[] = [
     iconType: 'ShieldAlert',
     badgeBg: 'bg-amber-100',
     textColor: 'text-amber-900',
-    allowedRoles: ['director', 'super_admin', 'principal'],
+    allowedRoles: ['director', 'super_admin', 'admin', 'principal'],
     memberIds: ['dir-4', 'dir-5', 'dir-3', 'dir-1', 'dir-2', 'tch-1'],
     memberCount: 6,
     isDefault: true,
@@ -323,7 +329,7 @@ export const DEFAULT_STAFF_CHANNELS: StaffChannelMeta[] = [
     iconType: 'Users',
     badgeBg: 'bg-teal-100',
     textColor: 'text-teal-900',
-    allowedRoles: ['director', 'super_admin', 'principal', 'teacher', 'parent'],
+    allowedRoles: ['director', 'super_admin', 'admin', 'principal', 'teacher', 'parent'],
     memberIds: ['tch-1', 'tch-2', 'dir-4', 'dir-3', 'std-1', 'std-0', 'std-2'],
     memberCount: 7,
     isDefault: true,
@@ -335,7 +341,7 @@ export const DEFAULT_STAFF_CHANNELS: StaffChannelMeta[] = [
     iconType: 'Building2',
     badgeBg: 'bg-emerald-100',
     textColor: 'text-emerald-800',
-    allowedRoles: ['director', 'super_admin', 'principal', 'teacher', 'accountant', 'gate_security'],
+    allowedRoles: ['director', 'super_admin', 'admin', 'principal', 'teacher', 'accountant', 'gate_security'],
     memberIds: [
       'dir-4', 'dir-5', 'dir-3', 'dir-1', 'dir-2',
       'tch-1', 'tch-2', 'tch-3', 'tch-4', 'tch-5', 'tch-6', 'tch-7', 'tch-8', 'tch-9'

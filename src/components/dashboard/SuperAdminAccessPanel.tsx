@@ -334,8 +334,8 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   // Filter accounts
   const filteredAccounts = accounts.filter((acc) => {
     // Role filter
-    if (activeTab === 'director' && acc.role !== 'director' && acc.role !== 'super_admin') return false;
-    if (activeTab === 'principal' && acc.role !== 'principal') return false;
+    if (activeTab === 'director' && acc.role !== 'director' && acc.role !== 'super_admin' && acc.role !== 'admin') return false;
+    if (activeTab === 'principal' && acc.role !== 'principal' && acc.role !== 'admin') return false;
     if (activeTab === 'teacher' && acc.role !== 'teacher') return false;
     if (activeTab === 'staff' && acc.role !== 'accountant' && acc.role !== 'gate_security') return false;
     if (activeTab === 'parent' && acc.role !== 'parent') return false;
@@ -488,7 +488,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   // Handle Delete User
   const handleConfirmDelete = () => {
     if (!deletingAccount) return;
-    if (deletingAccount.role === 'super_admin' || deletingAccount.username === 'superadmin') {
+    if (deletingAccount.role === 'super_admin' || deletingAccount.username === 'anik' || deletingAccount.username === 'superadmin') {
       showToast('⚠️ সুপার অ্যাডমিন অ্যাকাউন্ট ডিলিট করা সম্ভব নয়!');
       setDeletingAccount(null);
       return;
@@ -506,7 +506,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   // Toggle Single User Access (Active / Disabled)
   const handleToggleAccess = (acc: PortalAccount) => {
-    if (acc.role === 'super_admin' || acc.username === 'superadmin') {
+    if (acc.role === 'super_admin' || acc.username === 'anik' || acc.username === 'superadmin') {
       showToast('⚠️ সুপার অ্যাডমিন অ্যাকাউন্ট স্থগিত করা যাবে না।');
       return;
     }
@@ -820,15 +820,18 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
           </div>
         ) : (
           filteredAccounts.map((acc) => {
-            const isSuper = acc.role === 'super_admin' || acc.username === 'superadmin';
+            const isSuper = acc.role === 'super_admin' || acc.username === 'anik' || acc.username === 'superadmin';
+            const isAdminRole = acc.role === 'admin';
             const isDir = acc.role === 'director';
-            const isFullEdit = isDir && getDirectorEditStatus(acc.directorId);
+            const isFullEdit = (isDir || isAdminRole) && getDirectorEditStatus(acc.directorId);
             const isPasswordVisible = visiblePasswords[acc.id] || false;
             const isDisabled = Boolean(acc.isAccessDisabled);
 
             // Role styling
             const roleBadgeClass = isSuper
               ? 'bg-amber-400 text-slate-950 border-amber-400'
+              : isAdminRole
+              ? 'bg-blue-600 text-white border-blue-600'
               : acc.role === 'director'
               ? 'bg-amber-100 text-amber-900 border-amber-300'
               : acc.role === 'principal'

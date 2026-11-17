@@ -59,14 +59,28 @@ export const ALL_PORTAL_MODULE_IDS = [
 export const PORTAL_ACCOUNTS: PortalAccount[] = [
   {
     id: 'acc-super-admin',
+    nameBn: 'এম এস আই অনিক',
+    nameEn: 'MSI Anik',
+    role: 'super_admin',
+    roleTitleBn: 'সুপার অ্যাডমিন · সম্মানিত পরিচালক ও আইটি হেড',
+    portalNameBn: 'সুপার অ্যাডমিন ও কেন্দ্রীয় নিয়ন্ত্রণ পোর্টাল',
+    email: 'msianik.bd@gmail.com',
+    phone: '01914057511',
+    username: 'anik',
+    passwordHint: '123456',
+    avatarUrl: '/assets/fb/msi_anik.webp',
+    directorId: 'dir-5',
+  },
+  {
+    id: 'acc-admin-mamun',
     nameBn: 'মোস্তফা আল মামুন',
     nameEn: 'Mostofa Al Mamun',
-    role: 'super_admin',
-    roleTitleBn: 'সুপার অ্যাডমিন · পরিচালক ও সদস্য সচিব (Director & Secretary)',
-    portalNameBn: 'সুপার অ্যাডমিন ও কেন্দ্রীয় অ্যাক্সেস নিয়ন্ত্রণ পোর্টাল',
+    role: 'admin',
+    roleTitleBn: 'অ্যাডমিন · পরিচালক ও সদস্য সচিব (Director & Secretary)',
+    portalNameBn: 'অ্যাডমিন ও প্রশাসনিক ব্যবস্থাপনা পোর্টাল',
     email: 'mostofa.mamun@anandapathshala.edu.bd',
     phone: '01788990011',
-    username: 'superadmin',
+    username: 'mamun',
     passwordHint: '123456',
     avatarUrl: '/assets/biddalay/mostofa_mamun.jpg',
     directorId: 'dir-3',
@@ -84,20 +98,6 @@ export const PORTAL_ACCOUNTS: PortalAccount[] = [
     passwordHint: '123456',
     avatarUrl: '/assets/fb/al_noman.jpg',
     directorId: 'dir-4',
-  },
-  {
-    id: 'acc-dir-anik',
-    nameBn: 'এম এস আই অনিক',
-    nameEn: 'MSI Anik',
-    role: 'director',
-    roleTitleBn: 'সম্মানিত পরিচালক (Director)',
-    portalNameBn: 'পরিচালনা পর্ষদ ভিউ ও পর্যবেক্ষণ পোর্টাল',
-    email: 'msianik.bd@gmail.com',
-    phone: '01914057511',
-    username: 'anik',
-    passwordHint: '123456',
-    avatarUrl: '/assets/fb/msi_anik.webp',
-    directorId: 'dir-5',
   },
   {
     id: 'acc-dir-adnan',
@@ -131,9 +131,9 @@ export const PORTAL_ACCOUNTS: PortalAccount[] = [
     id: 'acc-principal',
     nameBn: 'শাফী আব্দুল্লাহ',
     nameEn: 'Shafee Abdullah',
-    role: 'principal',
-    roleTitleBn: 'প্রিন্সিপাল (Principal), আনন্দ পাঠশালা',
-    portalNameBn: 'প্রিন্সিপাল ও একাডেমিক অ্যাডমিন পোর্টাল',
+    role: 'admin',
+    roleTitleBn: 'অ্যাডমিন ও প্রিন্সিপাল (Principal & Admin)',
+    portalNameBn: 'অ্যাডমিন ও প্রিন্সিপাল পোর্টাল',
     email: 'principal@anandapathshala.edu.bd',
     phone: '01914057512',
     username: 'principal',
@@ -217,6 +217,46 @@ export function saveRolePolicyConfig(config: RolePolicyConfig): void {
 
 export const INITIAL_DIRECTOR_PERMISSIONS: DirectorAccessPermission[] = [
   {
+    directorId: 'dir-5',
+    nameBn: 'এম এস আই অনিক',
+    nameEn: 'MSI Anik',
+    roleTitleBn: 'সুপার অ্যাডমিন · সম্মানিত পরিচালক ও আইটি হেড',
+    photoUrl: '/assets/fb/msi_anik.webp',
+    email: 'msianik.bd@gmail.com',
+    phone: '01914057511',
+    username: 'anik',
+    isSuperAdmin: true,
+    viewAllModules: true,
+    canEditSchoolAndBoard: true,
+    canManageNoticesAndEvents: true,
+    canManageStudentsAndAdmissions: true,
+    canManageFeesAndAccounts: true,
+    canApproveGatePassAndDiary: true,
+    allowedModules: [...ALL_PORTAL_MODULE_IDS],
+    lastUpdatedByBn: 'সিস্টেম ডিফল্ট (সুপার অ্যাডমিন)',
+    lastUpdatedAtBn: 'সার্বক্ষণিক পূর্ণ নিয়ন্ত্রণ',
+  },
+  {
+    directorId: 'dir-3',
+    nameBn: 'মোস্তফা আল মামুন',
+    nameEn: 'Mostofa Al Mamun',
+    roleTitleBn: 'অ্যাডমিন · পরিচালক ও সদস্য সচিব (Director & Secretary)',
+    photoUrl: '/assets/biddalay/mostofa_mamun.jpg',
+    email: 'mostofa.mamun@anandapathshala.edu.bd',
+    phone: '01788990011',
+    username: 'mamun',
+    isSuperAdmin: false,
+    viewAllModules: true,
+    canEditSchoolAndBoard: true,
+    canManageNoticesAndEvents: true,
+    canManageStudentsAndAdmissions: true,
+    canManageFeesAndAccounts: true,
+    canApproveGatePassAndDiary: true,
+    allowedModules: [...ALL_PORTAL_MODULE_IDS],
+    lastUpdatedByBn: 'এম এস আই অনিক (সুপার অ্যাডমিন)',
+    lastUpdatedAtBn: 'অ্যাডমিন অধিকার সক্রিয়',
+  },
+  {
     directorId: 'dir-4',
     nameBn: 'আল নোমান',
     nameEn: 'Al Noman',
@@ -233,7 +273,7 @@ export const INITIAL_DIRECTOR_PERMISSIONS: DirectorAccessPermission[] = [
     canManageFeesAndAccounts: false,
     canApproveGatePassAndDiary: false,
     allowedModules: [...ALL_PORTAL_MODULE_IDS],
-    lastUpdatedByBn: 'মোস্তফা আল মামুন (সুপার অ্যাডমিন)',
+    lastUpdatedByBn: 'এম এস আই অনিক (সুপার অ্যাডমিন)',
     lastUpdatedAtBn: 'সকল মডিউল ভিউ অ্যাক্সেস সক্রিয়',
   },
   {
@@ -253,7 +293,7 @@ export const INITIAL_DIRECTOR_PERMISSIONS: DirectorAccessPermission[] = [
     canManageFeesAndAccounts: false,
     canApproveGatePassAndDiary: false,
     allowedModules: [...ALL_PORTAL_MODULE_IDS],
-    lastUpdatedByBn: 'মোস্তফা আল মামুন (সুপার অ্যাডমিন)',
+    lastUpdatedByBn: 'এম এস আই অনিক (সুপার অ্যাডমিন)',
     lastUpdatedAtBn: 'সকল মডিউল ভিউ অ্যাক্সেস সক্রিয়',
   },
   {
@@ -273,60 +313,30 @@ export const INITIAL_DIRECTOR_PERMISSIONS: DirectorAccessPermission[] = [
     canManageFeesAndAccounts: false,
     canApproveGatePassAndDiary: false,
     allowedModules: [...ALL_PORTAL_MODULE_IDS],
-    lastUpdatedByBn: 'মোস্তফা আল মামুন (সুপার অ্যাডমিন)',
-    lastUpdatedAtBn: 'সকল মডিউল ভিউ অ্যাক্সেস সক্রিয়',
-  },
-  {
-    directorId: 'dir-3',
-    nameBn: 'মোস্তফা আল মামুন',
-    nameEn: 'Mostofa Al Mamun',
-    roleTitleBn: 'সুপার অ্যাডমিন · পরিচালক ও সদস্য সচিব (Director & Secretary)',
-    photoUrl: '/assets/biddalay/mostofa_mamun.jpg',
-    email: 'mostofa.mamun@anandapathshala.edu.bd',
-    phone: '01788990011',
-    username: 'superadmin',
-    isSuperAdmin: true,
-    viewAllModules: true,
-    canEditSchoolAndBoard: true,
-    canManageNoticesAndEvents: true,
-    canManageStudentsAndAdmissions: true,
-    canManageFeesAndAccounts: true,
-    canApproveGatePassAndDiary: true,
-    allowedModules: [...ALL_PORTAL_MODULE_IDS],
-    lastUpdatedByBn: 'সিস্টেম ডিফল্ট (সুপার অ্যাডমিন)',
-    lastUpdatedAtBn: 'সার্বক্ষণিক পূর্ণ নিয়ন্ত্রণ',
-  },
-  {
-    directorId: 'dir-5',
-    nameBn: 'এম এস আই অনিক',
-    nameEn: 'MSI Anik',
-    roleTitleBn: 'সম্মানিত পরিচালক (Director)',
-    photoUrl: '/assets/fb/msi_anik.webp',
-    email: 'msianik.bd@gmail.com',
-    phone: '01914057511',
-    username: 'anik',
-    isSuperAdmin: false,
-    viewAllModules: true,
-    canEditSchoolAndBoard: false,
-    canManageNoticesAndEvents: false,
-    canManageStudentsAndAdmissions: false,
-    canManageFeesAndAccounts: false,
-    canApproveGatePassAndDiary: false,
-    allowedModules: [...ALL_PORTAL_MODULE_IDS],
-    lastUpdatedByBn: 'মোস্তফা আল মামুন (সুপার অ্যাডমিন)',
+    lastUpdatedByBn: 'এম এস আই অনিক (সুপার অ্যাডমিন)',
     lastUpdatedAtBn: 'সকল মডিউল ভিউ অ্যাক্সেস সক্রিয়',
   },
 ];
 
-export const DIRECTOR_PERMISSIONS_STORAGE_KEY = 'ananda_director_access_permissions_v1';
+export const DIRECTOR_PERMISSIONS_STORAGE_KEY = 'ananda_director_access_permissions_v2';
 
 export function getDirectorPermissions(): DirectorAccessPermission[] {
   if (typeof window !== 'undefined') {
     try {
       const raw = localStorage.getItem(DIRECTOR_PERMISSIONS_STORAGE_KEY);
       if (raw) {
-        const parsed: DirectorAccessPermission[] = JSON.parse(raw);
+        let parsed: DirectorAccessPermission[] = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Guarantee MSI Anik (dir-5) is superAdmin and Mostofa Al Mamun (dir-3) is admin
+          parsed = parsed.map((p) => {
+            if (p.directorId === 'dir-5') {
+              return { ...p, isSuperAdmin: true, canEditSchoolAndBoard: true, canManageStudentsAndAdmissions: true };
+            }
+            if (p.directorId === 'dir-3') {
+              return { ...p, isSuperAdmin: false, canEditSchoolAndBoard: true, canManageStudentsAndAdmissions: true };
+            }
+            return p;
+          });
           return parsed;
         }
       }
@@ -354,12 +364,14 @@ export function getPermissionForDirector(directorId?: string): DirectorAccessPer
   return perms.find((p) => p.directorId === directorId) || null;
 }
 
-export const PORTAL_ACCOUNTS_STORAGE_KEY = 'ananda_portal_accounts_v2';
+export const PORTAL_ACCOUNTS_STORAGE_KEY = 'ananda_portal_accounts_v3';
 
 export function getPortalRoleLabelBn(role: PortalAccountRole = 'parent'): string {
   switch (role) {
     case 'super_admin':
       return 'সুপার অ্যাডমিন (Super Admin)';
+    case 'admin':
+      return 'অ্যাডমিন (Admin)';
     case 'director':
       return 'পরিচালক (Director)';
     case 'principal':
@@ -379,7 +391,9 @@ export function getPortalRoleLabelBn(role: PortalAccountRole = 'parent'): string
 export function getPortalNameForRoleBn(role: PortalAccountRole = 'parent'): string {
   switch (role) {
     case 'super_admin':
-      return 'সুপার অ্যাডমিন ও কেন্দ্রীয় অ্যাক্সেস নিয়ন্ত্রণ পোর্টাল';
+      return 'সুপার অ্যাডমিন ও কেন্দ্রীয় নিয়ন্ত্রণ পোর্টাল';
+    case 'admin':
+      return 'অ্যাডমিন ও প্রশাসনিক ব্যবস্থাপনা পোর্টাল';
     case 'director':
       return 'পরিচালনা পর্ষদ ভিউ ও পর্যবেক্ষণ পোর্টাল';
     case 'principal':
@@ -443,19 +457,25 @@ export function getAllPortalAccounts(): PortalAccount[] {
   }
 
   for (const dir of directors) {
-    const role: PortalAccountRole =
-      dir.portalRole ||
-      (dir.id === 'dir-3' || dir.username === 'superadmin' ? 'super_admin' : 'director');
-    const cleanPhone = normalizeIdentifier(dir.phone || '01914057511');
+    const isDir5 = dir.id === 'dir-5' || dir.username === 'anik' || dir.portalRole === 'super_admin';
+    const isDir3 = dir.id === 'dir-3' || dir.username === 'mamun' || dir.username === 'superadmin';
+    const role: PortalAccountRole = isDir5
+      ? 'super_admin'
+      : isDir3
+      ? 'admin'
+      : (dir.portalRole as PortalAccountRole) || 'director';
+    const cleanPhone = normalizeIdentifier(dir.phone || (isDir5 ? '01914057511' : '01788990011'));
     const username =
       dir.username?.trim() ||
-      (dir.id === 'dir-3'
-        ? 'superadmin'
+      (isDir5
+        ? 'anik'
+        : isDir3
+        ? 'mamun'
         : dir.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || `dir_${dir.id}`);
 
     // Find if there's an existing seeded account for this directorId
     const existingEntry = Array.from(accountMap.values()).find((a) => a.directorId === dir.id);
-    const accId = existingEntry?.id || `acc-dir-${dir.id}`;
+    const accId = existingEntry?.id || (isDir5 ? 'acc-super-admin' : isDir3 ? 'acc-admin-mamun' : `acc-dir-${dir.id}`);
 
     accountMap.set(accId, {
       id: accId,
@@ -465,6 +485,8 @@ export function getAllPortalAccounts(): PortalAccount[] {
       roleTitleBn:
         role === 'super_admin'
           ? `সুপার অ্যাডমিন · ${dir.roleBn}`
+          : role === 'admin'
+          ? `অ্যাডমিন · ${dir.roleBn}`
           : `${dir.roleBn}, পরিচালনা পর্ষদ`,
       portalNameBn: getPortalNameForRoleBn(role),
       email: dir.email || `${username}@anandapathshala.edu.bd`,
@@ -601,7 +623,7 @@ export function getAllPortalAccounts(): PortalAccount[] {
   const result: PortalAccount[] = [];
   for (const acc of accountMap.values()) {
     // Super admin can never be deleted
-    if (acc.role === 'super_admin' || acc.username === 'superadmin' || acc.id === 'acc-superadmin') {
+    if (acc.role === 'super_admin' || acc.username === 'anik' || acc.username === 'superadmin' || acc.id === 'acc-super-admin' || acc.id === 'acc-superadmin') {
       result.push(acc);
       continue;
     }
@@ -782,7 +804,7 @@ export function deletePortalUserAccount(accountId: string): boolean {
     if (!target) return false;
 
     // Safety protection: Super Admin cannot be deleted
-    if (target.role === 'super_admin' || target.username === 'superadmin' || target.id === 'acc-superadmin') {
+    if (target.role === 'super_admin' || target.username === 'anik' || target.username === 'superadmin' || target.id === 'acc-super-admin' || target.id === 'acc-superadmin') {
       return false;
     }
 
@@ -822,7 +844,7 @@ export function togglePortalUserAccess(accountId: string, disableAccess: boolean
     const allAccounts = getAllPortalAccounts();
     const target = allAccounts.find((a) => a.id === accountId);
     if (!target) return false;
-    if (target.role === 'super_admin' || target.username === 'superadmin') return false;
+    if (target.role === 'super_admin' || target.username === 'anik' || target.username === 'superadmin') return false;
 
     const updated: PortalAccount = {
       ...target,
@@ -882,7 +904,7 @@ export function setAllPortalUsersAccess(enable: boolean): void {
   try {
     const allAccounts = getAllPortalAccounts();
     for (const acc of allAccounts) {
-      if (acc.role === 'super_admin' || acc.username === 'superadmin') continue;
+      if (acc.role === 'super_admin' || acc.username === 'anik' || acc.username === 'superadmin') continue;
       upsertPortalAccount({
         ...acc,
         isAccessDisabled: !enable,
@@ -1076,20 +1098,61 @@ export function detectAccountFromIdentifier(identifier: string): PortalAccount |
     }
   }
 
-  // Super Admin (Mostofa Al Mamun - Secretary)
+  // Super Admin (MSI Anik - Director & IT Head)
   if (
     cleaned.includes('superadmin') ||
     cleaned.includes('super_admin') ||
+    cleaned.includes('anik') ||
+    cleaned.includes('msianik') ||
+    cleaned.includes('অনিক') ||
+    cleaned.includes('সুপারঅ্যাডমিন') ||
+    cleaned.includes('সুপারএডমিন') ||
+    cleaned === 'md'
+  ) {
+    return allAccounts.find((a) => a.role === 'super_admin' || a.id === 'acc-super-admin') || PORTAL_ACCOUNTS[0];
+  }
+
+  // Admin 1 (Mostofa Al Mamun - Director & Secretary)
+  if (
     cleaned.includes('mamun') ||
     cleaned.includes('mostofa') ||
     cleaned.includes('secretary') ||
     cleaned.includes('মামুন') ||
     cleaned.includes('মোস্তফা') ||
     cleaned.includes('সেক্রেটারি') ||
-    cleaned.includes('সদস্যসচিব') ||
-    cleaned.includes('সুপারঅ্যাডমিন')
+    cleaned.includes('সদস্যসচিব')
   ) {
-    return PORTAL_ACCOUNTS[0];
+    return (
+      allAccounts.find((a) => a.directorId === 'dir-3') ||
+      allAccounts.find((a) => a.role === 'admin' && a.username === 'mamun') ||
+      PORTAL_ACCOUNTS.find((a) => a.id === 'acc-admin-mamun') ||
+      PORTAL_ACCOUNTS[1]
+    );
+  }
+
+  // Admin 2 & Principal (Shafee Abdullah)
+  if (
+    cleaned.includes('principal') ||
+    cleaned.includes('shafee') ||
+    cleaned.includes('shafi') ||
+    cleaned.includes('প্রিন্সিপাল') ||
+    cleaned.includes('শাফী') ||
+    cleaned.includes('শাফি')
+  ) {
+    return (
+      allAccounts.find((a) => a.role === 'principal' || a.id === 'acc-principal') ||
+      allAccounts.find((a) => a.username === 'principal') ||
+      null
+    );
+  }
+
+  // Generic 'admin' or 'এডমিন' query
+  if (cleaned === 'admin' || cleaned.includes('এডমিন') || cleaned.includes('অ্যাডমিন')) {
+    return (
+      allAccounts.find((a) => a.role === 'admin') ||
+      allAccounts.find((a) => a.role === 'super_admin') ||
+      PORTAL_ACCOUNTS[0]
+    );
   }
 
   // Directors
@@ -1100,44 +1163,23 @@ export function detectAccountFromIdentifier(identifier: string): PortalAccount |
     cleaned.includes('চেয়ারম্যান') ||
     cleaned.includes('সভাপতি')
   ) {
-    return PORTAL_ACCOUNTS[1];
-  }
-  if (
-    cleaned.includes('anik') ||
-    cleaned.includes('msianik') ||
-    cleaned.includes('অনিক') ||
-    cleaned === 'md'
-  ) {
-    return PORTAL_ACCOUNTS[2];
+    return allAccounts.find((a) => a.directorId === 'dir-4') || PORTAL_ACCOUNTS.find((a) => a.directorId === 'dir-4') || PORTAL_ACCOUNTS[2];
   }
   if (
     cleaned.includes('adnan') ||
     cleaned.includes('আদনান')
   ) {
-    return PORTAL_ACCOUNTS[3];
+    return allAccounts.find((a) => a.directorId === 'dir-1') || PORTAL_ACCOUNTS.find((a) => a.directorId === 'dir-1') || PORTAL_ACCOUNTS[3];
   }
   if (
     cleaned.includes('summy') ||
     cleaned.includes('সাম্মী') ||
     cleaned.includes('শাম্মী')
   ) {
-    return PORTAL_ACCOUNTS[4];
+    return allAccounts.find((a) => a.directorId === 'dir-2') || PORTAL_ACCOUNTS.find((a) => a.directorId === 'dir-2') || PORTAL_ACCOUNTS[4];
   }
   if (cleaned === 'director' || cleaned.includes('পরিচালক')) {
-    return PORTAL_ACCOUNTS[1];
-  }
-
-  // Principal
-  if (
-    cleaned.includes('principal') ||
-    cleaned.includes('admin') ||
-    cleaned.includes('shafee') ||
-    cleaned.includes('shafi') ||
-    cleaned.includes('প্রিন্সিপাল') ||
-    cleaned.includes('শাফী') ||
-    cleaned.includes('শাফি')
-  ) {
-    return PORTAL_ACCOUNTS.find((a) => a.role === 'principal') || null;
+    return allAccounts.find((a) => a.role === 'director') || PORTAL_ACCOUNTS[2];
   }
 
   // Teacher
