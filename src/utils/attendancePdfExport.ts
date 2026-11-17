@@ -467,6 +467,18 @@ export function generateAttendancePdfHtml(
  * Triggers the PDF export by writing the styled report to an isolated window or iframe,
  * opening the browser's Print-to-PDF dialog with crisp vector Bengali typography.
  */
+export function downloadAttendanceDocFile(html: string, filename: string): void {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function exportMonthlyAttendancePdf(
   summaries: StudentMonthlyAttendanceSummary[],
   meta: MonthlyAttendanceReportMeta,
@@ -481,6 +493,12 @@ export function exportMonthlyAttendancePdf(
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch {}
+      }, 500);
       return true;
     }
   } catch (e) {

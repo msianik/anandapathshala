@@ -32,6 +32,7 @@ import {
   generateStaffDailyAttendancePdfHtml,
   generateStaffMonthlyAttendancePdfHtml,
   exportStaffAttendancePrint,
+  downloadStaffAttendanceReportFile,
 } from '../utils/staffAttendanceReportLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
 import { StaffDetailsModal } from './StaffDetailsModal';
@@ -387,9 +388,25 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     exportStaffAttendancePrint(html);
   };
 
+  const handleDownloadDailyStaffPdf = () => {
+    const html = generateStaffDailyAttendancePdfHtml(attendanceRecords, selectedDate);
+    downloadStaffAttendanceReportFile(html, `ananda_staff_daily_attendance_${selectedDate}.html`);
+    exportStaffAttendancePrint(html);
+    setStaffCheckInToast('📥 দৈনিক অফিসিয়াল PDF রিপোর্ট ডাউনলোড ও প্রিন্ট ডায়ালগ সফলভাবে চালু হয়েছে!');
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
   const handlePrintMonthlyStaffPdf = () => {
     const html = generateStaffMonthlyAttendancePdfHtml(filteredMonthlySummaries, monthlySummaryData.meta);
     exportStaffAttendancePrint(html);
+  };
+
+  const handleDownloadMonthlyStaffPdf = () => {
+    const html = generateStaffMonthlyAttendancePdfHtml(filteredMonthlySummaries, monthlySummaryData.meta);
+    downloadStaffAttendanceReportFile(html, `ananda_staff_monthly_attendance_${selectedAttendanceMonth}.html`);
+    exportStaffAttendancePrint(html);
+    setStaffCheckInToast('📥 ১-কাগজের অফিসিয়াল PDF রিপোর্ট ফাইল ডাউনলোড ও প্রিন্ট ডায়ালগ সফলভাবে চালু হয়েছে!');
+    setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
   const handleExportMonthlyStaffCsv = () => {
@@ -1271,12 +1288,22 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
                 <button
                   type="button"
+                  onClick={handleDownloadDailyStaffPdf}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="দৈনিক হাজিরা অফিসিয়াল PDF রিপোর্ট ডাউনলোড ও প্রিন্ট"
+                >
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>দৈনিক PDF ডাউনলোড</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handlePrintDailyStaffPdf}
                   className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                   title="দৈনিক হাজিরা অফিসিয়াল A4 PDF প্রিন্ট / সংরক্ষণ"
                 >
-                  <FileText className="w-4 h-4 text-indigo-600" />
-                  <span>দৈনিক PDF রেকর্ড</span>
+                  <Printer className="w-4 h-4 text-indigo-600" />
+                  <span>প্রিন্ট শিট</span>
                 </button>
 
                 <button
@@ -1572,12 +1599,22 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={handlePrintMonthlyStaffPdf}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
-                  title="সকল স্টাফদের মাসিক হাজিরা ১টি A4 কাগজে প্রিন্ট ও PDF সংরক্ষণ করুন"
+                  onClick={handleDownloadMonthlyStaffPdf}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 via-teal-800 to-emerald-900 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+                  title="সকল স্টাফদের মাসিক ১-কাগজের অফিসিয়াল PDF রিপোর্ট সরাসরি ডাউনলোড ও প্রিন্ট করুন"
                 >
-                  <Printer className="w-4 h-4 text-amber-300" />
-                  <span>📄 অফিসিয়াল ১-কাগজ PDF প্রিন্ট ও সেভ</span>
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>📥 ১-কাগজ PDF ডাউনলোড</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrintMonthlyStaffPdf}
+                  className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                  title="১টি A4 কাগজে সরাসরি প্রিন্ট ও ব্রাউজারে PDF সেভ করুন"
+                >
+                  <Printer className="w-4 h-4 text-indigo-700" />
+                  <span>🖨️ প্রিন্ট ও সেভ</span>
                 </button>
 
                 <button
@@ -1587,7 +1624,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                   title="মাসিক হাজিরা এক্সেল / CSV ফরম্যাটে ডাউনলোড করুন"
                 >
                   <Download className="w-4 h-4 text-emerald-600" />
-                  <span>📥 মাসিক CSV রিপোর্ট</span>
+                  <span>📊 মাসিক CSV ডাউনলোড</span>
                 </button>
               </div>
             </div>

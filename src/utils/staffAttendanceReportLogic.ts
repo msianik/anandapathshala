@@ -392,9 +392,41 @@ export function generateStaffDailyAttendancePdfHtml(
     .font-mono { font-family: monospace; }
     .signatures { display: flex; justify-content: space-between; margin-top: 25px; padding-top: 6px; }
     .sig-line { width: 28%; text-align: center; border-top: 1px dashed #64748b; padding-top: 4px; font-size: 8.5px; font-weight: bold; }
+    @media print {
+      .no-print { display: none !important; }
+    }
   </style>
+  <script>
+    function downloadDoc() {
+      var blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (document.title || 'report').replace(/[^a-zA-Z0-9_\-\u0980-\u09FF]/g, '_') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
 </head>
 <body>
+  <div class="no-print" style="background: #0f766e; color: white; padding: 8px 16px; margin: -10mm -10mm 12px -10mm; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: sans-serif; position: sticky; top: 0; z-index: 9999; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="font-weight: 800; font-size: 12px;">
+      আনন্দ পাঠশালা — দৈনিক হাজিরা রিপোর্ট
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="window.print()" style="background: #ffffff; color: #0f766e; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">
+        🖨️ প্রিন্ট ও PDF সংরক্ষণ
+      </button>
+      <button onclick="downloadDoc()" style="background: #facc15; color: #1e293b; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer;">
+        📥 রিপোর্ট ডাউনলোড
+      </button>
+      <button onclick="window.close()" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+        ✕ বন্ধ
+      </button>
+    </div>
+  </div>
   <table class="header-table">
     <tr>
       <td style="width: 55px; vertical-align: middle;">
@@ -638,9 +670,41 @@ export function generateStaffMonthlyAttendancePdfHtml(
       font-weight: bold;
       color: #334155;
     }
+    @media print {
+      .no-print { display: none !important; }
+    }
   </style>
+  <script>
+    function downloadDoc() {
+      var blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (document.title || 'staff_monthly_attendance_report').replace(/[^a-zA-Z0-9_\-\u0980-\u09FF]/g, '_') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
 </head>
 <body>
+  <div class="no-print" style="background: #1e1b4b; color: white; padding: 10px 18px; margin: -10mm -10mm 15px -10mm; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: sans-serif; position: sticky; top: 0; z-index: 9999; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);">
+    <div style="font-weight: 800; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+      <span>আনন্দ পাঠশালা — স্টাফ মাসিক হাজিরা ১-কাগজ অফিশিয়াল রিপোর্ট</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="window.print()" style="background: #10b981; color: white; border: none; padding: 7px 16px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
+        🖨️ প্রিন্ট করুন / Save as PDF
+      </button>
+      <button onclick="downloadDoc()" style="background: #4f46e5; color: white; border: none; padding: 7px 16px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
+        📥 রিপোর্ট ফাইল ডাউনলোড
+      </button>
+      <button onclick="window.close()" style="background: #64748b; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+        ✕ বন্ধ
+      </button>
+    </div>
+  </div>
   <!-- Print Header -->
   <div class="print-header">
     <div>
@@ -741,6 +805,21 @@ export function generateStaffMonthlyAttendancePdfHtml(
 }
 
 /**
+ * Direct file downloader for official formatted attendance reports (.html / printable doc)
+ */
+export function downloadStaffAttendanceReportFile(html: string, filename: string): void {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Triggers the browser print dialog or fallback hidden iframe print
  */
 export function exportStaffAttendancePrint(html: string): boolean {
@@ -750,6 +829,12 @@ export function exportStaffAttendancePrint(html: string): boolean {
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch {}
+      }, 500);
       return true;
     }
   } catch (e) {

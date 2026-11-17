@@ -45,7 +45,7 @@ import {
   CheckCircle2,
   ChevronDown
 } from 'lucide-react';
-import { exportMonthlyAttendancePdf, generateAttendancePdfHtml } from '../utils/attendancePdfExport';
+import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
 
 const PRE_SCHOOL_LATE_REASONS = [
@@ -206,6 +206,31 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       `📥 "${classLabelBn}" এর ${exportMeta.monthNameBn} এর মাসিক হাজিরা CSV রিপোর্ট সফলভাবে ডাউনলোড হয়েছে!`
     );
     setTimeout(() => setSmsSentToast(null), 5000);
+  };
+
+  // Direct Download Official PDF Record
+  const handleDownloadPdf = (scopeOverride?: SchoolClass | 'all') => {
+    const targetScope = scopeOverride ?? selectedReportClass;
+    const { summaries: exportData, meta: exportMeta } = generateMonthlyAttendanceSummary(
+      students,
+      attendanceRecords,
+      selectedMonthKey,
+      targetScope
+    );
+
+    const classLabelBn =
+      targetScope === 'all' ? 'সকল শ্রেণি (All Classes)' : `${targetScope} শ্রেণি`;
+
+    const html = generateAttendancePdfHtml(exportData, exportMeta, classLabelBn);
+    downloadAttendanceDocFile(
+      html,
+      `ananda_monthly_attendance_${targetScope}_${exportMeta.monthNameEn.toLowerCase()}_${exportMeta.year}.html`
+    );
+    exportMonthlyAttendancePdf(exportData, exportMeta, classLabelBn);
+    setSmsSentToast(
+      `📥 "${classLabelBn}" এর অফিশিয়াল ১-কাগজ PDF ফাইল ডাউনলোড ও প্রিন্ট ডায়ালগ সফলভাবে চালু হয়েছে!`
+    );
+    setTimeout(() => setSmsSentToast(null), 6000);
   };
 
   // Export & Download / Print Official PDF Record
@@ -402,12 +427,12 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleExportPdf(selectedClass)}
+                onClick={() => handleDownloadPdf(selectedClass)}
                 className="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer border border-rose-300/40"
                 title={`${selectedClass} শ্রেণির চলতি মাসের অফিশিয়াল PDF হাজিরা রেকর্ড ডাউনলোড ও প্রিন্ট করুন`}
               >
-                <FileText className="w-4 h-4 text-rose-100" />
-                <span className="hidden sm:inline">PDF রেকর্ড</span>
+                <Download className="w-4 h-4 text-rose-100" />
+                <span className="hidden sm:inline">PDF ডাউনলোড</span>
               </button>
             </>
           )}
@@ -770,12 +795,22 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              onClick={() => handleExportPdf(selectedReportClass)}
-              className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
-              title="নির্বাচিত শ্রেণির সকল শিক্ষার্থীদের মাসিক হাজিরা অফিশিয়াল ১টি A4 কাগজে প্রিন্ট ও PDF সংরক্ষণ করুন"
+              onClick={() => handleDownloadPdf(selectedReportClass)}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 via-teal-800 to-emerald-900 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+              title="সকল শিক্ষার্থীদের মাসিক ১-কাগজের অফিসিয়াল PDF রিপোর্ট সরাসরি ডাউনলোড ও প্রিন্ট করুন"
             >
-              <Printer className="w-4 h-4 text-amber-300" />
-              <span>📄 অফিসিয়াল ১-কাগজ PDF প্রিন্ট ও সেভ</span>
+              <Download className="w-4 h-4 text-amber-300" />
+              <span>📥 ১-কাগজ PDF ডাউনলোড</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportPdf(selectedReportClass)}
+              className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="১টি A4 কাগজে সরাসরি প্রিন্ট ও ব্রাউজারে PDF সেভ করুন"
+            >
+              <Printer className="w-4 h-4 text-indigo-700" />
+              <span>🖨️ প্রিন্ট ও সেভ</span>
             </button>
 
             <button
@@ -785,7 +820,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
               title="মাসিক হাজিরা এক্সেল / CSV ফরম্যাটে ডাউনলোড করুন"
             >
               <Download className="w-4 h-4 text-emerald-600" />
-              <span>📥 মাসিক CSV ডাউনলোড</span>
+              <span>📊 মাসিক CSV ডাউনলোড</span>
             </button>
           </div>
         </div>
@@ -1372,12 +1407,12 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => handleExportPdf(selectedReportClass)}
+                  onClick={() => handleDownloadPdf(selectedReportClass)}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer"
                   title="স্কুল রেকর্ডের জন্য অফিসিয়াল PDF হাজিরা রিপোর্ট ডাউনলোড ও প্রিন্ট করুন"
                 >
-                  <FileText className="w-4 h-4 text-rose-100" />
-                  <span>PDF রিপোর্ট এক্সপোর্ট</span>
+                  <Download className="w-4 h-4 text-rose-100" />
+                  <span>PDF রিপোর্ট ডাউনলোড</span>
                 </button>
 
                 <button
@@ -1428,11 +1463,20 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => handleDownloadPdf(selectedReportClass)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  title="PDF রিপোর্ট ফাইল ডাউনলোড করুন"
+                >
+                  <Download className="w-4 h-4 text-emerald-100" />
+                  <span>PDF ডাউনলোড</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleExportPdf(selectedReportClass)}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>প্রিন্ট / PDF হিসেবে সংরক্ষণ করুন</span>
+                  <span>প্রিন্ট / PDF সংরক্ষণ</span>
                 </button>
                 <button
                   type="button"
