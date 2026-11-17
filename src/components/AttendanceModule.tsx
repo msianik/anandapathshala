@@ -93,6 +93,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   const [activeLateStudentId, setActiveLateStudentId] = useState<string | null>(null);
   const [activeAbsentStudentId, setActiveAbsentStudentId] = useState<string | null>(null);
   const [alertSuccessBanner, setAlertSuccessBanner] = useState<string | null>(null);
+  const [attendanceViewMode, setAttendanceViewMode] = useState<'daily' | 'monthly_tracker'>('daily');
 
   // ==========================================
   // Monthly Attendance Summary & CSV State
@@ -458,7 +459,48 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
 
 
-      {/* Class Selector & Stats */}
+      {/* Sub-Navigation Switcher: Daily Roll Call vs Monthly Continuous Tracker */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setAttendanceViewMode('daily')}
+            className={`px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              attendanceViewMode === 'daily'
+                ? 'bg-white text-teal-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4 text-teal-600" />
+            <span>দৈনিক ক্লাসরুম রোল কল</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAttendanceViewMode('monthly_tracker');
+              setSelectedReportClass(selectedClass);
+            }}
+            className={`px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              attendanceViewMode === 'monthly_tracker'
+                ? 'bg-white text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <span>শিক্ষার্থী ধারাবাহিক ট্র্যাকার (মাসিক রেজিস্টার)</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 pr-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${attendanceViewMode === 'daily' ? 'bg-teal-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+          <span>{attendanceViewMode === 'daily' ? 'আজকের লাইভ রোল কল' : 'মাসিক উপস্থিতি রেজিস্টার ও ১-কাগজ রিপোর্ট'}</span>
+        </div>
+      </div>
+
+      {attendanceViewMode === 'daily' && (
+        <>
+          {/* Class Selector & Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
           <label className="text-xs font-bold text-slate-700 block">শ্রেণি পরিবর্তন করুন:</label>
@@ -692,6 +734,356 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           })}
         </div>
       </div>
+    </>
+  )}
+
+  {/* ========================================================================= */}
+  {/* INLINE: STUDENT MONTHLY CONTINUOUS ATTENDANCE TRACKER & 1-PAGE REPORT    */}
+  {/* ========================================================================= */}
+  {attendanceViewMode === 'monthly_tracker' && (
+    <div className="space-y-6">
+      {/* Control Panel & Action Bar */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Month Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+              <Calendar className="w-4 h-4 text-emerald-700" />
+              <span>রিপোর্ট মাস নির্বাচন করুন:</span>
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={selectedMonthKey}
+                onChange={(e) => setSelectedMonthKey(e.target.value)}
+                className="px-3.5 py-2 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-xs sm:text-sm font-black text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+              >
+                {MONTH_OPTIONS.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.nameBn} ({toBengaliNumber(m.totalWorkingDays)} কার্যদিবস)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Action Buttons: 1-Page Official PDF & CSV */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => handleExportPdf(selectedReportClass)}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+              title="নির্বাচিত শ্রেণির সকল শিক্ষার্থীদের মাসিক হাজিরা অফিশিয়াল ১টি A4 কাগজে প্রিন্ট ও PDF সংরক্ষণ করুন"
+            >
+              <Printer className="w-4 h-4 text-amber-300" />
+              <span>📄 অফিসিয়াল ১-কাগজ PDF প্রিন্ট ও সেভ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportCsv(selectedReportClass)}
+              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="মাসিক হাজিরা এক্সেল / CSV ফরম্যাটে ডাউনলোড করুন"
+            >
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span>📥 মাসিক CSV ডাউনলোড</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Scope, Consistency & Search Bar */}
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          {/* Class Scope Pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-emerald-700" />
+              শ্রেণি:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedReportClass('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedReportClass === 'all'
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              সকল শ্রেণি (All Classes)
+            </button>
+            {ALL_SCHOOL_CLASSES.map((cls) => (
+              <button
+                key={cls.id}
+                type="button"
+                onClick={() => setSelectedReportClass(cls.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  selectedReportClass === cls.id
+                    ? 'bg-emerald-700 text-white shadow-2xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                {cls.nameBn}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Search Box */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="শিক্ষার্থীর নাম, রোল নম্বর বা অভিভাবকের ফোন নম্বর লিখে খুঁজুন..."
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+              />
+            </div>
+
+            {/* Consistency Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+              <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                ধারাবাহিকতা:
+              </span>
+              {[
+                { id: 'all', label: 'সকল শিক্ষার্থী' },
+                { id: 'excellent', label: '🌟 অসাধারণ (≥ ৯২%)' },
+                { id: 'regular', label: '✅ নিয়মিত (৮০-৯১%)' },
+                { id: 'needs_attention', label: '⚠️ নজরদারি (< ৮০%)' },
+              ].map((tier) => (
+                <button
+                  key={tier.id}
+                  type="button"
+                  onClick={() => setConsistencyFilter(tier.id as any)}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs cursor-pointer whitespace-nowrap ${
+                    consistencyFilter === tier.id
+                      ? 'bg-emerald-700 text-white shadow-2xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Metric Overview Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            মোট কার্যকর কর্মদিবস
+          </span>
+          <div className="text-2xl font-black text-slate-800">
+            {toBengaliNumber(reportMeta.totalWorkingDays)} দিন
+          </div>
+          <span className="text-[10px] text-slate-500 mt-1 block">
+            {reportMeta.monthNameBn} {toBengaliNumber(reportMeta.year)}
+          </span>
+        </div>
+
+        <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/80 shadow-2xs">
+          <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+            <Award className="w-3.5 h-3.5 text-emerald-600" /> গড় উপস্থিতি হার
+          </span>
+          <div className="text-2xl font-black text-emerald-800">
+            {toBengaliNumber(reportMeta.avgAttendanceRate)}%
+          </div>
+          <span className="text-[10px] text-emerald-700 mt-1 block">
+            সার্বিক শ্রেণি ধারাবাহিকতা
+          </span>
+        </div>
+
+        <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200/80 shadow-2xs">
+          <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> অসাধারণ ধারাবাহিকতা
+          </span>
+          <div className="text-2xl font-black text-indigo-800">
+            {toBengaliNumber(reportMeta.excellentCount)} জন
+          </div>
+          <span className="text-[10px] text-indigo-700 mt-1 block">
+            উপস্থিতির হার ৯২% বা তার বেশি
+          </span>
+        </div>
+
+        <div className="bg-rose-50/70 p-4 rounded-2xl border border-rose-200/80 shadow-2xs">
+          <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-600" /> নিবিড় নজরদারি প্রয়োজন
+          </span>
+          <div className="text-2xl font-black text-rose-800">
+            {toBengaliNumber(reportMeta.needsAttentionCount)} জন
+          </div>
+          <span className="text-[10px] text-rose-700 mt-1 block">
+            উপস্থিতির হার ৮০% এর কম
+          </span>
+        </div>
+      </div>
+
+      {/* Student Monthly Continuous Tracker Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-800">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-emerald-700" />
+            <span>
+              শিক্ষার্থীদের মাসিক ধারাবাহিক উপস্থিতি রেজিস্টার · {selectedReportClass === 'all' ? 'সকল শ্রেণি' : `${selectedReportClass} শ্রেণি`}
+            </span>
+            <span className="text-slate-500 font-mono font-normal">
+              ({filteredSummaries.length} জন শিক্ষার্থী)
+            </span>
+          </div>
+          <span className="text-[11px] text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 font-semibold inline-flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>১টি কাগজে প্রিন্ট ও সেভ ফরম্যাট প্রস্তুত</span>
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-[11px]">
+              <tr>
+                <th className="py-3 px-3 text-center" style={{ width: '40px' }}>ক্র.</th>
+                <th className="py-3 px-3 text-center" style={{ width: '50px' }}>রোল</th>
+                <th className="py-3 px-4">শিক্ষার্থীর নাম</th>
+                <th className="py-3 px-3">শ্রেণি</th>
+                <th className="py-3 px-2 text-center" title="মোট কার্যকর কর্মদিবস">কর্মদিবস</th>
+                <th className="py-3 px-2 text-center text-emerald-700" title="উপস্থিত">উপস্থিত (P)</th>
+                <th className="py-3 px-2 text-center text-amber-700" title="বিলম্ব">বিলম্ব (L)</th>
+                <th className="py-3 px-2 text-center text-rose-700" title="অনুপস্থিত">অনুপস্থিত (A)</th>
+                <th className="py-3 px-3 text-center" style={{ minWidth: '120px' }}>উপস্থিতির হার</th>
+                <th className="py-3 px-3 text-center">ধারাবাহিকতা</th>
+                <th className="py-3 px-3">অভিভাবক ও ফোন</th>
+                <th className="py-3 px-3">মন্তব্য / পর্যবেক্ষণ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
+              {filteredSummaries.map((s, idx) => {
+                return (
+                  <tr key={s.studentId} className="hover:bg-slate-50/80 transition-colors">
+                    {/* Serial */}
+                    <td className="py-3 px-3 text-center font-bold text-slate-500">
+                      {toBengaliNumber(idx + 1)}
+                    </td>
+
+                    {/* Roll */}
+                    <td className="py-3 px-3 text-center font-mono font-bold text-slate-700">
+                      {s.rollNo}
+                    </td>
+
+                    {/* Name */}
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                        {s.nameBn}
+                      </div>
+                      <span className="text-[10px] text-slate-500 block">
+                        {s.nameEn}
+                      </span>
+                    </td>
+
+                    {/* Class */}
+                    <td className="py-3 px-3">
+                      <span className="font-semibold text-slate-800 text-xs">
+                        {s.className}
+                      </span>
+                    </td>
+
+                    {/* Working Days */}
+                    <td className="py-3 px-2 text-center font-bold text-slate-700">
+                      {toBengaliNumber(s.totalWorkingDays)}
+                    </td>
+
+                    {/* Present */}
+                    <td className="py-3 px-2 text-center">
+                      <span className="inline-block px-2 py-0.5 rounded-md font-black bg-emerald-100 text-emerald-800 text-[11px]">
+                        {toBengaliNumber(s.presentDays)}
+                      </span>
+                    </td>
+
+                    {/* Late */}
+                    <td className="py-3 px-2 text-center">
+                      <span className="inline-block px-2 py-0.5 rounded-md font-bold bg-amber-100 text-amber-800 text-[11px]">
+                        {toBengaliNumber(s.lateDays)}
+                      </span>
+                    </td>
+
+                    {/* Absent */}
+                    <td className="py-3 px-2 text-center">
+                      <span className="inline-block px-2 py-0.5 rounded-md font-bold bg-rose-100 text-rose-800 text-[11px]">
+                        {toBengaliNumber(s.absentDays)}
+                      </span>
+                    </td>
+
+                    {/* Attendance Rate */}
+                    <td className="py-3 px-3 text-center">
+                      <div className="space-y-1">
+                        <span className="font-black text-slate-800 text-xs">
+                          {toBengaliNumber(s.attendanceRate)}%
+                        </span>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              s.attendanceRate >= 92
+                                ? 'bg-emerald-600'
+                                : s.attendanceRate >= 80
+                                ? 'bg-amber-500'
+                                : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${Math.min(100, s.attendanceRate)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Consistency Badge */}
+                    <td className="py-3 px-3 text-center">
+                      {s.consistencyTier === 'excellent' && (
+                        <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black border border-emerald-300">
+                          🌟 অসাধারণ
+                        </span>
+                      )}
+                      {s.consistencyTier === 'regular' && (
+                        <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold border border-amber-300">
+                          ✅ নিয়মিত
+                        </span>
+                      )}
+                      {s.consistencyTier === 'needs_attention' && (
+                        <span className="inline-block px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full text-[10px] font-bold border border-rose-300">
+                          ⚠️ নজরদারি
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Guardian & Phone */}
+                    <td className="py-3 px-3">
+                      <span className="text-xs font-semibold text-slate-800 block">
+                        {s.guardianNameBn}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono block">
+                        {s.emergencyPhone}
+                      </span>
+                    </td>
+
+                    {/* Remarks */}
+                    <td className="py-3 px-3">
+                      <span className="text-xs text-slate-600 block max-w-xs">
+                        {s.remarksBn}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredSummaries.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 text-center">
+            <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-500 text-xs font-bold">কোনো শিক্ষার্থীর রেকর্ড পাওয়া যায়নি।</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
 
       {/* ========================================================================= */}
       {/* MODAL: MONTHLY ATTENDANCE SUMMARY & CSV EXPORT DIALOG                     */}

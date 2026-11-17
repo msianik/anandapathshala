@@ -23,6 +23,16 @@ import {
   TEACHERS_UPDATED_EVENT,
 } from '../utils/staffManagementLogic';
 import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
+import {
+  StaffMonthlyAttendanceSummary,
+  StaffMonthlyReportMeta,
+  generateStaffMonthlyAttendanceSummary,
+  exportStaffDailyCsv,
+  exportStaffMonthlyCsv,
+  generateStaffDailyAttendancePdfHtml,
+  generateStaffMonthlyAttendancePdfHtml,
+  exportStaffAttendancePrint,
+} from '../utils/staffAttendanceReportLogic';
 import { TeacherIdCardModal } from './TeacherIdCardModal';
 import { StaffDetailsModal } from './StaffDetailsModal';
 import { StaffIdCardTab } from './StaffIdCardTab';
@@ -73,6 +83,9 @@ import {
   Fingerprint,
   Radio,
   RotateCcw,
+  FileSpreadsheet,
+  BarChart3,
+  FileCheck,
 } from 'lucide-react';
 
 interface StaffManagementModuleProps {
@@ -239,6 +252,37 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
   const pendingLeavesCount = leaveList.filter((l) => l.status === 'pending').length;
 
+  // Staff Attendance Mode & Monthly Tracker State
+  const [attendanceMode, setAttendanceMode] = useState<'daily' | 'monthly'>('daily');
+  const [selectedAttendanceMonth, setSelectedAttendanceMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [monthlyCategoryFilter, setMonthlyCategoryFilter] = useState<'all' | 'teacher' | 'support_staff' | 'principal'>('all');
+  const [monthlySearchQuery, setMonthlySearchQuery] = useState('');
+  const [detailMonthlyStaff, setDetailMonthlyStaff] = useState<StaffMonthlyAttendanceSummary | null>(null);
+
+  // Compute monthly summary
+  const monthlySummaryData = useMemo(() => {
+    return generateStaffMonthlyAttendanceSummary(selectedAttendanceMonth);
+  }, [selectedAttendanceMonth, staffList]);
+
+  // Filtered monthly summaries
+  const filteredMonthlySummaries = useMemo(() => {
+    return monthlySummaryData.summaries.filter((s) => {
+      const matchCat = monthlyCategoryFilter === 'all' || s.staffCategory === monthlyCategoryFilter;
+      if (!monthlySearchQuery.trim()) return matchCat;
+      const q = monthlySearchQuery.toLowerCase().trim();
+      const matchSearch =
+        s.nameBn.toLowerCase().includes(q) ||
+        s.nameEn.toLowerCase().includes(q) ||
+        s.designationBn.toLowerCase().includes(q) ||
+        s.departmentBn.toLowerCase().includes(q) ||
+        s.phone.includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [monthlySummaryData, monthlyCategoryFilter, monthlySearchQuery]);
+
   // Digital check-in console state
   const [selectedStaffTeacherId, setSelectedStaffTeacherId] = useState<string>(() => staffList[0]?.id || 'tch-1');
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
@@ -334,7 +378,24 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     ]);
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     downloadAttendanceCsvFile(csvContent, `ananda_pathshala_staff_attendance_${selectedDate}.csv`);
-    setStaffCheckInToast('📥 শিক্ষক ও স্টাফ হাজিরা CSV ফাইল সফলভাবে ডাউনলোড হয়েছে!');
+    setStaffCheckInToast('📥 শিক্ষক ও স্টাফ দৈনিক হাজিরা CSV ডাউনলোড হয়েছে!');
+    setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  const handlePrintDailyStaffPdf = () => {
+    const html = generateStaffDailyAttendancePdfHtml(attendanceRecords, selectedDate);
+    exportStaffAttendancePrint(html);
+  };
+
+  const handlePrintMonthlyStaffPdf = () => {
+    const html = generateStaffMonthlyAttendancePdfHtml(filteredMonthlySummaries, monthlySummaryData.meta);
+    exportStaffAttendancePrint(html);
+  };
+
+  const handleExportMonthlyStaffCsv = () => {
+    const csvContent = exportStaffMonthlyCsv(filteredMonthlySummaries, monthlySummaryData.meta);
+    downloadAttendanceCsvFile(csvContent, `ananda_pathshala_staff_monthly_attendance_${selectedAttendanceMonth}.csv`);
+    setStaffCheckInToast('📥 শিক্ষক ও স্টাফ মাসিক ধারাবাহিক হাজিরা CSV ডাউনলোড হয়েছে!');
     setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
@@ -904,7 +965,45 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
             </div>
           )}
 
-          {/* Digital Check-In Hero Card */}
+          {/* Sub-Navigation Switcher: Daily vs Monthly Tracker */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setAttendanceMode('daily')}
+                className={`px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  attendanceMode === 'daily'
+                    ? 'bg-white text-indigo-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Clock className="w-4 h-4 text-indigo-600" />
+                <span>প্রাতঃকালীন দৈনিক হাজিরা</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAttendanceMode('monthly')}
+                className={`px-4 py-2 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                  attendanceMode === 'monthly'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 text-emerald-600" />
+                <span>মাসিক ধারাবাহিক ট্র্যাকার ও ১-কাগজ রিপোর্ট</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 pr-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${attendanceMode === 'daily' ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+              <span>{attendanceMode === 'daily' ? 'লাইভ দৈনিক হাজিরা ট্র্যাকিং' : 'মাসিক সামগ্রিক উপস্থিতি রেজিস্টার'}</span>
+            </div>
+          </div>
+
+          {attendanceMode === 'daily' && (
+            <>
+              {/* Digital Check-In Hero Card */}
           <div className="bg-white rounded-3xl border-2 border-indigo-200 p-5 sm:p-6 shadow-sm">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
               {/* Left Column: Live Clock & Shift Rule Info */}
@@ -1172,22 +1271,22 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
                 <button
                   type="button"
-                  onClick={handleExportStaffCsv}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="হাজিরা CSV ডাউনলোড"
+                  onClick={handlePrintDailyStaffPdf}
+                  className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="দৈনিক হাজিরা অফিসিয়াল A4 PDF প্রিন্ট / সংরক্ষণ"
                 >
-                  <Download className="w-4 h-4 text-emerald-600" />
-                  <span>CSV</span>
+                  <FileText className="w-4 h-4 text-indigo-600" />
+                  <span>দৈনিক PDF রেকর্ড</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="প্রিন্ট শিট"
+                  onClick={handleExportStaffCsv}
+                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  title="দৈনিক হাজিরা CSV ডাউনলোড"
                 >
-                  <Printer className="w-4 h-4" />
-                  <span>প্রিন্ট</span>
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  <span>দৈনিক CSV</span>
                 </button>
               </div>
             </div>
@@ -1422,8 +1521,349 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
               </table>
             </div>
           </div>
+        </>
+      )}
+
+      {/* MONTHLY CONTINUOUS ATTENDANCE TRACKER & 1-PAGE REPORT */}
+      {attendanceMode === 'monthly' && (
+        <div className="space-y-6">
+          {/* Monthly Control Panel & Action Bar */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Left: Month Selector & Quick Buttons */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    হাজিরা মাস নির্বাচন করুন:
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="month"
+                    value={selectedAttendanceMonth}
+                    onChange={(e) => setSelectedAttendanceMonth(e.target.value)}
+                    className="px-3.5 py-2 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-xs sm:text-sm font-black text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                  />
+                  <div className="flex items-center gap-1.5 text-xs">
+                    {[
+                      { key: '2026-11', label: 'নভেম্বর ২০২৬' },
+                      { key: '2026-10', label: 'অক্টোবর ২০২৬' },
+                      { key: '2026-09', label: 'সেপ্টেম্বর ২০২৬' },
+                    ].map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setSelectedAttendanceMonth(m.key)}
+                        className={`px-2.5 py-1.5 rounded-lg font-bold transition-all text-xs cursor-pointer ${
+                          selectedAttendanceMonth === m.key
+                            ? 'bg-emerald-700 text-white shadow-2xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: PDF & CSV Download Buttons */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handlePrintMonthlyStaffPdf}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-black flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+                  title="সকল স্টাফদের মাসিক হাজিরা ১টি A4 কাগজে প্রিন্ট ও PDF সংরক্ষণ করুন"
+                >
+                  <Printer className="w-4 h-4 text-amber-300" />
+                  <span>📄 অফিসিয়াল ১-কাগজ PDF প্রিন্ট ও সেভ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportMonthlyStaffCsv}
+                  className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                  title="মাসিক হাজিরা এক্সেল / CSV ফরম্যাটে ডাউনলোড করুন"
+                >
+                  <Download className="w-4 h-4 text-emerald-600" />
+                  <span>📥 মাসিক CSV রিপোর্ট</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={monthlySearchQuery}
+                  onChange={(e) => setMonthlySearchQuery(e.target.value)}
+                  placeholder="মাসিক রেকর্ডে নাম, পদবি, বিভাগ বা ফোন নম্বর লিখে খুঁজুন..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
+                <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-emerald-600" />
+                  বিভাগ:
+                </span>
+                {[
+                  { id: 'all', label: `সকল স্টাফ (${monthlySummaryData.meta.totalStaff})` },
+                  { id: 'teacher', label: 'শিক্ষকবৃন্দ' },
+                  { id: 'principal', label: 'প্রিন্সিপাল ও ইনচার্জ' },
+                  { id: 'support_staff', label: 'সহায়ক কর্মী' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setMonthlyCategoryFilter(cat.id as any)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs cursor-pointer whitespace-nowrap ${
+                      monthlyCategoryFilter === cat.id
+                        ? 'bg-emerald-700 text-white shadow-2xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Monthly Metric Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                মোট কার্যকর কর্মদিবস
+              </span>
+              <div className="text-2xl font-black text-slate-800">
+                {toBengaliNumber(monthlySummaryData.meta.totalWorkingDays)} দিন
+              </div>
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                {monthlySummaryData.meta.monthNameBn} {toBengaliNumber(monthlySummaryData.meta.year)}
+              </span>
+            </div>
+
+            <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200/80 shadow-2xs">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-emerald-600" /> গড় উপস্থিতি হার
+              </span>
+              <div className="text-2xl font-black text-emerald-800">
+                {toBengaliNumber(monthlySummaryData.meta.avgAttendanceRate)}%
+              </div>
+              <span className="text-[10px] text-emerald-700 mt-1 block">
+                সার্বিক শিক্ষক ও কর্মী ধারাবাহিকতা
+              </span>
+            </div>
+
+            <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200/80 shadow-2xs">
+              <span className="text-[11px] font-bold text-indigo-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" /> শতভাগ উপস্থিত
+              </span>
+              <div className="text-2xl font-black text-indigo-800">
+                {toBengaliNumber(monthlySummaryData.meta.perfectAttendanceCount)} জন
+              </div>
+              <span className="text-[10px] text-indigo-700 mt-1 block">
+                কোনো অনুপস্থিতি বা বিলম্ব ব্যতিরেকে
+              </span>
+            </div>
+
+            <div className="bg-purple-50/70 p-4 rounded-2xl border border-purple-200/80 shadow-2xs">
+              <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-purple-600" /> মোট স্টাফ রেজিস্টার
+              </span>
+              <div className="text-2xl font-black text-purple-800">
+                {toBengaliNumber(monthlySummaryData.meta.totalStaff)} জন
+              </div>
+              <span className="text-[10px] text-purple-700 mt-1 block">
+                বায়োমেট্রিক ও ডিজিটাল ট্র্যাকিংভুক্ত
+              </span>
+            </div>
+          </div>
+
+          {/* Monthly Consistency Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-bold text-slate-800">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-emerald-700" />
+                <span>স্টাফদের মাসিক উপস্থিতি ও ধারাবাহিকতা ট্র্যাকার রেজিস্টার</span>
+                <span className="text-slate-500 font-mono font-normal">
+                  ({filteredMonthlySummaries.length} জন কর্মী তালিকাভুক্ত)
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 font-semibold inline-flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                <span>১টি প্রিন্ট শিটেই পুরো মাসের সকল তথ্য সংরক্ষিত</span>
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-[11px]">
+                  <tr>
+                    <th className="py-3 px-3 text-center" style={{ width: '40px' }}>ক্র.</th>
+                    <th className="py-3 px-4">শিক্ষক / স্টাফের নাম</th>
+                    <th className="py-3 px-3">পদবি ও বিভাগ</th>
+                    <th className="py-3 px-2 text-center" title="মোট কর্মদিবস">কর্মদিবস</th>
+                    <th className="py-3 px-2 text-center text-emerald-700" title="সঠিক সময়ে উপস্থিত">উপস্থিত (P)</th>
+                    <th className="py-3 px-2 text-center text-amber-700" title="দেরিতে উপস্থিত">বিলম্ব (L)</th>
+                    <th className="py-3 px-2 text-center text-blue-700" title="ছুটি">ছুটি (C)</th>
+                    <th className="py-3 px-2 text-center text-rose-700" title="অনুপস্থিত">অনুপস্থিত (A)</th>
+                    <th className="py-3 px-3 text-center" style={{ minWidth: '120px' }}>উপস্থিতির হার</th>
+                    <th className="py-3 px-3 text-center">ধারাবাহিকতা</th>
+                    <th className="py-3 px-3 text-right">মাসিক রেকর্ড</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-800">
+                  {filteredMonthlySummaries.map((s, idx) => {
+                    return (
+                      <tr key={s.teacherId} className="hover:bg-slate-50/80 transition-colors">
+                        {/* Serial */}
+                        <td className="py-3 px-3 text-center font-bold text-slate-500">
+                          {toBengaliNumber(idx + 1)}
+                        </td>
+
+                        {/* Name & Photo */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center font-bold text-emerald-700">
+                              {s.photoUrl ? (
+                                <img
+                                  src={s.photoUrl}
+                                  alt={s.nameBn}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                s.nameBn.slice(0, 1)
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+                                <span>{s.nameBn}</span>
+                              </div>
+                              <span className="text-[11px] text-slate-500 font-mono block">
+                                {s.phone || s.nameEn}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Designation & Department */}
+                        <td className="py-3 px-3">
+                          <span className="font-semibold text-slate-800 block text-xs">
+                            {s.designationBn}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block truncate max-w-[150px]">
+                            {s.departmentBn || 'একাডেমিক শাখা'}
+                          </span>
+                        </td>
+
+                        {/* Total Working Days */}
+                        <td className="py-3 px-2 text-center font-bold text-slate-700">
+                          {toBengaliNumber(s.totalWorkingDays)}
+                        </td>
+
+                        {/* Present */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-md font-black bg-emerald-100 text-emerald-800 text-[11px]">
+                            {toBengaliNumber(s.presentDays)}
+                          </span>
+                        </td>
+
+                        {/* Late */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-md font-bold bg-amber-100 text-amber-800 text-[11px]">
+                            {toBengaliNumber(s.lateDays)}
+                          </span>
+                        </td>
+
+                        {/* Leave */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-md font-bold bg-blue-100 text-blue-800 text-[11px]">
+                            {toBengaliNumber(s.leaveDays)}
+                          </span>
+                        </td>
+
+                        {/* Absent */}
+                        <td className="py-3 px-2 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-md font-bold bg-rose-100 text-rose-800 text-[11px]">
+                            {toBengaliNumber(s.absentDays)}
+                          </span>
+                        </td>
+
+                        {/* Rate with Progress Bar */}
+                        <td className="py-3 px-3 text-center">
+                          <div className="space-y-1">
+                            <span className="font-black text-slate-800 text-xs">
+                              {toBengaliNumber(s.attendanceRate)}%
+                            </span>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  s.attendanceRate >= 95
+                                    ? 'bg-emerald-600'
+                                    : s.attendanceRate >= 85
+                                    ? 'bg-amber-500'
+                                    : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${Math.min(100, s.attendanceRate)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Consistency Badge */}
+                        <td className="py-3 px-3 text-center">
+                          {s.consistencyTier === 'excellent' && (
+                            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black border border-emerald-300">
+                              শতভাগ নিয়মিত ⭐
+                            </span>
+                          )}
+                          {s.consistencyTier === 'regular' && (
+                            <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold border border-amber-300">
+                              সন্তোষজনক ✓
+                            </span>
+                          )}
+                          {s.consistencyTier === 'needs_attention' && (
+                            <span className="inline-block px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full text-[10px] font-bold border border-rose-300">
+                              নজর প্রয়োজন ⚠️
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Action: Open Single Staff Calendar */}
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setDetailMonthlyStaff(s)}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 hover:border-emerald-300 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="পুরো মাসের দিনভিত্তিক ক্যালেন্ডার ও রেকর্ড দেখুন"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>ক্যালেন্ডার</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredMonthlySummaries.length === 0 && (
+              <div className="bg-white rounded-2xl p-12 text-center">
+                <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-500 text-xs font-bold">কোনো শিক্ষক বা স্টাফের রেকর্ড মেলেনি।</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
+    </div>
+  )}
 
       {/* ========================================================= */}
       {/* TAB: TEACHER & STAFF DIGITAL ID CARD STUDIO               */}
@@ -3107,6 +3547,113 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SINGLE STAFF MONTHLY ATTENDANCE MODAL */}
+      {detailMonthlyStaff && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 border-2 border-emerald-500">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 overflow-hidden shrink-0">
+                  {detailMonthlyStaff.photoUrl ? (
+                    <img src={detailMonthlyStaff.photoUrl} alt={detailMonthlyStaff.nameBn} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-black text-emerald-800 text-xl">
+                      {detailMonthlyStaff.nameBn.slice(0, 1)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-1">
+                    <span>{monthlySummaryData.meta.monthNameBn} {toBengaliNumber(monthlySummaryData.meta.year)}</span>
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">{detailMonthlyStaff.nameBn}</h3>
+                  <p className="text-xs text-slate-500">{detailMonthlyStaff.designationBn} · {detailMonthlyStaff.phone}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailMonthlyStaff(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-4 gap-2.5 text-center">
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-700 block">উপস্থিত (P)</span>
+                <span className="text-lg font-black text-emerald-900">{toBengaliNumber(detailMonthlyStaff.presentDays)} দিন</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                <span className="text-[10px] font-bold text-amber-700 block">বিলম্ব (L)</span>
+                <span className="text-lg font-black text-amber-900">{toBengaliNumber(detailMonthlyStaff.lateDays)} দিন</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200">
+                <span className="text-[10px] font-bold text-blue-700 block">ছুটি (C)</span>
+                <span className="text-lg font-black text-blue-900">{toBengaliNumber(detailMonthlyStaff.leaveDays)} দিন</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
+                <span className="text-[10px] font-bold text-rose-700 block">অনুপস্থিত (A)</span>
+                <span className="text-lg font-black text-rose-900">{toBengaliNumber(detailMonthlyStaff.absentDays)} দিন</span>
+              </div>
+            </div>
+
+            {/* Day-by-Day Grid */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>দিনভিত্তিক উপস্থিতি ক্যালেন্ডার:</span>
+                <span className="text-emerald-700">উপস্থিতির হার: {toBengaliNumber(detailMonthlyStaff.attendanceRate)}%</span>
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-200 max-h-56 overflow-y-auto">
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((day) => {
+                  const status = detailMonthlyStaff.dayStatus[day];
+                  let bg = 'bg-slate-200 text-slate-500';
+                  let label = 'ছুটি/বন্ধ';
+                  if (status === 'present') {
+                    bg = 'bg-emerald-500 text-white font-bold';
+                    label = 'উপস্থিত';
+                  } else if (status === 'late') {
+                    bg = 'bg-amber-400 text-slate-900 font-bold';
+                    label = 'বিলম্ব';
+                  } else if (status === 'leave') {
+                    bg = 'bg-blue-500 text-white font-bold';
+                    label = 'অনুমোদিত ছুটি';
+                  } else if (status === 'absent') {
+                    bg = 'bg-rose-500 text-white font-bold';
+                    label = 'অনুপস্থিত';
+                  }
+                  return (
+                    <div
+                      key={day}
+                      className={`p-2 rounded-xl text-center text-xs flex flex-col items-center justify-center transition shadow-2xs ${bg}`}
+                      title={`তারিখ ${day}: ${label}`}
+                    >
+                      <span className="text-[11px] font-mono leading-none">{toBengaliNumber(day)}</span>
+                      <span className="text-[9px] mt-0.5 leading-none opacity-90">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              <span className="text-[11px] text-slate-500">
+                মন্তব্য: {detailMonthlyStaff.remarksBn}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDetailMonthlyStaff(null)}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}
