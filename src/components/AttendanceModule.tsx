@@ -43,10 +43,13 @@ import {
   X,
   BellRing,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Fingerprint,
+  RefreshCw,
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
+import { syncBiometricAttendanceData } from '../utils/biometricAttendanceLogic';
 
 const PRE_SCHOOL_LATE_REASONS = [
   'দেরিতে ঘুম থেকে ওঠা',
@@ -86,7 +89,10 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 }) => {
   const [selectedClass, setSelectedClass] = useState<SchoolClass>('HateKhori');
   const [smsSentToast, setSmsSentToast] = useState<string | null>(null);
-  const [attendanceDateStr, setAttendanceDateStr] = useState<string>('আজ, ০৮ নভেম্বর ২০২৬ (রবিবার)');
+  const [attendanceDateStr, setAttendanceDateStr] = useState<string>(() => {
+    const today = new Date();
+    return `আজ, ${today.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' })}`;
+  });
   const [isAbsentModalOpen, setIsAbsentModalOpen] = useState(false);
   const [dailySearchQuery, setDailySearchQuery] = useState('');
   const [dailyStatusFilter, setDailyStatusFilter] = useState<'all' | 'present' | 'late' | 'absent'>('all');
@@ -383,6 +389,19 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     setTimeout(() => setAlertSuccessBanner(null), 8000);
   };
 
+  const handleSyncWithBiometricDevice = () => {
+    const result = syncBiometricAttendanceData({
+      students,
+      staffList: [],
+      existingAttendance: attendanceRecords,
+      existingStaffAttendance: [],
+    });
+    onUpdateAttendance(result.updatedAttendance);
+    const msg = `✓ বায়োমেট্রিক রিডার্স সিস্টেম থেকে ${toBengaliNumber(result.syncedPunchesCount)}টি পাঞ্চ সফলভাবে ক্লাসরুম হাজিরায় সিঙ্ক করা হয়েছে!`;
+    setAlertSuccessBanner(msg);
+    setTimeout(() => setAlertSuccessBanner(null), 6000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Banner */}
@@ -402,6 +421,15 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <button
+            type="button"
+            onClick={handleSyncWithBiometricDevice}
+            className="px-4 py-2.5 bg-sky-400 hover:bg-sky-300 active:scale-95 text-slate-950 rounded-xl text-xs font-black shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+            title="ZLink ক্লাউড ও বায়োমেট্রিক রিডার্স মেশিন থেকে শিক্ষার্থীদের লাইভ পাঞ্চ সিঙ্ক করুন"
+          >
+            <Fingerprint className="w-4 h-4 text-slate-950" />
+            <span>বায়োমেট্রিক সিঙ্ক</span>
+          </button>
           {isStaffOrAdmin && (
             <>
               <button

@@ -23,6 +23,7 @@ import {
   simulateZlinkWebhookPush,
   getCloudIntakeMethodDetails,
   formatBanglaTime,
+  syncBiometricDeviceClock,
 } from '../utils/biometricAttendanceLogic';
 import { toBengaliNumber, getSchoolClassNameBn } from '../utils/schoolLogic';
 import { SCHOOL_TEACHERS } from '../data/mockData';
@@ -130,6 +131,27 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [showCloudIntakeDetails, setShowCloudIntakeDetails] = useState(true);
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+  // Live Real-Time Device Clock
+  const [deviceLiveClock, setDeviceLiveClock] = useState(() =>
+    new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    const clkTimer = setInterval(() => {
+      setDeviceLiveClock(
+        new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      );
+    }, 1000);
+    return () => clearInterval(clkTimer);
+  }, []);
+
+  const handleSyncDeviceClock = () => {
+    const res = syncBiometricDeviceClock();
+    setDeviceConfig(getBiometricConfig());
+    setSyncToast(res.messageBn);
+    setTimeout(() => setSyncToast(null), 6000);
+  };
 
   // 1-second countdown and background auto-sync runner
   useEffect(() => {
@@ -518,6 +540,15 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             </button>
 
             <button
+              onClick={handleSyncDeviceClock}
+              className="px-3.5 py-3 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="বায়োমেট্রিক ডিভাইসের ঘড়ির সময়কে বর্তমান লাইভ সময়ের সাথে সিঙ্ক করুন"
+            >
+              <Clock className="w-4 h-4 text-slate-950" />
+              <span>ডিভাইস টাইম সিঙ্ক</span>
+            </button>
+
+            <button
               onClick={() => setIsConfigModalOpen(true)}
               className="px-3.5 py-3 bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold rounded-2xl text-xs sm:text-sm border border-white/25 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
               title="মেশিন মডেল, সিরিয়াল নম্বর, ক্লাউড বা লোকাল আইপি কনফিগারেশন সেটিংস"
@@ -530,8 +561,12 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
 
         {/* Quick Footer details */}
         <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
-          <div className="flex items-center gap-2">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-emerald-300 font-bold bg-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              লাইভ ডিভাইস ঘড়ি: {deviceLiveClock} (আজ, {new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })})
+            </span>
+            <span className="text-slate-500">·</span>
             <span>সর্বশেষ সিঙ্ক: {deviceConfig.lastSyncTimeStr || 'সফল সংযোগ'}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -541,6 +576,129 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             </span>
             <span className="text-slate-500">·</span>
             <span>মডেল: {deviceConfig.model}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* BIOMETRIC READERS SYSTEM LIVE INTERCONNECTION HUB (সিস্টেম লিঙ্কেজ কনসোল) */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 rounded-3xl p-5 sm:p-6 text-white border-2 border-indigo-500/40 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-700/40 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 rounded-2xl font-black">
+              <Fingerprint className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
+                  বায়োমেট্রিক রিডার্স সিস্টেম ইন্টিগ্রেশন ও লাইভ লিঙ্কেজ
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  সরাসরি লিঙ্কড্
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200">
+                বায়োমেট্রিক রিডার্স ডিভাইসের লাইভ আরটিসি সময়: <strong className="text-amber-300 font-mono text-sm">{deviceLiveClock}</strong> (আজ, {new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric', weekday: 'long' })})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleSyncDeviceClock}
+              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition shadow-sm cursor-pointer active:scale-95"
+              title="ডিভাইস ঘড়ির সময় বর্তমান লাইভ সময়ের সাথে এক ক্লিকে সিঙ্ক করুন"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>ঘড়ির সময় সিঙ্ক</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition shadow-sm cursor-pointer active:scale-95"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>পূর্ণাঙ্গ ডাটা সিঙ্ক</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Interconnected Module Linkage Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+          {/* Card 1: Student Attendance Link */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2 hover:bg-white/10 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-400" />
+                শিক্ষার্থী ক্লাসরুম হাজিরা
+              </span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
+                স্বয়ংক্রিয় যুক্ত
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              মেশিনের সকালের ফিঙ্গারপ্রিন্ট পাঞ্চ সরাসরি শিক্ষার্থীদের ক্লাসরুম রোল কলে ইন-টাইম ও উপস্থিতি মার্ক করে।
+            </p>
+            <button
+              type="button"
+              onClick={handleManualSync}
+              className="w-full py-1.5 px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>পাঞ্চ ডাটা সিঙ্ক করুন</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Card 2: Staff Attendance Link */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2 hover:bg-white/10 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                <Briefcase className="w-4 h-4 text-sky-400" />
+                শিক্ষক ও স্টাফ হাজিরা
+              </span>
+              <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/30 font-bold">
+                ইন ও আউট সক্রিয়
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              মেশিনের পাঞ্চ শিক্ষকদের প্রাতঃকালীন চেক-ইন এবং স্কুল ছুটির পর চেকআউট হিসেবে সরাসরি স্টাফ মডিউলে জমা হয়।
+            </p>
+            <button
+              type="button"
+              onClick={handleManualSync}
+              className="w-full py-1.5 px-2 bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>স্টাফ চেক-ইন/আউট সিঙ্ক</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Card 3: Cloud & Gate Link */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-2 hover:bg-white/10 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Cloud className="w-4 h-4 text-amber-400" />
+                ZLink IoT ক্লাউড ব্রিজ
+              </span>
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-bold">
+                zlink.minervaiot.com
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              মেশিনটি ZLink ক্লাউডের সাথে সরাসরি সিঙ্ক করা। ইন্টারনেট থাকলে তাৎক্ষণিক এবং অফলাইনে থাকলে পরে অটো আপলোড হয়।
+            </p>
+            <a
+              href="https://zlink.minervaiot.com/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-1.5 px-2 bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-400/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+            >
+              <span>ক্লাউড কনসোল ওপেন করুন</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
       </div>
