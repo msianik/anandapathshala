@@ -920,6 +920,9 @@ export interface TeacherMember {
   lastPaidMonth?: string;
   nationalId?: string;
   addressBn?: string;
+  biometricEnrollId?: string;
+  biometricSynced?: boolean;
+  biometricSyncTimeStr?: string;
 }
 
 export type TeacherLeaveType = 'casual' | 'sick' | 'maternity' | 'emergency';

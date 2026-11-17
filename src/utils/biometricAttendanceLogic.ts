@@ -535,11 +535,16 @@ export function recordBiometricPunch({
       enrollId = std.rollNo || std.id;
     }
   } else {
-    const tch = SCHOOL_TEACHERS.find((t) => t.id === personId);
+    let teachers = SCHOOL_TEACHERS;
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('ananda_teachers_list_v1') : null;
+      if (raw) teachers = JSON.parse(raw);
+    } catch {}
+    const tch = teachers.find((t: any) => t.id === personId) || SCHOOL_TEACHERS.find((t) => t.id === personId);
     if (tch) {
       nameBn = tch.nameBn;
       nameEn = tch.nameEn;
-      enrollId = tch.id.toUpperCase();
+      enrollId = (tch as any).biometricEnrollId || tch.id.toUpperCase();
     }
   }
 
@@ -646,11 +651,18 @@ export function parseBiometricMachineFile(
         const matchedStudent = students.find(
           (s) => s.rollNo === rawEnrollId || s.id === rawEnrollId || s.rollNo === toBengaliNumber(rawEnrollId)
         );
-        const matchedTeacher = SCHOOL_TEACHERS.find(
-          (t) =>
+        let allTeachers = SCHOOL_TEACHERS;
+        try {
+          const rawT = typeof window !== 'undefined' ? localStorage.getItem('ananda_teachers_list_v1') : null;
+          if (rawT) allTeachers = JSON.parse(rawT);
+        } catch {}
+
+        const matchedTeacher = allTeachers.find(
+          (t: any) =>
             t.id.toLowerCase() === rawEnrollId.toLowerCase() ||
             (t.biometricEnrollId && t.biometricEnrollId.toLowerCase() === rawEnrollId.toLowerCase()) ||
-            (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase())
+            (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase()) ||
+            (t.nameBn && t.nameBn.includes(rawEnrollId))
         );
 
         if (matchedStudent || matchedTeacher) {
@@ -786,11 +798,18 @@ export function parseBiometricMachineFile(
       );
 
       // Or find teacher
-      const matchedTeacher = SCHOOL_TEACHERS.find(
-        (t) =>
+      let allTeachers = SCHOOL_TEACHERS;
+      try {
+        const rawT = typeof window !== 'undefined' ? localStorage.getItem('ananda_teachers_list_v1') : null;
+        if (rawT) allTeachers = JSON.parse(rawT);
+      } catch {}
+
+      const matchedTeacher = allTeachers.find(
+        (t: any) =>
           t.id.toLowerCase() === rawEnrollId.toLowerCase() ||
           (t.biometricEnrollId && t.biometricEnrollId.toLowerCase() === rawEnrollId.toLowerCase()) ||
-          (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase())
+          (t.username && t.username.toLowerCase() === rawEnrollId.toLowerCase()) ||
+          (t.nameBn && t.nameBn.includes(rawEnrollId))
       );
 
       if (matchedStudent || matchedTeacher) {

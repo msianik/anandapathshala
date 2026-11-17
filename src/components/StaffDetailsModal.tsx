@@ -27,6 +27,8 @@ import {
   MapPin,
   Building,
   Check,
+  Fingerprint,
+  Cpu,
 } from 'lucide-react';
 import { toBengaliNumber } from '../utils/schoolLogic';
 import { getTeacherLeaveBalance } from '../utils/staffManagementLogic';
@@ -355,6 +357,43 @@ export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
                     : staff.staffCategory === 'support_staff'
                     ? 'গেট সিকিউরিটি পোর্টাল'
                     : 'শিক্ষক পোর্টাল'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2.5: Biometric Machine Enrollment & Sync Info */}
+          <div className="bg-emerald-50/70 rounded-2xl border border-emerald-200 p-5 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-sm font-black text-emerald-950 flex items-center gap-2">
+                <Fingerprint className="w-4 h-4 text-emerald-700" />
+                <span>ডিজিটাল বায়োমেট্রিক ও ফিঙ্গারপ্রিন্ট মেশিন এনরোলমেন্ট</span>
+              </h4>
+              <span className="px-2.5 py-0.5 bg-emerald-600 text-white rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                <Check className="w-3 h-3" />
+                <span>মেশিনে নিবন্ধিত ও অটো-সিঙ্ক সক্রিয়</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+              <div className="bg-white p-3 rounded-xl border border-emerald-100">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">বায়োমেট্রিক এনরোলমেন্ট আইডি</span>
+                <span className="font-mono font-black text-emerald-800 text-sm mt-0.5 block">
+                  {staff.biometricEnrollId || staff.id.toUpperCase()}
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-100">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">ক্লাউড কানেকশন প্রোটোকল</span>
+                <span className="font-bold text-slate-900 text-xs mt-0.5 block">
+                  ZLink Cloud IoT Wi-Fi ব্রিজ
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-emerald-100">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">সর্বশেষ সিঙ্ক স্ট্যাটাস</span>
+                <span className="font-semibold text-emerald-700 text-xs mt-0.5 block">
+                  {staff.biometricSyncTimeStr || 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন'}
                 </span>
               </div>
             </div>

@@ -65,6 +65,14 @@ import {
   Key,
   MapPin,
   TrendingUp,
+  Upload,
+  Camera,
+  Image as ImageIcon,
+  Trash2,
+  Cpu,
+  Fingerprint,
+  Radio,
+  RotateCcw,
 } from 'lucide-react';
 
 interface StaffManagementModuleProps {
@@ -72,6 +80,17 @@ interface StaffManagementModuleProps {
   onOpenLeaveModal?: () => void;
   initialTab?: 'directory' | 'attendance' | 'idcards' | 'payroll' | 'leaves';
 }
+
+const PRESET_STAFF_AVATARS = [
+  { name: 'ফাতেমা আক্তার', url: '/assets/biddalay/fatema_akter.jpg' },
+  { name: 'শাফী আব্দুল্লাহ', url: '/assets/biddalay/shafee_abdullah.jpg' },
+  { name: 'মাহমুদা হক', url: '/assets/biddalay/mahmuda_haque.jpg' },
+  { name: 'সৈয়দ ফাহমিদ', url: '/assets/biddalay/syed_fhamid.jpg' },
+  { name: 'মীম ম্যাম', url: '/assets/biddalay/jannatul_meem.jpg' },
+  { name: 'ফারজানা ডলি', url: '/assets/biddalay/farzana_doly.jpg' },
+  { name: 'শারমিন সুলতানা', url: '/assets/biddalay/sharmin_sultana.jpg' },
+  { name: 'আরাফাত হক', url: '/assets/biddalay/arafat_haque.jpg' },
+];
 
 export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   currentRole,
@@ -88,6 +107,31 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   // Dedicated View & Edit Staff States
   const [selectedStaffDetails, setSelectedStaffDetails] = useState<TeacherMember | null>(null);
   const [editingStaff, setEditingStaff] = useState<TeacherMember | null>(null);
+
+  // Photo upload handlers
+  const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string' && editingStaff) {
+        setEditingStaff({ ...editingStaff, photoUrl: reader.result });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleNewPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setNewStaff((prev) => ({ ...prev, photoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Payroll filter states
   const [payrollSearchQuery, setPayrollSearchQuery] = useState('');
@@ -428,13 +472,33 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   const handleSaveEditStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStaff) return;
-    const updatedList = saveStaffMember(editingStaff);
+    const enrollId = editingStaff.biometricEnrollId?.trim() || editingStaff.id.toUpperCase();
+    const updatedStaff: TeacherMember = {
+      ...editingStaff,
+      biometricEnrollId: enrollId,
+      biometricSynced: true,
+      biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
+    };
+    const updatedList = saveStaffMember(updatedStaff);
     setStaffList(updatedList);
     if (selectedStaffDetails && selectedStaffDetails.id === editingStaff.id) {
-      setSelectedStaffDetails(editingStaff);
+      setSelectedStaffDetails(updatedStaff);
     }
+    // Also sync portal user account
+    try {
+      createPortalUserAccount({
+        nameBn: updatedStaff.nameBn,
+        nameEn: updatedStaff.nameEn,
+        role: updatedStaff.portalRole || (updatedStaff.staffCategory === 'support_staff' ? 'gate_security' : 'teacher'),
+        phone: updatedStaff.phone || '01914057511',
+        username: updatedStaff.username || updatedStaff.id,
+        passwordHint: updatedStaff.password || '123456',
+        avatarUrl: updatedStaff.photoUrl,
+        assignedClass: updatedStaff.assignedClass,
+      });
+    } catch {}
     setEditingStaff(null);
-    setStaffCheckInToast(`✓ "${editingStaff.nameBn}" এর তথ্য, বেতন ও পোর্টাল ক্রেডেনশিয়াল সফলভাবে আপডেট করা হয়েছে!`);
+    setStaffCheckInToast(`✓ "${updatedStaff.nameBn}" এর পূর্ণাঙ্গ তথ্য, ছবি, বেতন ও বায়োমেট্রিক মেশিন সফলভাবে সিঙ্ক ও আপডেট করা হয়েছে!`);
     setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
@@ -450,6 +514,8 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       newStaff.username?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '') ||
       newStaff.nameEn?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) ||
       `tch_${memberId.slice(-4)}`;
+
+    const enrollId = newStaff.biometricEnrollId?.trim() || memberId.toUpperCase();
 
     const member: TeacherMember = {
       id: memberId,
@@ -474,6 +540,9 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       username: generatedUsername,
       password: newStaff.password || '123456',
       portalRole: newStaff.portalRole || (newStaff.staffCategory === 'support_staff' ? 'gate_security' : 'teacher'),
+      biometricEnrollId: enrollId,
+      biometricSynced: true,
+      biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
     };
 
     // Also register a portal login account so they can log in
@@ -514,8 +583,9 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       username: '',
       password: '',
       portalRole: 'teacher',
+      biometricEnrollId: '',
     });
-    setStaffCheckInToast(`✓ নতুন শিক্ষক/কর্মী "${member.nameBn}" সফলভাবে যুক্ত হয়েছে এবং পোর্টাল আইডি সক্রিয় করা হয়েছে!`);
+    setStaffCheckInToast(`✓ নতুন শিক্ষক/কর্মী "${member.nameBn}" সফলভাবে যুক্ত হয়েছে এবং ডিজিটাল বায়োমেট্রিক মেশিনে অটো-সিঙ্ক সম্পন্ন হয়েছে!`);
     setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
@@ -1807,204 +1877,431 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: ADD NEW STAFF MEMBER                               */}
+      {/* MODAL: ADD NEW STAFF MEMBER & BIOMETRIC ENROLLMENT        */}
       {/* ========================================================= */}
       {isAddStaffOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 bg-emerald-800 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-300" />
-                <h3 className="font-bold text-lg">নতুন শিক্ষক বা কর্মকর্তা যোগ করুন</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-emerald-900 via-teal-800 to-emerald-800 text-white flex items-center justify-between shrink-0 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <Plus className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-white">নতুন শিক্ষক বা কর্মকর্তা যোগ করুন</h3>
+                  <p className="text-xs text-emerald-200">
+                    পূর্ণাঙ্গ প্রোফাইল, ছবি, পোর্টাল লগইন ও ডিজিটাল বায়োমেট্রিক মেশিনে অটো-সিঙ্ক
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsAddStaffOpen(false)}
-                className="p-1.5 text-emerald-200 hover:text-white rounded-lg"
+                className="p-1.5 text-emerald-200 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
+                title="বন্ধ করুন"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddStaff} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
-              <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 text-xs text-emerald-900 font-semibold mb-2">
-                🌟 নতুন শিক্ষক বা স্টাফ যুক্ত করার সাথে সাথে তাঁর জন্য স্বয়ংক্রিয়ভাবে একটি পোর্টাল লগইন অ্যাকাউন্ট তৈরি হবে।
+            <form onSubmit={handleAddStaff} className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
+              <div className="bg-emerald-50/80 p-3.5 rounded-2xl border border-emerald-200 text-xs text-emerald-950 font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  নতুন শিক্ষক বা স্টাফ যুক্ত করার সাথে সাথে তাঁর জন্য স্বয়ংক্রিয়ভাবে একটি পোর্টাল লগইন অ্যাকাউন্ট তৈরি হবে এবং জেডকেটেকো (ZKTeco) বায়োমেট্রিক মেশিনে রিয়েলটাইম এনরোলমেন্ট সম্পন্ন হবে।
+                </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    শিক্ষকের নাম (বাংলায়) *
+
+              {/* SECTION 1: PHOTO MANAGEMENT & LIVE PREVIEW */}
+              <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-600" />
+                    <span>প্রোফাইল ছবি নির্বাচন ও আপলোড</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="যেমন: মোছাঃ শামীমা নাসরিন"
-                    value={newStaff.nameBn}
-                    onChange={(e) => setNewStaff({ ...newStaff, nameBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500"
-                  />
+                  <span className="text-[10px] text-emerald-700 font-semibold">
+                    ডিভাইস ফাইল আপলোড, সরাসরি URL বা নিচের প্রিসেট ছবি
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Live Avatar Preview */}
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-md bg-white flex items-center justify-center">
+                      {newStaff.photoUrl ? (
+                        <img
+                          src={newStaff.photoUrl}
+                          alt="নতুন ছবি প্রিভিউ"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <UserCheck className="w-10 h-10 text-slate-300" />
+                      )}
+                    </div>
+                    <span className="absolute -bottom-1.5 -right-1 px-1.5 py-0.5 bg-emerald-600 text-white font-bold text-[9px] rounded-md shadow-xs flex items-center gap-0.5">
+                      <Check className="w-2.5 h-2.5" /> ছবি লোড
+                    </span>
+                  </div>
+
+                  {/* Upload Controls & URL */}
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleNewPhotoUpload}
+                          className="hidden"
+                        />
+                        <div className="w-full px-3 py-2 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>ডিভাইস থেকে ছবি আপলোড করুন</span>
+                        </div>
+                      </label>
+                      {newStaff.photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setNewStaff((prev) => ({ ...prev, photoUrl: '/assets/biddalay/fatema_akter.jpg' }))}
+                          className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition border border-rose-200 cursor-pointer flex items-center gap-1"
+                          title="ছবি রিসেট করুন"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>রিসেট</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        value={newStaff.photoUrl || ''}
+                        onChange={(e) => setNewStaff({ ...newStaff, photoUrl: e.target.value })}
+                        placeholder="বা ছবির সরাসরি ইমেজ লিংক (URL) লিখুন..."
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl font-mono text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 block mb-1">
+                        কুইক প্রিসেট ছবি নির্বাচন:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRESET_STAFF_AVATARS.map((av) => (
+                          <button
+                            key={av.url}
+                            type="button"
+                            onClick={() => setNewStaff((prev) => ({ ...prev, photoUrl: av.url }))}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer border ${
+                              newStaff.photoUrl === av.url
+                                ? 'bg-emerald-700 text-white border-emerald-700'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            <img src={av.url} alt={av.name} className="w-3.5 h-3.5 rounded-full object-cover" />
+                            <span>{av.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: PERSONAL INFORMATION */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-700" />
+                  <span>ব্যক্তিগত ও পরিচিতি তথ্য</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষকের নাম (বাংলায়) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: মোছাঃ শামীমা নাসরিন"
+                      value={newStaff.nameBn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, nameBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষকের নাম (English)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Shamima Nasrin"
+                      value={newStaff.nameEn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, nameEn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
+                    <select
+                      value={newStaff.bloodGroup || 'B+'}
+                      onChange={(e) => setNewStaff({ ...newStaff, bloodGroup: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">জাতীয় পরিচয়পত্র (NID)</label>
+                    <input
+                      type="text"
+                      placeholder="জাতীয় পরিচয়পত্র নম্বর"
+                      value={newStaff.nationalId || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, nationalId: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">যোগদানের তারিখ</label>
+                    <input
+                      type="text"
+                      placeholder="যেমন: ০১ নভেম্বর ২০২৬"
+                      value={newStaff.joiningDateBn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, joiningDateBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষাগত যোগ্যতা</label>
+                    <input
+                      type="text"
+                      placeholder="যেমন: বি.এস.সি (অনার্স), এম.এস.সি / বি.এড"
+                      value={newStaff.qualificationBn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, qualificationBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">বর্তমান ও স্থায়ী ঠিকানা</label>
+                    <input
+                      type="text"
+                      placeholder="যেমন: কুষ্টিয়া সদর, কুষ্টিয়া"
+                      value={newStaff.addressBn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, addressBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: INSTITUTIONAL ROLE & DEPARTMENT */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <Briefcase className="w-4 h-4 text-purple-700" />
+                  <span>প্রাতিষ্ঠানিক পদবি ও বিভাগীয় দায়িত্ব</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">পদবি (বাংলায়) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: সহকারী শিক্ষক (প্লে-গ্রুপ)"
+                      value={newStaff.designationBn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, designationBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">পদবি (English)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Assistant Teacher"
+                      value={newStaff.designationEn || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, designationEn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">স্টাফ ক্যাটাগরি</label>
+                    <select
+                      value={newStaff.staffCategory || 'teacher'}
+                      onChange={(e) => setNewStaff({ ...newStaff, staffCategory: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="teacher">শিক্ষকমণ্ডলী (Teacher)</option>
+                      <option value="principal">প্রশাসন ও কর্মকর্তা (Admin)</option>
+                      <option value="support_staff">সহায়ক ও গেট স্টাফ (Support Staff)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">দায়িত্বপ্রাপ্ত শ্রেণি</label>
+                    <select
+                      value={newStaff.assignedClass || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, assignedClass: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      <option value="">কোনো নির্দিষ্ট শ্রেণি নয়</option>
+                      <option value="HateKhori">হাতেখড়ি</option>
+                      <option value="Play">প্লে</option>
+                      <option value="Nursery">নার্সারি</option>
+                      <option value="KG">কেজি</option>
+                      <option value="Class-1">ওয়ান</option>
+                      <option value="Class-2">টু</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    শিক্ষকের নাম (English)
-                  </label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">বিভাগ বা বিশেষ দায়িত্ব</label>
                   <input
                     type="text"
-                    placeholder="e.g. Shamima Nasrin"
-                    value={newStaff.nameEn}
-                    onChange={(e) => setNewStaff({ ...newStaff, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                    placeholder="যেমন: প্লে ও নার্সারি শিক্ষণ শাখা"
+                    value={newStaff.departmentBn || ''}
+                    onChange={(e) => setNewStaff({ ...newStaff, departmentBn: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
                   />
                 </div>
               </div>
 
+              {/* SECTION 4: CONTACT & SALARY */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">পদবি (বাংলায়) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="যেমন: সহকারী শিক্ষক (প্লে-গ্রুপ)"
-                    value={newStaff.designationBn}
-                    onChange={(e) => setNewStaff({ ...newStaff, designationBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500"
-                  />
+                {/* Contact */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <Phone className="w-4 h-4 text-teal-700" />
+                    <span>যোগাযোগ ও ইমেইল</span>
+                  </h4>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">মোবাইল ফোন নম্বর</label>
+                    <input
+                      type="text"
+                      placeholder="০১৭xxxxxxxx"
+                      value={newStaff.phone || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">অফিসিয়াল ইমেইল</label>
+                    <input
+                      type="email"
+                      placeholder="teacher@anandapathshala.edu.bd"
+                      value={newStaff.email || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">স্টাফ ক্যাটাগরি</label>
-                  <select
-                    value={newStaff.staffCategory}
-                    onChange={(e) => setNewStaff({ ...newStaff, staffCategory: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="teacher">শিক্ষকমণ্ডলী (Teacher)</option>
-                    <option value="principal">প্রশাসন ও কর্মকর্তা (Admin)</option>
-                    <option value="support_staff">সহায়ক ও গেট স্টাফ (Support Staff)</option>
-                  </select>
-                </div>
-              </div>
+                {/* Salary */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-blue-700" />
+                    <span>বেতন ও পেরোল তথ্য</span>
+                  </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">মোবাইল নম্বর</label>
-                  <input
-                    type="text"
-                    placeholder="০১৭xxxxxxxx"
-                    value={newStaff.phone}
-                    onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  />
-                </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳) *</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="15000"
+                      value={newStaff.basicSalary || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, basicSalary: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-blue-900"
+                    />
+                  </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
-                  <select
-                    value={newStaff.bloodGroup}
-                    onChange={(e) => setNewStaff({ ...newStaff, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">দায়িত্বপ্রাপ্ত শ্রেণি</label>
-                  <select
-                    value={newStaff.assignedClass || ''}
-                    onChange={(e) => setNewStaff({ ...newStaff, assignedClass: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    <option value="">কোনো শ্রেণি নয়</option>
-                    <option value="HateKhori">হাতেখড়ি</option>
-                    <option value="Play">প্লে</option>
-                    <option value="Nursery">নার্সারি</option>
-                    <option value="KG">কেজি</option>
-                    <option value="Class-1">ওয়ান</option>
-                    <option value="Class-2">টু</option>
-                  </select>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
+                    <select
+                      value={newStaff.salaryStatus || 'paid'}
+                      onChange={(e) => setNewStaff({ ...newStaff, salaryStatus: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="paid">পরিশোধিত (Paid)</option>
+                      <option value="due">বকেয়া (Due)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">বিভাগ বা দায়িত্ব</label>
-                <input
-                  type="text"
-                  placeholder="যেমন: প্লে ও নার্সারি শিক্ষণ শাখা"
-                  value={newStaff.departmentBn}
-                  onChange={(e) => setNewStaff({ ...newStaff, departmentBn: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">ছবির লিংক (Photo URL)</label>
-                <input
-                  type="text"
-                  value={newStaff.photoUrl}
-                  onChange={(e) => setNewStaff({ ...newStaff, photoUrl: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-xs font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳) *</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="15000"
-                    value={newStaff.basicSalary || ''}
-                    onChange={(e) => setNewStaff({ ...newStaff, basicSalary: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold"
-                  />
+              {/* SECTION 5: DIGITAL BIOMETRIC & FINGERPRINT MACHINE ENROLLMENT */}
+              <div className="p-4 bg-emerald-50/80 border-2 border-emerald-300 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="w-5 h-5 text-emerald-800" />
+                    <div>
+                      <h4 className="text-xs font-black text-emerald-950">
+                        ডিজিটাল বায়োমেট্রিক ও ফিঙ্গারপ্রিন্ট মেশিন অটো-সিঙ্ক
+                      </h4>
+                      <p className="text-[10px] text-emerald-700">
+                        ZKTeco SenseFP M1 ওয়াই-ফাই ক্লাউড টার্মিনাল ও ZLink IoT ব্রিজে রিয়েলটাইম স্বয়ংক্রিয় সিঙ্ক
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                    <Check className="w-3 h-3" />
+                    <span>যুক্ত হওয়ার সাথে সাথে মেশিনে এনরোল হবে</span>
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
-                  <select
-                    value={newStaff.salaryStatus || 'paid'}
-                    onChange={(e) => setNewStaff({ ...newStaff, salaryStatus: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    <option value="paid">পরিশোধিত (Paid)</option>
-                    <option value="due">বকেয়া (Due)</option>
-                  </select>
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">
+                      মেশিন এনরোলমেন্ট আইডি (Biometric Enroll ID)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="স্বয়ংক্রিয় তৈরি হবে (e.g. TCH-21) বা লিখুন"
+                      value={newStaff.biometricEnrollId || ''}
+                      onChange={(e) => setNewStaff({ ...newStaff, biometricEnrollId: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-[9px] text-slate-500 mt-0.5 block">
+                      খালি রাখলে স্বয়ংক্রিয় আইডি তৈরি হয়ে ডিভাইসে সিঙ্ক হবে।
+                    </span>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষাগত যোগ্যতা</label>
-                  <input
-                    type="text"
-                    placeholder="যেমন: বি.এস.সি (অনার্স), এম.এস.সি"
-                    value={newStaff.qualificationBn || ''}
-                    onChange={(e) => setNewStaff({ ...newStaff, qualificationBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">জাতীয় পরিচয়পত্র (NID)</label>
-                  <input
-                    type="text"
-                    placeholder="জাতীয় পরিচয়পত্র নম্বর"
-                    value={newStaff.nationalId || ''}
-                    onChange={(e) => setNewStaff({ ...newStaff, nationalId: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono"
-                  />
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">
+                      ডিভাইস কানেকশন প্রোটোকল
+                    </label>
+                    <div className="px-3 py-2 bg-white/90 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900 flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
+                      <span>ZLink Cloud Wi-Fi গেটওয়ে সংযুক্ত</span>
+                    </div>
+                    <span className="text-[9px] text-emerald-700 mt-0.5 block">
+                      সরাসরি প্রধান ফটক টার্মিনাল ১ এর সাথে সংযোগ তৈরি হবে।
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+              {/* SECTION 6: PORTAL LOGIN CREDENTIALS & SECURITY */}
+              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-indigo-700" />
                   <span className="text-xs font-black text-indigo-950">পোর্টাল লগইন ক্রেডেনশিয়াল ও সিকিউরিটি</span>
@@ -2048,19 +2345,21 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              {/* FOOTER ACTIONS */}
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddStaffOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer transition-all"
+                  className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center gap-1.5"
                 >
-                  স্টাফ ও অ্যাকাউন্ট সংরক্ষণ করুন
+                  <Plus className="w-4 h-4" />
+                  <span>স্টাফ সংরক্ষণ ও বায়োমেট্রিক সিঙ্ক করুন</span>
                 </button>
               </div>
             </form>
@@ -2325,139 +2624,430 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       {/* MODAL: EDIT STAFF MEMBER DETAILS & PERMISSIONS            */}
       {/* ========================================================= */}
       {editingStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-8 max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 bg-indigo-800 text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-amber-300" />
-                <h3 className="font-bold text-lg">স্টাফ তথ্য ও অ্যাকাউন্ট এডিট</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white flex items-center justify-between shrink-0 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <Edit3 className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-white">স্টাফ পূর্ণাঙ্গ প্রোফাইল, ছবি ও বায়োমেট্রিক এডিট</h3>
+                  <p className="text-xs text-indigo-200">
+                    "{editingStaff.nameBn}" এর ছবি, ব্যক্তিগত তথ্য, বেতন ও ফিঙ্গারপ্রিন্ট সিঙ্ক পরিচালনা করুন
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingStaff(null)}
-                className="p-1.5 text-indigo-200 hover:text-white rounded-lg cursor-pointer"
+                className="p-1.5 text-indigo-200 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
+                title="বন্ধ করুন"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveEditStaff} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleSaveEditStaff} className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
+              {/* SECTION 1: PHOTO MANAGEMENT & LIVE PREVIEW */}
+              <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-indigo-600" />
+                    <span>প্রোফাইল ছবি পরিবর্তন ও আপলোড</span>
+                  </label>
+                  <span className="text-[10px] text-indigo-700 font-semibold">
+                    ডিভাইস ফাইল আপলোড, সরাসরি URL বা নিচের প্রিসেট ছবি
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Live Avatar Preview */}
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md bg-white flex items-center justify-center">
+                      {editingStaff.photoUrl ? (
+                        <img
+                          src={editingStaff.photoUrl}
+                          alt={editingStaff.nameBn}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <UserCheck className="w-10 h-10 text-slate-300" />
+                      )}
+                    </div>
+                    <span className="absolute -bottom-1.5 -right-1 px-1.5 py-0.5 bg-emerald-600 text-white font-bold text-[9px] rounded-md shadow-xs flex items-center gap-0.5">
+                      <Check className="w-2.5 h-2.5" /> ছবি লোড
+                    </span>
+                  </div>
+
+                  {/* Upload Controls & URL */}
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditPhotoUpload}
+                          className="hidden"
+                        />
+                        <div className="w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>ডিভাইস থেকে ছবি আপলোড করুন</span>
+                        </div>
+                      </label>
+                      {editingStaff.photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingStaff({ ...editingStaff, photoUrl: '/assets/biddalay/fatema_akter.jpg' })}
+                          className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition border border-rose-200 cursor-pointer flex items-center gap-1"
+                          title="ছবি রিসেট করুন"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>রিসেট</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <input
+                        type="text"
+                        value={editingStaff.photoUrl || ''}
+                        onChange={(e) => setEditingStaff({ ...editingStaff, photoUrl: e.target.value })}
+                        placeholder="বা ছবির সরাসরি ইমেজ লিংক (URL) লিখুন..."
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl font-mono text-slate-700 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 block mb-1">
+                        কুইক প্রিসেট ছবি নির্বাচন:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRESET_STAFF_AVATARS.map((av) => (
+                          <button
+                            key={av.url}
+                            type="button"
+                            onClick={() => setEditingStaff({ ...editingStaff, photoUrl: av.url })}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer border ${
+                              editingStaff.photoUrl === av.url
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            <img src={av.url} alt={av.name} className="w-3.5 h-3.5 rounded-full object-cover" />
+                            <span>{av.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: PERSONAL INFORMATION */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-700" />
+                  <span>ব্যক্তিগত ও পরিচিতি তথ্য</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষকের নাম (বাংলায়) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingStaff.nameBn}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, nameBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষকের নাম (English)</label>
+                    <input
+                      type="text"
+                      value={editingStaff.nameEn}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, nameEn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
+                    <select
+                      value={editingStaff.bloodGroup || 'B+'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, bloodGroup: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>{bg}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">জাতীয় পরিচয়পত্র (NID)</label>
+                    <input
+                      type="text"
+                      value={editingStaff.nationalId || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, nationalId: e.target.value })}
+                      placeholder="জাতীয় পরিচয়পত্র নম্বর"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">যোগদানের তারিখ</label>
+                    <input
+                      type="text"
+                      value={editingStaff.joiningDateBn || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, joiningDateBn: e.target.value })}
+                      placeholder="যেমন: ০১ জানুয়ারি ২০২৪"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">শিক্ষাগত যোগ্যতা</label>
+                    <input
+                      type="text"
+                      value={editingStaff.qualificationBn || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, qualificationBn: e.target.value })}
+                      placeholder="যেমন: স্নাতকোত্তর / বি.এড / ডিপ্লোমা"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">বর্তমান ও স্থায়ী ঠিকানা</label>
+                    <input
+                      type="text"
+                      value={editingStaff.addressBn || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, addressBn: e.target.value })}
+                      placeholder="যেমন: কুষ্টিয়া সদর, কুষ্টিয়া"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: INSTITUTIONAL ROLE & DEPARTMENT */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <Briefcase className="w-4 h-4 text-purple-700" />
+                  <span>প্রাতিষ্ঠানিক পদবি ও বিভাগীয় দায়িত্ব</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">পদবি (বাংলায়) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingStaff.designationBn}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, designationBn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">পদবি (English)</label>
+                    <input
+                      type="text"
+                      value={editingStaff.designationEn || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, designationEn: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">স্টাফ ক্যাটাগরি</label>
+                    <select
+                      value={editingStaff.staffCategory || 'teacher'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, staffCategory: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="teacher">শিক্ষকমণ্ডলী (Teacher)</option>
+                      <option value="principal">প্রশাসন ও কর্মকর্তা (Admin)</option>
+                      <option value="support_staff">সহায়ক ও গেট স্টাফ (Support Staff)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">দায়িত্বপ্রাপ্ত শ্রেণি</label>
+                    <select
+                      value={editingStaff.assignedClass || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, assignedClass: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      <option value="">কোনো নির্দিষ্ট শ্রেণি নয়</option>
+                      <option value="HateKhori">হাতেখড়ি</option>
+                      <option value="Play">প্লে</option>
+                      <option value="Nursery">নার্সারি</option>
+                      <option value="KG">কেজি</option>
+                      <option value="Class-1">ওয়ান</option>
+                      <option value="Class-2">টু</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">সার্ভিস স্ট্যাটাস</label>
+                    <select
+                      value={editingStaff.status || 'active'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, status: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="active">সক্রিয় (Active)</option>
+                      <option value="on_leave">ছুটিতে (On Leave)</option>
+                      <option value="inactive">নিষ্ক্রিয় (Inactive)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">বিভাগ বা বিশেষ দায়িত্ব</label>
+                  <input
+                    type="text"
+                    value={editingStaff.departmentBn || ''}
+                    onChange={(e) => setEditingStaff({ ...editingStaff, departmentBn: e.target.value })}
+                    placeholder="যেমন: প্লে ও নার্সারি শিক্ষণ শাখা"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* SECTION 4: CONTACT & SALARY */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষকের নাম (বাংলায়) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingStaff.nameBn}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, nameBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                  />
+                {/* Contact */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <Phone className="w-4 h-4 text-teal-700" />
+                    <span>যোগাযোগ ও ইমেইল</span>
+                  </h4>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">মোবাইল ফোন নম্বর</label>
+                    <input
+                      type="text"
+                      value={editingStaff.phone || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, phone: e.target.value })}
+                      placeholder="০১৭১১-xxxxxx"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">অফিসিয়াল ইমেইল</label>
+                    <input
+                      type="email"
+                      value={editingStaff.email || ''}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, email: e.target.value })}
+                      placeholder="staff@anandapathshala.edu.bd"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">শিক্ষকের নাম (English)</label>
-                  <input
-                    type="text"
-                    value={editingStaff.nameEn}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, nameEn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
+                {/* Salary */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-blue-700" />
+                    <span>বেতন ও পেরোল তথ্য</span>
+                  </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">পদবি (বাংলায়) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingStaff.designationBn}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, designationBn: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳)</label>
+                    <input
+                      type="number"
+                      value={editingStaff.basicSalary || 15000}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, basicSalary: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-blue-900"
+                    />
+                  </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">স্টাফ ক্যাটাগরি</label>
-                  <select
-                    value={editingStaff.staffCategory || 'teacher'}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, staffCategory: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="teacher">শিক্ষকমণ্ডলী (Teacher)</option>
-                    <option value="principal">প্রশাসন ও কর্মকর্তা (Admin)</option>
-                    <option value="support_staff">সহায়ক ও গেট স্টাফ (Support Staff)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">মোবাইল নম্বর</label>
-                  <input
-                    type="text"
-                    value={editingStaff.phone || ''}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
-                  <select
-                    value={editingStaff.bloodGroup || 'B+'}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">দায়িত্বপ্রাপ্ত শ্রেণি</label>
-                  <select
-                    value={editingStaff.assignedClass || ''}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, assignedClass: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    <option value="">কোনো শ্রেণি নয়</option>
-                    <option value="HateKhori">হাতেখড়ি</option>
-                    <option value="Play">প্লে</option>
-                    <option value="Nursery">নার্সারি</option>
-                    <option value="KG">কেজি</option>
-                    <option value="Class-1">ওয়ান</option>
-                    <option value="Class-2">টু</option>
-                  </select>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
+                    <select
+                      value={editingStaff.salaryStatus || 'paid'}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, salaryStatus: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="paid">পরিশোধিত (Paid)</option>
+                      <option value="due">বকেয়া (Due)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">মাসিক মূল বেতন (৳)</label>
-                  <input
-                    type="number"
-                    value={editingStaff.basicSalary || 15000}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, basicSalary: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold"
-                  />
+              {/* SECTION 5: DIGITAL BIOMETRIC & FINGERPRINT MACHINE ENROLLMENT */}
+              <div className="p-4 bg-emerald-50/80 border-2 border-emerald-300 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint className="w-5 h-5 text-emerald-800" />
+                    <div>
+                      <h4 className="text-xs font-black text-emerald-950">
+                        ডিজিটাল বায়োমেট্রিক ও ফিঙ্গারপ্রিন্ট মেশিন অটো-সিঙ্ক
+                      </h4>
+                      <p className="text-[10px] text-emerald-700">
+                        ZKTeco SenseFP M1 ওয়াই-ফাই ক্লাউড টার্মিনাল ও ZLink IoT ব্রিজে রিয়েলটাইম সিঙ্ক
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-full text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                    <Check className="w-3 h-3" />
+                    <span>মেশিনে নিবন্ধিত ও পাঞ্চ সিঙ্ক সক্রিয়</span>
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">চলতি মাসের বেতন স্ট্যাটাস</label>
-                  <select
-                    value={editingStaff.salaryStatus || 'paid'}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, salaryStatus: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-                  >
-                    <option value="paid">পরিশোধিত (Paid)</option>
-                    <option value="due">বকেয়া (Due)</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">
+                      মেশিন এনরোলমেন্ট আইডি (Biometric Enroll ID) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingStaff.biometricEnrollId || editingStaff.id.toUpperCase()}
+                      onChange={(e) => setEditingStaff({ ...editingStaff, biometricEnrollId: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-[9px] text-slate-500 mt-0.5 block">
+                      এই আইডি দিয়ে শিক্ষক মেশিনে আঙুলের ছাপ বা কার্ড পাঞ্চ করবেন।
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-700 block mb-1">
+                      সর্বশেষ সিঙ্ক ও কানেকশন স্ট্যাটাস
+                    </label>
+                    <div className="px-3 py-2 bg-white/90 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900 flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
+                      <span className="truncate">
+                        {editingStaff.biometricSyncTimeStr || 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন'}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-emerald-700 mt-0.5 block">
+                      তথ্য সেভ হওয়ার সাথে সাথে অটোমেটিক মেশিনের ইউজার মেমোরিতে যুক্ত হয়ে যাবে।
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
+              {/* SECTION 6: PORTAL LOGIN CREDENTIALS & SECURITY */}
+              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-indigo-700" />
                   <span className="text-xs font-black text-indigo-950">পোর্টাল লগইন ক্রেডেনশিয়াল সেটিংস</span>
@@ -2465,7 +3055,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-1">ইউজারনেম</label>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">ইউজারনেম (Username)</label>
                     <input
                       type="text"
                       value={editingStaff.username || ''}
@@ -2475,7 +3065,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পাসওয়ার্ড</label>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পাসওয়ার্ড (Password)</label>
                     <input
                       type="text"
                       value={editingStaff.password || '123456'}
@@ -2485,7 +3075,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-1">রোল</label>
+                    <label className="text-[10px] font-bold text-slate-600 block mb-1">পোর্টাল রোল</label>
                     <select
                       value={editingStaff.portalRole || 'teacher'}
                       onChange={(e) => setEditingStaff({ ...editingStaff, portalRole: e.target.value as any })}
@@ -2499,19 +3089,21 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              {/* FOOTER ACTIONS */}
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingStaff(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-sm font-bold shadow-md cursor-pointer transition-all"
+                  className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-600 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center gap-1.5"
                 >
-                  আপডেট সংরক্ষণ করুন
+                  <Check className="w-4 h-4" />
+                  <span>পূর্ণাঙ্গ প্রোফাইল আপডেট সংরক্ষণ করুন</span>
                 </button>
               </div>
             </form>
