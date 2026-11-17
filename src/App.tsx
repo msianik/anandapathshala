@@ -168,9 +168,38 @@ export default function App() {
     } catch {}
     return 'public';
   });
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+        return path.includes('/login') || hash.includes('login');
+      }
+    } catch {}
+    return false;
+  });
   const [isMobileModalOpen, setIsMobileModalOpen] = useState<boolean>(false);
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
+
+  // Auto-route to Login Portal modal if /login or #login is loaded in URL
+  useEffect(() => {
+    const handleUrlRouting = () => {
+      try {
+        const path = window.location.pathname.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+        if ((path.includes('/login') || hash.includes('login')) && !loggedInAccount) {
+          setIsLoginModalOpen(true);
+        }
+      } catch {}
+    };
+    handleUrlRouting();
+    window.addEventListener('popstate', handleUrlRouting);
+    window.addEventListener('hashchange', handleUrlRouting);
+    return () => {
+      window.removeEventListener('popstate', handleUrlRouting);
+      window.removeEventListener('hashchange', handleUrlRouting);
+    };
+  }, [loggedInAccount]);
 
   // Synchronize session account and tab to localStorage so crashes or reloads never cause unwanted logouts
   useEffect(() => {
@@ -496,6 +525,9 @@ export default function App() {
       setCurrentTab('overview');
     }
     setIsLoginModalOpen(false);
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/login')) {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   const handleLogout = () => {

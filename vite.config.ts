@@ -36,7 +36,7 @@ export default defineConfig(() => {
           background_color: '#FFFDF9',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
+          start_url: '/login',
           scope: '/',
           icons: [
             {
