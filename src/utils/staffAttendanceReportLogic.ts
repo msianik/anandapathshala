@@ -237,6 +237,7 @@ export function exportStaffDailyCsv(
     'তারিখ',
     'হাজিরা স্ট্যাটাস',
     'চেক-ইন সময়',
+    'চেকআউট সময়',
     'মোবাইল নম্বর',
     'মন্তব্য',
   ];
@@ -251,6 +252,7 @@ export function exportStaffDailyCsv(
     dateStr,
     r.status === 'present' ? 'উপস্থিত' : r.status === 'late' ? 'দেরিতে উপস্থিত' : r.status === 'leave' ? 'ছুটিতে' : 'অনুপস্থিত',
     r.checkInTime || '—',
+    r.checkOutTime || '—',
     r.phone || '—',
     `"${r.remarksBn || ''}"`,
   ]);
@@ -345,7 +347,8 @@ export function generateStaffDailyAttendancePdfHtml(
         <td><strong>${r.teacherNameBn}</strong><br><span style="font-size: 8px; color: #64748b;">${r.teacherNameEn || ''}</span></td>
         <td>${r.designationBn}</td>
         <td>${r.departmentBn || 'একাডেমিক শাখা'}</td>
-        <td class="text-center font-mono font-bold">${r.checkInTime || '—'}</td>
+        <td class="text-center font-mono font-bold text-emerald-800">${r.checkInTime || '—'}</td>
+        <td class="text-center font-mono font-bold text-indigo-800">${r.checkOutTime || '—'}</td>
         <td class="text-center">${statusBadge}</td>
         <td style="font-size: 8.5px;">${r.remarksBn || 'স্বাভাবিক উপস্থিতি'}</td>
       </tr>`;
@@ -478,9 +481,10 @@ export function generateStaffDailyAttendancePdfHtml(
         <th style="width: 25px;">ক্র.</th>
         <th style="width: 130px;">শিক্ষক / কর্মীর নাম</th>
         <th style="width: 100px;">পদবি</th>
-        <th style="width: 120px;">বিভাগ ও শাখা</th>
-        <th style="width: 65px;" class="text-center">চেক-ইন সময়</th>
-        <th style="width: 80px;" class="text-center">হাজিরা স্ট্যাটাস</th>
+        <th style="width: 110px;">বিভাগ ও শাখা</th>
+        <th style="width: 60px;" class="text-center">চেক-ইন সময়</th>
+        <th style="width: 60px;" class="text-center">চেকআউট সময়</th>
+        <th style="width: 75px;" class="text-center">হাজিরা স্ট্যাটাস</th>
         <th>মন্তব্য / পর্যবেক্ষণ</th>
       </tr>
     </thead>

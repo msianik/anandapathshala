@@ -216,6 +216,53 @@ export function deleteStaffMember(id: string): TeacherMember[] {
   return saveAllStaffMembers(updated);
 }
 
+function applyBiometricPunchesToStaffRecord(record: TeacherAttendanceRecord): TeacherAttendanceRecord {
+  try {
+    const rawLogs = typeof window !== 'undefined' ? localStorage.getItem('ananda_biometric_punch_logs_v1') : null;
+    if (!rawLogs) return record;
+    const logs: any[] = JSON.parse(rawLogs);
+    if (!Array.isArray(logs) || logs.length === 0) return record;
+
+    const teacherKeys = [
+      record.teacherId?.toLowerCase(),
+      (record as any).biometricEnrollId?.toLowerCase(),
+      record.teacherNameBn?.trim(),
+      record.teacherNameEn?.toLowerCase().trim(),
+    ].filter(Boolean);
+
+    const matchedLogs = logs.filter((l) => {
+      if (l.personType !== 'teacher') return false;
+      const logKeys = [
+        l.personId?.toLowerCase(),
+        l.enrollId?.toLowerCase(),
+        l.nameBn?.trim(),
+        l.nameEn?.toLowerCase().trim(),
+      ].filter(Boolean);
+      return teacherKeys.some((tk) => logKeys.includes(tk));
+    });
+
+    if (matchedLogs.length === 0) return record;
+
+    matchedLogs.sort((a, b) => a.timestamp - b.timestamp);
+    const entryPunch = matchedLogs.find((p) => p.punchType === 'entry') || matchedLogs[0];
+    const exitPunch = matchedLogs.slice().reverse().find((p) => p.punchType === 'exit');
+    const isLate = entryPunch?.status === 'late';
+
+    return {
+      ...record,
+      status: record.status === 'leave' ? 'leave' : isLate ? 'late' : 'present',
+      checkInTime: entryPunch?.punchTimeStr || record.checkInTime || 'সকাল ০৮:১৫',
+      checkOutTime: exitPunch?.punchTimeStr || record.checkOutTime,
+      checkInMethod: 'biometric',
+      checkOutMethod: exitPunch ? 'biometric' : record.checkOutMethod,
+      biometricSynced: true,
+      remarksBn: record.remarksBn || (exitPunch ? 'বায়োমেট্রিক মেশিন থেকে চেক-ইন ও চেকআউট সিঙ্ককৃত' : 'বায়োমেট্রিক চেক-ইন সফল'),
+    };
+  } catch {
+    return record;
+  }
+}
+
 export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceRecord[] {
   try {
     const raw = localStorage.getItem(STAFF_ATTENDANCE_STORAGE_KEY);
@@ -240,12 +287,12 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
             checkInTime: '০৮:০০ AM',
             remarksBn: 'স্বাভাবিক উপস্থিতি',
           }));
-          const merged = [...existing, ...newRecords];
+          const merged = [...existing, ...newRecords].map(applyBiometricPunchesToStaffRecord);
           parsed[dateStr] = merged;
           localStorage.setItem(STAFF_ATTENDANCE_STORAGE_KEY, JSON.stringify(parsed));
           return merged;
         }
-        return existing;
+        return existing.map(applyBiometricPunchesToStaffRecord);
       }
     }
   } catch {}
@@ -303,7 +350,7 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
     };
   });
 
-  return defaultAttendance;
+  return defaultAttendance.map(applyBiometricPunchesToStaffRecord);
 }
 
 export function saveStaffAttendanceList(

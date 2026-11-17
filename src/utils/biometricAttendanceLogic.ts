@@ -247,6 +247,120 @@ export const INITIAL_BIOMETRIC_PUNCH_LOGS: BiometricPunchLog[] = [
     syncedAt: Date.now() - 3700000,
     smsNotified: false,
   },
+  {
+    id: 'bio-log-11',
+    enrollId: 'TCH-1',
+    personType: 'teacher',
+    personId: 'tch-1',
+    nameBn: 'নিলুফার ইয়াসমিন',
+    nameEn: 'Nilufar Yasmin',
+    punchType: 'exit',
+    punchTimeStr: 'দুপুর ০২:০৫',
+    timestamp: new Date('2026-11-08T14:05:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'regular_exit',
+    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 1200000,
+    smsNotified: false,
+  },
+  {
+    id: 'bio-log-12',
+    enrollId: 'TCH-2',
+    personType: 'teacher',
+    personId: 'tch-2',
+    nameBn: 'মো. আসাদুজ্জামান',
+    nameEn: 'Md. Asaduzzaman',
+    punchType: 'exit',
+    punchTimeStr: 'দুপুর ০২:১২',
+    timestamp: new Date('2026-11-08T14:12:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'regular_exit',
+    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 1100000,
+    smsNotified: false,
+  },
+  {
+    id: 'bio-log-13',
+    enrollId: 'TCH-4',
+    personType: 'teacher',
+    personId: 'tch-4',
+    nameBn: 'মোছা. রোকসানা খাতুন',
+    nameEn: 'Mst. Roksana Khatun',
+    punchType: 'entry',
+    punchTimeStr: 'সকাল ০৭:৫০',
+    timestamp: new Date('2026-11-08T07:50:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'on_time',
+    statusLabelBn: 'অন-টাইম প্রাতঃকালীন চেক-ইন',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 3600000,
+    smsNotified: false,
+  },
+  {
+    id: 'bio-log-14',
+    enrollId: 'TCH-4',
+    personType: 'teacher',
+    personId: 'tch-4',
+    nameBn: 'মোছা. রোকসানা খাতুন',
+    nameEn: 'Mst. Roksana Khatun',
+    punchType: 'exit',
+    punchTimeStr: 'দুপুর ০২:১৫',
+    timestamp: new Date('2026-11-08T14:15:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'regular_exit',
+    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 1000000,
+    smsNotified: false,
+  },
+  {
+    id: 'bio-log-15',
+    enrollId: 'TCH-8',
+    personType: 'teacher',
+    personId: 'tch-8',
+    nameBn: 'সুমাইয়া আক্তার',
+    nameEn: 'Sumaiya Akter',
+    punchType: 'entry',
+    punchTimeStr: 'সকাল ০৮:৪৫',
+    timestamp: new Date('2026-11-08T08:45:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'late',
+    statusLabelBn: 'বিলম্বিত প্রাতঃকালীন চেক-ইন',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 3200000,
+    smsNotified: false,
+  },
+  {
+    id: 'bio-log-16',
+    enrollId: 'TCH-8',
+    personType: 'teacher',
+    personId: 'tch-8',
+    nameBn: 'সুমাইয়া আক্তার',
+    nameEn: 'Sumaiya Akter',
+    punchType: 'exit',
+    punchTimeStr: 'দুপুর ০২:৩০',
+    timestamp: new Date('2026-11-08T14:30:00').getTime(),
+    dateStr: '০৮ নভেম্বর ২০২৬',
+    verificationMode: 'fingerprint',
+    status: 'regular_exit',
+    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
+    deviceId: 'zk-ap-terminal-01',
+    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
+    syncedAt: Date.now() - 800000,
+    smsNotified: false,
+  },
 ];
 
 // In-memory fallback for environments without localStorage (e.g. SSR or Node tests)
@@ -465,9 +579,16 @@ export function syncBiometricAttendanceData({
       arr.push(log);
       studentLogsMap.set(log.personId, arr);
     } else {
-      const arr = staffLogsMap.get(log.personId) || [];
-      arr.push(log);
-      staffLogsMap.set(log.personId, arr);
+      const keys = [
+        log.personId?.toLowerCase(),
+        (log.enrollId || '').toLowerCase(),
+        (log.nameBn || '').trim(),
+      ].filter(Boolean) as string[];
+      keys.forEach((k) => {
+        const arr = staffLogsMap.get(k) || [];
+        arr.push(log);
+        staffLogsMap.set(k, arr);
+      });
     }
   });
 
@@ -530,7 +651,20 @@ export function syncBiometricAttendanceData({
 
   // Update Staff attendance
   const updatedStaffAttendance = existingStaffAttendance.map((rec) => {
-    const sLogs = staffLogsMap.get(rec.teacherId);
+    const searchKeys = [
+      (rec.teacherId || (rec as any).memberId || rec.id || '').toLowerCase(),
+      ((rec as any).biometricEnrollId || (rec as any).enrollId || '').toLowerCase(),
+      (rec.teacherNameBn || (rec as any).memberNameBn || '').trim(),
+    ].filter(Boolean);
+
+    let sLogs: BiometricPunchLog[] | undefined;
+    for (const key of searchKeys) {
+      if (staffLogsMap.has(key)) {
+        sLogs = staffLogsMap.get(key);
+        break;
+      }
+    }
+
     if (!sLogs || sLogs.length === 0) return rec;
 
     sLogs.sort((a, b) => a.timestamp - b.timestamp);
@@ -547,6 +681,7 @@ export function syncBiometricAttendanceData({
       checkOutTime: exitPunch?.punchTimeStr || rec.checkOutTime,
       checkOutTimestamp: exitPunch?.timestamp || rec.checkOutTimestamp,
       checkInMethod: 'biometric' as const,
+      checkOutMethod: exitPunch ? ('biometric' as const) : (rec as any).checkOutMethod,
       biometricSynced: true,
       isLate,
       remarksBn: `বায়োমেট্রিক মেশিন থেকে সিঙ্ককৃত (ইন: ${entryPunch?.punchTimeStr || '—'}${
@@ -554,6 +689,40 @@ export function syncBiometricAttendanceData({
       })`,
     };
   });
+
+  // Keep persistent staff attendance store updated for today's date
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_records_v1');
+      const parsedStaffAtt: Record<string, any[]> = rawStaffAtt ? JSON.parse(rawStaffAtt) : {};
+      const todayStaffList = parsedStaffAtt[todayStr] || [];
+      if (todayStaffList.length > 0) {
+        const merged = todayStaffList.map((stf) => {
+          const match = updatedStaffAttendance.find((u) => 
+            (u.teacherId && u.teacherId === stf.teacherId) || 
+            (u.id && u.id === stf.id)
+          );
+          if (match && match.biometricSynced) {
+            return {
+              ...stf,
+              status: match.status,
+              checkInTime: match.checkInTime || stf.checkInTime,
+              checkOutTime: match.checkOutTime || stf.checkOutTime,
+              checkInMethod: 'biometric',
+              checkOutMethod: match.checkOutTime ? 'biometric' : stf.checkOutMethod,
+              biometricSynced: true,
+              remarksBn: match.remarksBn || stf.remarksBn,
+            };
+          }
+          return stf;
+        });
+        parsedStaffAtt[todayStr] = merged;
+        localStorage.setItem('ananda_staff_attendance_records_v1', JSON.stringify(parsedStaffAtt));
+        window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
+      }
+    }
+  } catch {}
 
   return {
     updatedAttendance,
@@ -1256,4 +1425,102 @@ export function getCloudIntakeMethodDetails() {
         'যেকোনো সময় স্ক্রিনের উপরের নীল "ZLink ক্লাউড সিঙ্ক" বাটনে ক্লিক করুন।',
     },
   ];
+}
+
+/**
+ * Direct 1-Click Biometric Synchronization specifically for Teachers & Staff
+ * Pulls punch logs, matches staff records, calculates precise check-in & check-out times,
+ * and updates storage.
+ */
+export function syncStaffWithBiometricMachine(
+  dateStr: string,
+  staffAttendance: any[],
+  staffList?: any[]
+): { updated: any[]; syncedCount: number; newlyCheckedOutCount: number } {
+  const logs = getBiometricLogs();
+  const staffLogsMap = new Map<string, BiometricPunchLog[]>();
+
+  logs.forEach((log) => {
+    if (log.personType === 'teacher') {
+      const keys = [
+        log.personId?.toLowerCase(),
+        log.enrollId?.toLowerCase(),
+        log.nameBn?.trim(),
+        log.nameEn?.toLowerCase().trim(),
+      ].filter(Boolean) as string[];
+
+      keys.forEach((k) => {
+        const arr = staffLogsMap.get(k) || [];
+        arr.push(log);
+        staffLogsMap.set(k, arr);
+      });
+    }
+  });
+
+  let syncedCount = 0;
+  let newlyCheckedOutCount = 0;
+
+  const updated = staffAttendance.map((rec) => {
+    const searchKeys = [
+      (rec.teacherId || rec.memberId || rec.id || '').toLowerCase(),
+      (rec.biometricEnrollId || rec.enrollId || '').toLowerCase(),
+      (rec.teacherNameBn || rec.memberNameBn || '').trim(),
+      (rec.teacherNameEn || rec.nameEn || '').toLowerCase().trim(),
+    ].filter(Boolean);
+
+    let sLogs: BiometricPunchLog[] | undefined;
+    for (const key of searchKeys) {
+      if (staffLogsMap.has(key)) {
+        sLogs = staffLogsMap.get(key);
+        break;
+      }
+    }
+
+    if (!sLogs || sLogs.length === 0) {
+      return rec;
+    }
+
+    sLogs.sort((a, b) => a.timestamp - b.timestamp);
+    const entryPunch = sLogs.find((p) => p.punchType === 'entry') || sLogs[0];
+    const exitPunch = sLogs.slice().reverse().find((p) => p.punchType === 'exit');
+    const isLate = entryPunch?.status === 'late';
+
+    syncedCount++;
+    if (exitPunch?.punchTimeStr && !rec.checkOutTime) {
+      newlyCheckedOutCount++;
+    }
+
+    const checkInTime = entryPunch?.punchTimeStr || rec.checkInTime || 'সকাল ০৮:০০';
+    const checkOutTime = exitPunch?.punchTimeStr || rec.checkOutTime;
+
+    return {
+      ...rec,
+      status: isLate ? 'late' : 'present',
+      checkInTime,
+      checkInTimestamp: entryPunch?.timestamp || rec.checkInTimestamp,
+      checkOutTime,
+      checkOutTimestamp: exitPunch?.timestamp || rec.checkOutTimestamp,
+      checkInMethod: 'biometric',
+      checkOutMethod: checkOutTime ? 'biometric' : rec.checkOutMethod,
+      biometricSynced: true,
+      remarksBn: `বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (চেক-ইন: ${checkInTime}${
+        checkOutTime ? `, চেকআউট: ${checkOutTime}` : ''
+      })`,
+    };
+  });
+
+  // Save to persistent storage if running in browser
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_records_v1');
+      const parsedStaffAtt: Record<string, any[]> = rawStaffAtt ? JSON.parse(rawStaffAtt) : {};
+      parsedStaffAtt[dateStr] = updated;
+      localStorage.setItem('ananda_staff_attendance_records_v1', JSON.stringify(parsedStaffAtt));
+      window.dispatchEvent(
+        new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr } })
+      );
+    }
+  } catch {}
+
+  return { updated, syncedCount, newlyCheckedOutCount };
 }
