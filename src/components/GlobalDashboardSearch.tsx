@@ -16,7 +16,6 @@ import {
   ArrowRight, 
   Phone, 
   Clock, 
-  Sparkles,
   ChevronRight,
   AlertCircle,
   CheckCircle,
@@ -89,20 +88,24 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
   const matchedStudents = useMemo(() => {
     if (!normalizedQuery) return [];
     return students.filter((std) => {
-      const nameBnMatch = std.nameBn.toLowerCase().includes(normalizedQuery);
-      const nameEnMatch = std.nameEn.toLowerCase().includes(normalizedQuery);
-      const rollMatch = std.rollNo.toLowerCase().includes(normalizedQuery);
-      const classMatch = std.className.toLowerCase().includes(normalizedQuery);
-      const fatherMatch = std.fatherNameBn?.toLowerCase().includes(normalizedQuery);
-      const motherMatch = std.motherNameBn?.toLowerCase().includes(normalizedQuery);
-      const phoneMatch = std.emergencyPhone?.includes(normalizedQuery);
-      const addressMatch = std.homeAddressBn?.toLowerCase().includes(normalizedQuery);
-      const guardianMatch = std.authorizedPickups?.some(
-        (p) =>
-          p.nameBn.toLowerCase().includes(normalizedQuery) ||
-          p.phone.includes(normalizedQuery) ||
-          p.relationBn.toLowerCase().includes(normalizedQuery)
-      );
+      const nameBnMatch = std.nameBn?.toLowerCase().includes(normalizedQuery) || false;
+      const nameEnMatch = std.nameEn?.toLowerCase().includes(normalizedQuery) || false;
+      const rollMatch = std.rollNo?.toLowerCase().includes(normalizedQuery) || false;
+      const classMatch = std.className?.toLowerCase().includes(normalizedQuery) || false;
+      const fatherMatch = std.fatherNameBn?.toLowerCase().includes(normalizedQuery) || false;
+      const motherMatch = std.motherNameBn?.toLowerCase().includes(normalizedQuery) || false;
+      const phoneMatch = std.emergencyPhone?.includes(normalizedQuery) || false;
+      const addressMatch = std.homeAddressBn?.toLowerCase().includes(normalizedQuery) || false;
+      const guardianMatch = std.authorizedPickups?.some((p) => {
+        const rel = p.relationBn || (p as any).relationshipBn || '';
+        const name = p.nameBn || '';
+        const phone = p.phone || '';
+        return (
+          name.toLowerCase().includes(normalizedQuery) ||
+          phone.includes(normalizedQuery) ||
+          rel.toLowerCase().includes(normalizedQuery)
+        );
+      }) || false;
 
       const statusMatch =
         (normalizedQuery.includes('উপস্থিত') && std.currentStatus === 'in_class') ||
@@ -128,15 +131,15 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
   const matchedAttendance = useMemo(() => {
     if (!normalizedQuery) return [];
     return attendanceRecords.filter((rec) => {
-      const nameMatch = rec.studentNameBn?.toLowerCase().includes(normalizedQuery);
-      const rollMatch = rec.rollNo?.toLowerCase().includes(normalizedQuery);
-      const classMatch = rec.className?.toLowerCase().includes(normalizedQuery);
-      const remarksMatch = (rec as any).remarks?.toLowerCase().includes(normalizedQuery);
+      const nameMatch = rec.studentNameBn?.toLowerCase().includes(normalizedQuery) || false;
+      const rollMatch = rec.rollNo?.toLowerCase().includes(normalizedQuery) || false;
+      const classMatch = rec.className?.toLowerCase().includes(normalizedQuery) || false;
+      const remarksMatch = (rec as any).remarks?.toLowerCase().includes(normalizedQuery) || false;
       const statusMatch =
         (normalizedQuery.includes('উপস্থিত') && rec.status === 'present') ||
         (normalizedQuery.includes('অনুপস্থিত') && rec.status === 'absent') ||
         (normalizedQuery.includes('বিলম্ব') && rec.status === 'late') ||
-        rec.status.toLowerCase().includes(normalizedQuery);
+        (rec.status?.toLowerCase().includes(normalizedQuery) || false);
 
       return nameMatch || rollMatch || classMatch || remarksMatch || statusMatch;
     });
@@ -177,12 +180,6 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
     matchedAttendance.length +
     matchedActivities.length +
     matchedPickups.length;
-
-  const handleSelectQuickSearch = (term: string) => {
-    setQuery(term);
-    setIsOpen(true);
-    inputRef.current?.focus();
-  };
 
   const handleClear = () => {
     setQuery('');
@@ -229,51 +226,6 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
             </div>
           )}
         </div>
-
-        {/* Quick Suggestion Chips */}
-        {!query && (
-          <div className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[11px] text-slate-500 overflow-x-auto no-scrollbar border-t border-slate-100 mt-1">
-            <span className="text-slate-400 shrink-0 flex items-center gap-1 font-bold">
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              দ্রুত সার্চ:
-            </span>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickSearch('আদিত্য রায়')}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 transition-colors whitespace-nowrap cursor-pointer text-[10.5px]"
-            >
-              আদিত্য রায়
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickSearch('Playgroup')}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 transition-colors whitespace-nowrap cursor-pointer text-[10.5px]"
-            >
-              Playgroup
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickSearch('অনুপস্থিত')}
-              className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors whitespace-nowrap cursor-pointer text-[10.5px] font-medium"
-            >
-              অনুপস্থিত শিক্ষার্থী
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickSearch('ক্রাফট')}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 transition-colors whitespace-nowrap cursor-pointer text-[10.5px]"
-            >
-              কাগজের ক্রাফট ডায়েরি
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickSearch('KG-1')}
-              className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 transition-colors whitespace-nowrap cursor-pointer text-[10.5px]"
-            >
-              কেজি-১
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Dropdown Live Results Panel */}
@@ -452,7 +404,7 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
                         <div className="text-[11px] text-slate-600 bg-slate-50/80 p-2 rounded-xl border border-slate-100 flex items-center justify-between">
                           <div className="truncate">
                             <span className="text-slate-400">অভিভাবক: </span>
-                            <span className="font-semibold text-slate-800">{std.fatherNameBn || std.authorizedPickups[0]?.nameBn}</span>
+                            <span className="font-semibold text-slate-800">{std.fatherNameBn || std.authorizedPickups?.[0]?.nameBn || 'অভিভাবকের তথ্য'}</span>
                           </div>
                           {std.emergencyPhone && (
                             <a
@@ -540,12 +492,12 @@ export const GlobalDashboardSearch: React.FC<GlobalDashboardSearchProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  {matchedAttendance.map((rec) => {
+                  {matchedAttendance.map((rec, index) => {
                     const isPresent = rec.status === 'present';
                     const isLate = rec.status === 'late';
                     return (
                       <div
-                        key={rec.studentId + '-' + rec.className}
+                        key={`${rec.studentId}-${rec.className}-${index}`}
                         onClick={() => {
                           setIsOpen(false);
                           onNavigateTab('attendance');

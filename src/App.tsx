@@ -96,14 +96,102 @@ import {
   FcmRegistrationResult,
 } from './lib/firebase';
 
+interface DashboardErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface DashboardErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class DashboardErrorBoundary extends React.Component<DashboardErrorBoundaryProps, DashboardErrorBoundaryState> {
+  constructor(props: DashboardErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): DashboardErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Portal Error Boundary caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 my-6 max-w-xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl text-center space-y-3 shadow-md">
+          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl font-bold">⚠️</div>
+          <h3 className="text-base font-bold text-amber-900">একটি সাময়িক রেন্ডারিং সমস্যা হয়েছে</h3>
+          <p className="text-xs text-amber-700">আপনার অ্যাডমিন সেশন সুরক্ষিত রয়েছে। নিচের বাটনে ক্লিক করে পুনরায় চেষ্টা করুন।</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition"
+          >
+            পুনরায় লোড করুন
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // Default view is the Public Website open to everyone; logging in automatically selects role & opens that role's portal
-  const [loggedInAccount, setLoggedInAccount] = useState<PortalAccount | null>(null);
-  const [currentRole, setCurrentRole] = useState<UserRole>('public');
-  const [currentTab, setCurrentTab] = useState<string>('public');
+  const [loggedInAccount, setLoggedInAccount] = useState<PortalAccount | null>(() => {
+    try {
+      const stored = localStorage.getItem('ananda_session_account_v1');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  });
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    try {
+      const stored = localStorage.getItem('ananda_session_account_v1');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role) return parsed.role;
+      }
+    } catch {}
+    return 'public';
+  });
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('ananda_session_account_v1');
+      const storedTab = localStorage.getItem('ananda_session_tab_v1');
+      if (stored && storedTab && storedTab !== 'public') return storedTab;
+      if (stored) return 'overview';
+    } catch {}
+    return 'public';
+  });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [isMobileModalOpen, setIsMobileModalOpen] = useState<boolean>(false);
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
+
+  // Synchronize session account and tab to localStorage so crashes or reloads never cause unwanted logouts
+  useEffect(() => {
+    try {
+      if (loggedInAccount) {
+        localStorage.setItem('ananda_session_account_v1', JSON.stringify(loggedInAccount));
+      } else {
+        localStorage.removeItem('ananda_session_account_v1');
+      }
+    } catch {}
+  }, [loggedInAccount]);
+
+  useEffect(() => {
+    try {
+      if (loggedInAccount && currentTab && currentTab !== 'public') {
+        localStorage.setItem('ananda_session_tab_v1', currentTab);
+      } else if (!loggedInAccount) {
+        localStorage.removeItem('ananda_session_tab_v1');
+      }
+    } catch {}
+  }, [currentTab, loggedInAccount]);
 
   // Branding & Connected Facebook Gallery State
   const [logoUrl, setLogoUrl] = useState<string>(SCHOOL_PROFILE.logoUrl);
@@ -835,8 +923,9 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <Suspense
-                  fallback={
+                <DashboardErrorBoundary>
+                  <Suspense
+                    fallback={
                     <div className="flex flex-col items-center justify-center p-16 text-emerald-800 space-y-3">
                       <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                       <span className="text-sm font-semibold text-slate-600">মডিউল লোড হচ্ছে...</span>
@@ -1146,7 +1235,8 @@ export default function App() {
                     />
                   )}
                 </Suspense>
-              )}
+              </DashboardErrorBoundary>
+            )}
             </main>
           </>
         )}
