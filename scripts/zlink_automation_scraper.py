@@ -37,11 +37,11 @@ if os.path.exists(CONFIG_PATH):
     except Exception as e:
         print(f"[!] কনফিগ ফাইল লোড করতে সমস্যা: {e}", flush=True)
 
-ZLINK_URL = config.get("zlink_url", "https://zlink.minervaiot.com")
-USERNAME = config.get("username", "").strip()
-PASSWORD = config.get("password", "").strip()
-SYNC_INTERVAL_MINUTES = int(config.get("sync_interval_minutes", 15))
-HEADLESS = bool(config.get("headless", True))
+ZLINK_URL = os.getenv("ZLINK_URL", config.get("zlink_url", "https://zlink.minervaiot.com"))
+USERNAME = os.getenv("ZLINK_USERNAME", config.get("username", "")).strip()
+PASSWORD = os.getenv("ZLINK_PASSWORD", config.get("password", "")).strip()
+SYNC_INTERVAL_MINUTES = int(os.getenv("SYNC_INTERVAL_MINUTES", config.get("sync_interval_minutes", 15)))
+HEADLESS = bool(os.getenv("HEADLESS", config.get("headless", True)))
 
 def run_scraper():
     try:
@@ -226,6 +226,13 @@ def run_scraper():
             browser.close()
 
 if __name__ == "__main__":
+    once_mode = "--once" in sys.argv or os.getenv("SYNC_ONCE", "").lower() in ("true", "1", "yes")
+
+    if once_mode:
+        print("[*] এককালীন ক্লাউড অটো-সিঙ্ক মোড (One-time Sync)...", flush=True)
+        success = run_scraper()
+        sys.exit(0 if success else 1)
+
     print(f"[*] আনন্দ পাঠশালা Zlink অটো-সিঙ্ক সার্ভিস চালু রয়েছে। প্রতি {SYNC_INTERVAL_MINUTES} মিনিট পর পর রান হবে...")
     print("[*] বন্ধ করতে কীবোর্ডে Ctrl + C চাপুন।\n", flush=True)
 
