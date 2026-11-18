@@ -190,6 +190,34 @@ export default function App() {
   const [isMobileModalOpen, setIsMobileModalOpen] = useState<boolean>(false);
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
 
+  // Dedicated App Mode detector (iOS App, Standalone PWA, /login, or ?app=ios)
+  // When active, the Public Website is completely hidden and the app functions purely as a Portal
+  const [isAppMode] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const search = window.location.search.toLowerCase();
+        const path = window.location.pathname.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+        const isStandalone =
+          (window.navigator as any).standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches;
+        const hasAppParam = search.includes('app=') || search.includes('portal') || search.includes('ios');
+        const hasLoginPath = path.includes('/login') || hash.includes('login');
+        const isCapacitor = Boolean((window as any).Capacitor);
+
+        if (hasAppParam) {
+          sessionStorage.setItem('ananda_app_mode', 'true');
+          return true;
+        }
+        if (sessionStorage.getItem('ananda_app_mode') === 'true') {
+          return true;
+        }
+        return isStandalone || hasLoginPath || isCapacitor;
+      }
+    } catch {}
+    return false;
+  });
+
   // Auto-route to Login Portal modal if /login or #login is loaded in URL
   useEffect(() => {
     const handleUrlRouting = () => {
@@ -906,13 +934,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Smart Role-Detecting Login Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-        logoUrl={logoUrl}
-      />
+      {/* Smart Role-Detecting Login Modal (for standard website visitors) */}
+      {!isAppMode && (
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+          logoUrl={logoUrl}
+        />
+      )}
 
       {/* PWA Mobile App Install & Preview Modal */}
       <MobileAppModal
@@ -956,7 +986,16 @@ export default function App() {
             : 'w-full flex-1 flex flex-col'
         }
       >
-        {isShowingPublicWebsite ? (
+        {isAppMode && !loggedInAccount ? (
+          /* Dedicated Standalone Login Portal for iOS App / Mobile App (No Public Website) */
+          <LoginModal
+            isOpen={true}
+            isStandalonePage={true}
+            onClose={() => {}}
+            onLoginSuccess={handleLoginSuccess}
+            logoUrl={logoUrl}
+          />
+        ) : isShowingPublicWebsite ? (
           /* Standalone Public Website (Open to Everyone by Default) */
           <PublicWebsite
             onEnterPortal={(tab) => {

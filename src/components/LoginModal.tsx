@@ -31,6 +31,7 @@ interface LoginModalProps {
   onClose: () => void;
   onLoginSuccess: (account: PortalAccount) => void;
   logoUrl?: string;
+  isStandalonePage?: boolean;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -38,6 +39,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
   logoUrl = '/assets/fb/logo.jpg',
+  isStandalonePage = false,
 }) => {
   // Input fields (clean, empty by default)
   const [identifier, setIdentifier] = useState('');
@@ -235,29 +237,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }, 1000);
   };
 
-  return (
+  const modalContent = (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="আনন্দ পাঠশালা স্মার্ট পোর্টাল লগইন"
-      onClick={loginState !== 'idle' ? undefined : onClose}
-      className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => e.stopPropagation()}
+      className={`bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 ${
+        isStandalonePage ? 'my-auto shadow-emerald-950/20' : 'my-4'
+      } flex flex-col animate-in fade-in zoom-in-95 duration-200`}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 my-4 flex flex-col animate-in fade-in zoom-in-95 duration-200"
-      >
-        {/* Top Header Banner */}
-        <div className="bg-gradient-to-br from-emerald-800 via-teal-800 to-emerald-950 text-white p-5 sm:p-6 relative shrink-0">
-          {loginState === 'idle' && (
-            <button
-              onClick={onClose}
-              aria-label="লগইন উইন্ডো বন্ধ করুন"
-              className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+      {/* Top Header Banner */}
+      <div className="bg-gradient-to-br from-emerald-800 via-teal-800 to-emerald-950 text-white p-5 sm:p-6 relative shrink-0">
+        {!isStandalonePage && loginState === 'idle' && (
+          <button
+            onClick={onClose}
+            aria-label="লগইন উইন্ডো বন্ধ করুন"
+            className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
 
           <div className="flex items-center gap-3.5">
             <img
@@ -681,6 +678,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           )}
         </div>
       </div>
+    );
+
+  if (isStandalonePage) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 sm:p-6">
+        {modalContent}
+        <div className="mt-4 text-center">
+          <p className="text-emerald-400/80 text-xs font-semibold tracking-wide">
+            আনন্দ পাঠশালা (কুষ্টিয়া) • মোবাইল পোর্টাল
+          </p>
+          <p className="text-slate-400 text-[11px] mt-0.5">
+            iOS অ্যাপ ভার্সন ২.১ (সিকিউর সেশন)
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="আনন্দ পাঠশালা স্মার্ট পোর্টাল লগইন"
+      onClick={loginState !== 'idle' ? undefined : onClose}
+      className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+    >
+      {modalContent}
     </div>
   );
 };
