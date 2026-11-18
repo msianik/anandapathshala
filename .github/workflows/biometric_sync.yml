@@ -3,7 +3,7 @@ name: Zlink Biometric Attendance Cloud Sync
 on:
   # প্রতিদিন সকাল ৭:০০ টা থেকে বিকেল ৫:০০ টা (বাংলাদেশ সময়) প্রতি ১৫ মিনিট পর পর চলবে
   schedule:
-    - cron: '*/15 1-11 * * *'
+    - cron: '*/15 1-13 * * *'
   # GitHub Actions ট্যাব থেকে ইচ্ছে হলে যেকোনো সময় ১-ক্লিক করেও চালানো যাবে
   workflow_dispatch:
 
