@@ -1,0 +1,37 @@
+name: Zlink Biometric Attendance Cloud Sync
+
+on:
+  # প্রতিদিন সকাল ৭:০০ টা থেকে বিকেল ৫:০০ টা (বাংলাদেশ সময়) প্রতি ১৫ মিনিট পর পর চলবে
+  schedule:
+    - cron: '*/15 1-11 * * *'
+  # GitHub Actions ট্যাব থেকে ইচ্ছে হলে যেকোনো সময় ১-ক্লিক করেও চালানো যাবে
+  workflow_dispatch:
+
+jobs:
+  sync_attendance:
+    name: Fetch Zlink Punches & Sync to Firestore
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Playwright & Dependencies
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Run Zlink Attendance Scraper (Cloud Mode)
+        env:
+          ZLINK_USERNAME: ${{ secrets.ZLINK_USERNAME || 'msianik.bd@gmail.com' }}
+          ZLINK_PASSWORD: ${{ secrets.ZLINK_PASSWORD || 'Azrin@2103' }}
+          HEADLESS: 'true'
+          SYNC_ONCE: 'true'
+        run: |
+          python scripts/zlink_automation_scraper.py --once
