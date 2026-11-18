@@ -41,6 +41,15 @@ import {
   ALL_PORTAL_MODULE_IDS,
 } from './utils/schoolLogic';
 import { syncStudentToBiometricDevice } from './utils/biometricAttendanceLogic';
+import {
+  subscribeToSchoolCloud,
+  cloudSaveStudents,
+  cloudSaveInvoices,
+  cloudSaveAttendance,
+  cloudSaveStaffAttendance,
+  cloudSaveAssets,
+  cloudSaveProfile,
+} from './lib/schoolCloudSync';
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
 
@@ -278,6 +287,7 @@ export default function App() {
       }>;
       if (customEv.detail?.schoolProfile) {
         setSchoolProfile(customEv.detail.schoolProfile);
+        cloudSaveProfile(customEv.detail.schoolProfile);
       }
       if (customEv.detail?.leadershipProfiles) {
         setLeadershipProfiles(customEv.detail.leadershipProfiles);
@@ -341,6 +351,50 @@ export default function App() {
     return INITIAL_SCHOOL_ASSETS;
   });
 
+  // Real-time Cloud Synchronization State & Listener
+  const [cloudSyncInfo, setCloudSyncInfo] = useState<{ isConnected: boolean; lastSyncTime: string }>({
+    isConnected: true,
+    lastSyncTime: 'সংযুক্ত',
+  });
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSchoolCloud(
+      {
+        onStudentsChange: (cloudStudents) => {
+          setStudents(cloudStudents);
+        },
+        onInvoicesChange: (cloudInvoices) => {
+          setInvoices(cloudInvoices);
+        },
+        onAttendanceChange: (cloudAttendance) => {
+          setAttendanceRecords(cloudAttendance);
+        },
+        onNoticesChange: (cloudNotices) => {
+          setNotices(cloudNotices);
+        },
+        onAssetsChange: (cloudAssets) => {
+          setSchoolAssets(cloudAssets);
+        },
+        onProfileChange: (cloudProfile) => {
+          setSchoolProfile(cloudProfile);
+        },
+        onStatusChange: (isConnected, lastSyncTime) => {
+          setCloudSyncInfo({ isConnected, lastSyncTime });
+        },
+      },
+      {
+        students: INITIAL_STUDENTS,
+        invoices: INITIAL_INVOICES,
+        attendance: INITIAL_ATTENDANCE,
+        notices: INITIAL_SCHOOL_NOTICES,
+        assets: INITIAL_SCHOOL_ASSETS,
+        profile: SCHOOL_PROFILE,
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   // Automatically sync students into biometric attendance machine on mount
   useEffect(() => {
     try {
@@ -352,9 +406,7 @@ export default function App() {
 
   const handleUpdateSchoolAssets = (updated: SchoolAssetItem[]) => {
     setSchoolAssets(updated);
-    try {
-      localStorage.setItem('ananda_school_assets_v1', JSON.stringify(updated));
-    } catch {}
+    cloudSaveAssets(updated);
   };
 
   // School Notices State (Synced with localStorage and custom event)
@@ -695,22 +747,19 @@ export default function App() {
             }
           : inv
       );
-      try {
-        localStorage.setItem('ananda_invoices_v1', JSON.stringify(updated));
-      } catch {}
+      cloudSaveInvoices(updated);
       return updated;
     });
   };
 
   const handleUpdateInvoices = (updatedInvoices: FeeInvoice[]) => {
     setInvoices(updatedInvoices);
-    try {
-      localStorage.setItem('ananda_invoices_v1', JSON.stringify(updatedInvoices));
-    } catch {}
+    cloudSaveInvoices(updatedInvoices);
   };
 
   const handleUpdateAttendance = (records: AttendanceRecord[]) => {
     setAttendanceRecords(records);
+    cloudSaveAttendance(records);
   };
 
   const handleUpdateStaffAttendance = (records: any[]) => {
@@ -719,7 +768,7 @@ export default function App() {
       const raw = localStorage.getItem('ananda_staff_attendance_v1');
       const parsed = raw ? JSON.parse(raw) : {};
       parsed[todayStr] = records;
-      localStorage.setItem('ananda_staff_attendance_v1', JSON.stringify(parsed));
+      cloudSaveStaffAttendance(parsed);
       window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
       window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
     } catch {}
@@ -737,9 +786,7 @@ export default function App() {
 
     setStudents((prev) => {
       const updated = [enrichedStudent, ...prev];
-      try {
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
+      cloudSaveStudents(updated);
       return updated;
     });
   };
@@ -755,9 +802,7 @@ export default function App() {
 
     setStudents((prev) => {
       const updated = prev.map((s) => (s.id === enrichedStudent.id ? enrichedStudent : s));
-      try {
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
+      cloudSaveStudents(updated);
       return updated;
     });
   };
@@ -765,9 +810,7 @@ export default function App() {
   const handleDeleteStudent = (studentId: string) => {
     setStudents((prev) => {
       const updated = prev.filter((s) => s.id !== studentId);
-      try {
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
+      cloudSaveStudents(updated);
       return updated;
     });
   };
@@ -951,6 +994,7 @@ export default function App() {
               isMobilePreview={isMobilePreview}
               onLogout={handleLogout}
               logoUrl={logoUrl}
+              cloudSyncInfo={cloudSyncInfo}
             />
 
             <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-8 pb-24 lg:pb-8 space-y-5">

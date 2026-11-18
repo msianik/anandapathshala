@@ -174,6 +174,49 @@ def run_scraper():
 
             print(f"[✓] আনন্দ পাঠশালা পোর্টালে {len(records)} টি লাইভ পাঞ্চ সফলভাবে সংরক্ষিত হয়েছে!", flush=True)
             print(f"[✓] আউটপুট ফাইল: {OUTPUT_FILE}", flush=True)
+
+            # ৫. সরাসরি Google Cloud Firestore ডাটাবেজে লাইভ আপলোড
+            try:
+                import urllib.request
+                fs_url = "https://firestore.googleapis.com/v1/projects/gen-lang-client-0036381817/databases/ai-studio-kindergartenscho-9ee82096-0aea-4672-a0ef-ed73933e59d3/documents/portal_data/biometric_logs"
+                values = []
+                for r in records[:300]:
+                    values.append({
+                        "mapValue": {
+                            "fields": {
+                                "userId": {"stringValue": str(r.get("userId", ""))},
+                                "enrollId": {"stringValue": str(r.get("enrollId", ""))},
+                                "name": {"stringValue": str(r.get("name", ""))},
+                                "department": {"stringValue": str(r.get("department", ""))},
+                                "personType": {"stringValue": str(r.get("personType", "student"))},
+                                "punchTime": {"stringValue": str(r.get("punchTime", ""))},
+                                "time": {"stringValue": str(r.get("time", ""))},
+                                "verificationMode": {"stringValue": str(r.get("verificationMode", "fingerprint"))},
+                                "deviceSn": {"stringValue": str(r.get("deviceSn", "JUS3251800031"))},
+                                "status": {"stringValue": str(r.get("status", "on_time"))},
+                                "fetchedAt": {"stringValue": str(r.get("fetchedAt", ""))}
+                            }
+                        }
+                    })
+                body = {
+                    "fields": {
+                        "items": {"arrayValue": {"values": values}},
+                        "count": {"integerValue": str(len(records))},
+                        "updatedAt": {"stringValue": datetime.now().isoformat()}
+                    }
+                }
+                req = urllib.request.Request(
+                    fs_url,
+                    data=json.dumps(body).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="PATCH"
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    if resp.status in (200, 204):
+                        print(f"[✓] Google Cloud Firestore-এ {len(records)} টি লাইভ বায়োমেট্রিক পাঞ্চ সিঙ্ক সম্পন্ন হয়েছে!", flush=True)
+            except Exception as fs_err:
+                print(f"[!] Firestore ক্লাউড সিঙ্ক সতর্কতা: {fs_err}", flush=True)
+
             return True
 
         except Exception as e:

@@ -465,6 +465,9 @@ export function saveBiometricLogs(logs: BiometricPunchLog[]): void {
     const json = JSON.stringify(logs);
     safeSetItem(BIOMETRIC_LOGS_KEY, json);
     safeSetItem('ananda_biometric_punch_logs_v1', json);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs } }));
+    }
   } catch (err) {
     console.error('Failed to save biometric punch logs:', err);
   }

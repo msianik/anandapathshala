@@ -60,6 +60,7 @@ interface TopNavigationProps {
   isMobilePreview?: boolean;
   onLogout: () => void;
   logoUrl?: string;
+  cloudSyncInfo?: { isConnected: boolean; lastSyncTime: string };
 }
 
 const PILLAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -111,6 +112,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   isMobilePreview = false,
   onLogout,
   logoUrl = '/assets/fb/logo.jpg',
+  cloudSyncInfo,
 }) => {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
@@ -228,6 +230,19 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               {loggedInAccount && (
                 <span className="text-amber-200 text-[10px] sm:text-[11px] font-semibold truncate">
                   · {loggedInAccount.nameBn} <span className="hidden sm:inline">({loggedInAccount.roleTitleBn})</span>
+                </span>
+              )}
+              {cloudSyncInfo && (
+                <span
+                  title={cloudSyncInfo.isConnected ? `ক্লাউড ডাটাবেজ সংযুক্ত (সর্বশেষ সিঙ্ক: ${cloudSyncInfo.lastSyncTime})` : 'ক্লাউড অফলাইন মোড'}
+                  className={`inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 shadow-xs border ${
+                    cloudSyncInfo.isConnected
+                      ? 'bg-emerald-500/30 border-emerald-300/50 text-emerald-100'
+                      : 'bg-rose-500/30 border-rose-300/50 text-rose-100'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${cloudSyncInfo.isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                  <span>{cloudSyncInfo.isConnected ? 'ক্লাউড লাইভ' : 'অফলাইন'}</span>
                 </span>
               )}
             </div>
