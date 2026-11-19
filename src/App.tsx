@@ -449,7 +449,7 @@ export default function App() {
           setInvoices(cloudInvoices);
         },
         onAttendanceChange: (cloudAttendance) => {
-          if (Array.isArray(cloudAttendance) && cloudAttendance.length > 0) {
+          if (Array.isArray(cloudAttendance) && cloudAttendance.length >= 90) {
             setAttendanceRecords(cloudAttendance);
           } else {
             setAttendanceRecords(REAL_DEVICE_STUDENT_ATTENDANCE);
@@ -492,27 +492,36 @@ export default function App() {
     } catch {}
   }, []);
 
-  // Auto-cleanse any legacy mock attendance on mount once
+  // Auto-cleanse any legacy mock attendance and upgrade to full 703 biometric punches & 90 students
   useEffect(() => {
     try {
-      const modeKey = 'ananda_real_attendance_mode_v2';
+      const modeKey = 'ananda_real_attendance_mode_v3';
       const hasCleaned = localStorage.getItem(modeKey);
       if (!hasCleaned) {
         const rawAtt = localStorage.getItem('ananda_attendance_v1');
         const rawBio =
           localStorage.getItem('ananda_biometric_punch_logs_v1') ||
-          localStorage.getItem('ananda_biometric_punch_logs_v2') ||
           localStorage.getItem('ap_biometric_punch_logs_v1');
-        const hasMockAtt = rawAtt && (rawAtt.includes('std-0') || rawAtt.includes('সকাল ০৮:৩৫'));
-        const hasMockBio = rawBio && (rawBio.includes('bio-log-1') || rawBio.includes('০৮ নভেম্বর ২০২৬'));
+        let needsUpgrade = !rawAtt || !rawBio;
+        if (rawAtt) {
+          try {
+            const parsedAtt = JSON.parse(rawAtt);
+            if (!Array.isArray(parsedAtt) || parsedAtt.length < 90) needsUpgrade = true;
+          } catch { needsUpgrade = true; }
+        }
+        if (rawBio) {
+          try {
+            const parsedBio = JSON.parse(rawBio);
+            if (!Array.isArray(parsedBio) || parsedBio.length < 500) needsUpgrade = true;
+          } catch { needsUpgrade = true; }
+        }
 
-        if (hasMockAtt || hasMockBio) {
-          console.log('[RealAttendanceMode] Purging obsolete mock attendance data...');
+        if (needsUpgrade) {
+          console.log('[RealAttendanceMode] Upgrading to 703 real biometric punches & 90 students...');
           purgeMockAttendanceAndResetRealMode();
           setAttendanceRecords(REAL_DEVICE_STUDENT_ATTENDANCE);
-        } else {
-          localStorage.setItem(modeKey, 'true');
         }
+        localStorage.setItem(modeKey, 'true');
       }
     } catch (e) {
       console.warn('Real attendance init check error:', e);

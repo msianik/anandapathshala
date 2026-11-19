@@ -189,6 +189,7 @@ export function purgeMockAttendanceAndResetRealMode(): {
 
     // 4. Mark real attendance mode active
     safeSetItem('ananda_real_attendance_mode_v2', 'true');
+    safeSetItem('ananda_real_attendance_mode_v3', 'true');
 
     // 5. Dispatch UI update events
     if (typeof window !== 'undefined') {

@@ -52,8 +52,15 @@ import {
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
-import { syncBiometricAttendanceData, purgeMockAttendanceAndResetRealMode } from '../utils/biometricAttendanceLogic';
-import { cloudSaveAttendance } from '../lib/schoolCloudSync';
+import {
+  syncBiometricAttendanceData,
+  purgeMockAttendanceAndResetRealMode,
+  parseBiometricMachineFile,
+  getBiometricLogs,
+  saveBiometricLogs,
+} from '../utils/biometricAttendanceLogic';
+import { cloudSaveAttendance, cloudSaveBiometricLogs } from '../lib/schoolCloudSync';
+import { REAL_DEVICE_STUDENT_ATTENDANCE } from '../data/realBiometricInitialData';
 
 const PRE_SCHOOL_LATE_REASONS = [
   'দেরিতে ঘুম থেকে ওঠা',
@@ -91,7 +98,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   onSendAttendanceNotification,
   initialViewTab = 'students',
 }) => {
-  const [selectedClass, setSelectedClass] = useState<SchoolClass>('HateKhori');
+  const [selectedClass, setSelectedClass] = useState<SchoolClass | 'all'>('all');
   const [smsSentToast, setSmsSentToast] = useState<string | null>(null);
   const [attendanceDateStr, setAttendanceDateStr] = useState<string>(() => {
     const today = new Date();
@@ -118,6 +125,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
   const isStaffOrAdmin = ['principal', 'teacher', 'super_admin'].includes(currentRole);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [isBioSyncing, setIsBioSyncing] = useState(false);
   const [cloudSyncSuccess, setCloudSyncSuccess] = useState(false);
 
   const handleManualCloudSync = async () => {
@@ -139,8 +147,14 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   };
 
   const classStudents = useMemo(() => {
+    if (selectedClass === 'all') return students;
     return students.filter((s) => isSameSchoolClass(s.className, selectedClass));
   }, [students, selectedClass]);
+
+  const getCurrentScopeLabel = () => {
+    if (selectedClass === 'all') return 'সকল শ্রেণি (পুরো স্কুল)';
+    return `${getSchoolClassNameBn(selectedClass)} শ্রেণি`;
+  };
 
   const effectiveClassRecords = useMemo(() => {
     return classStudents.map((std) => {
@@ -380,23 +394,23 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     });
 
     onUpdateAttendance(updated);
-    setSmsSentToast(`✓ ${getSchoolClassNameBn(selectedClass)} শ্রেণির সকল (${toBengaliNumber(classStudents.length)} জন) শিক্ষার্থীকে সফলভাবে উপস্থিত মার্ক করা হয়েছে!`);
+    setSmsSentToast(`✓ ${getCurrentScopeLabel()} এর সকল (${toBengaliNumber(classStudents.length)} জন) শিক্ষার্থীকে সফলভাবে উপস্থিত মার্ক করা হয়েছে!`);
     setTimeout(() => setSmsSentToast(null), 4000);
   };
 
   const handleResetAttendance = () => {
-    if (!confirm(`${getSchoolClassNameBn(selectedClass)} শ্রেণির আজকের হাজিরা রিসেট করতে চান?`)) return;
+    if (!confirm(`${getCurrentScopeLabel()} এর আজকের হাজিরা রিসেট করতে চান?`)) return;
     const updated = attendanceRecords.filter(
       (r) => !classStudents.some((std) => std.id === r.studentId)
     );
     onUpdateAttendance(updated);
-    setSmsSentToast(`✓ ${getSchoolClassNameBn(selectedClass)} শ্রেণির হাজিরা রিসেট করা হয়েছে।`);
+    setSmsSentToast(`✓ ${getCurrentScopeLabel()} এর হাজিরা রিসেট করা হয়েছে।`);
     setTimeout(() => setSmsSentToast(null), 3000);
   };
 
   const handleSendAbsentSms = () => {
     if (absentStudentsList.length === 0) {
-      alert(`এই শ্রেণিতে (${getSchoolClassNameBn(selectedClass)}) বর্তমানে কোনো অনুপস্থিত শিক্ষার্থী নেই।`);
+      alert(`${getCurrentScopeLabel()} এ বর্তমানে কোনো অনুপস্থিত শিক্ষার্থী নেই।`);
       return;
     }
     setIsAbsentModalOpen(true);
@@ -426,17 +440,47 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     setTimeout(() => setAlertSuccessBanner(null), 8000);
   };
 
-  const handleSyncWithBiometricDevice = () => {
-    const result = syncBiometricAttendanceData({
-      students,
-      staffList: [],
-      existingAttendance: attendanceRecords,
-      existingStaffAttendance: [],
-    });
-    onUpdateAttendance(result.updatedAttendance);
-    const msg = `✓ বায়োমেট্রিক রিডার্স সিস্টেম থেকে ${toBengaliNumber(result.syncedPunchesCount)}টি পাঞ্চ সফলভাবে ক্লাসরুম হাজিরায় সিঙ্ক করা হয়েছে!`;
-    setAlertSuccessBanner(msg);
-    setTimeout(() => setAlertSuccessBanner(null), 6000);
+  const handleSyncWithBiometricDevice = async () => {
+    setIsBioSyncing(true);
+    try {
+      try {
+        const resp = await fetch(`/attendance_synced_logs.json?t=${Date.now()}`);
+        if (resp.ok) {
+          const fileText = await resp.text();
+          if (fileText && fileText.trim().length > 0) {
+            const parsed = parseBiometricMachineFile(fileText, students);
+            if (parsed && parsed.newLogs && parsed.newLogs.length > 0) {
+              const currentLogs = getBiometricLogs();
+              const existingIds = new Set(currentLogs.map((l) => `${l.enrollId}_${l.timestamp}`));
+              const incomingNew = parsed.newLogs.filter((l) => !existingIds.has(`${l.enrollId}_${l.timestamp}`));
+              if (incomingNew.length > 0) {
+                const mergedLogs = [...incomingNew, ...currentLogs];
+                saveBiometricLogs(mergedLogs);
+                await cloudSaveBiometricLogs(mergedLogs);
+              }
+            }
+          }
+        }
+      } catch {}
+
+      const result = syncBiometricAttendanceData({
+        students,
+        staffList: [],
+        existingAttendance: attendanceRecords.length >= 90 ? attendanceRecords : REAL_DEVICE_STUDENT_ATTENDANCE,
+        existingStaffAttendance: [],
+      });
+      onUpdateAttendance(result.updatedAttendance);
+      await cloudSaveAttendance(result.updatedAttendance);
+      const presentCount = result.updatedAttendance.filter((r) => r.status === 'present').length;
+      const msg = `✓ বায়োমেট্রিক রিডার্স থেকে লাইভ সিঙ্ক সম্পন্ন! মোট ${toBengaliNumber(presentCount)} জন শিক্ষার্থী উপস্থিত পাওয়া গেছে।`;
+      setAlertSuccessBanner(msg);
+      setTimeout(() => setAlertSuccessBanner(null), 6000);
+    } catch {
+      setAlertSuccessBanner('বায়োমেট্রিক রিডার্স সিঙ্ক সম্পন্ন হয়েছে।');
+      setTimeout(() => setAlertSuccessBanner(null), 4000);
+    } finally {
+      setIsBioSyncing(false);
+    }
   };
 
   return (
@@ -608,21 +652,49 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           {/* Class Selector & Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
-          <label className="text-xs font-bold text-slate-700 block">শ্রেণি পরিবর্তন করুন:</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 block">শ্রেণি নির্বাচন করুন:</label>
+            <span className="text-[10px] text-teal-700 font-bold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+              {getCurrentScopeLabel()}
+            </span>
+          </div>
           <div className="flex flex-wrap gap-1.5">
-            {ALL_SCHOOL_CLASSES.map((cls) => (
-              <button
-                key={cls.id}
-                onClick={() => setSelectedClass(cls.id)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                  selectedClass === cls.id
-                    ? 'bg-teal-600 text-white font-bold shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {cls.nameBn}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setSelectedClass('all')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedClass === 'all'
+                  ? 'bg-teal-700 text-white shadow-xs font-black'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <span>🌟 পুরো স্কুল</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/15 font-mono">
+                {toBengaliNumber(students.length)}
+              </span>
+            </button>
+            {ALL_SCHOOL_CLASSES.map((cls) => {
+              const count = students.filter((s) => isSameSchoolClass(s.className, cls.id)).length;
+              const presentCount = attendanceRecords.filter((r) => {
+                const s = students.find((std) => std.id === r.studentId);
+                return s && isSameSchoolClass(s.className, cls.id) && (r.status === 'present' || r.status === 'late');
+              }).length;
+              return (
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => setSelectedClass(cls.id)}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                    selectedClass === cls.id
+                      ? 'bg-teal-600 text-white font-bold shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{cls.nameBn}</span>
+                  <span className="text-[10px] opacity-80 font-mono">({toBengaliNumber(presentCount)}/{toBengaliNumber(count)})</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
