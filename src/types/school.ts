@@ -636,7 +636,8 @@ export type FcmNotificationType =
   | 'absence_alert'
   | 'parent_teacher_message'
   | 'staff_internal_message'
-  | 'inventory_low_stock';
+  | 'inventory_low_stock'
+  | 'cloud_sync_alert';
 
 export interface FcmNotification {
   id: string;

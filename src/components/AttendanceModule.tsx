@@ -46,10 +46,12 @@ import {
   ChevronDown,
   Fingerprint,
   RefreshCw,
+  Cloud,
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
 import { syncBiometricAttendanceData } from '../utils/biometricAttendanceLogic';
+import { cloudSaveAttendance } from '../lib/schoolCloudSync';
 
 const PRE_SCHOOL_LATE_REASONS = [
   'দেরিতে ঘুম থেকে ওঠা',
@@ -113,6 +115,26 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   const isStaffOrAdmin = ['principal', 'teacher', 'super_admin'].includes(currentRole);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [cloudSyncSuccess, setCloudSyncSuccess] = useState(false);
+
+  const handleManualCloudSync = async () => {
+    setIsCloudSyncing(true);
+    try {
+      const ok = await cloudSaveAttendance(attendanceRecords);
+      if (ok) {
+        setCloudSyncSuccess(true);
+        setTimeout(() => setCloudSyncSuccess(false), 3000);
+        setSmsSentToast('✅ সকল শিক্ষার্থীর হাজিরা সফলভাবে গুগল ক্লাউড ফায়ারস্টোরে সিঙ্ক হয়েছে!');
+      } else {
+        setSmsSentToast('❌ ক্লাউড সিঙ্ক সম্পন্ন হতে পারেনি। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      }
+    } catch (err) {
+      setSmsSentToast('❌ ক্লাউড সিঙ্ক ত্রুটি: ' + String(err));
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
 
   const classStudents = useMemo(() => {
     return students.filter((s) => isSameSchoolClass(s.className, selectedClass));
@@ -429,6 +451,21 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           >
             <Fingerprint className="w-4 h-4 text-slate-950" />
             <span>বায়োমেট্রিক সিঙ্ক</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleManualCloudSync}
+            disabled={isCloudSyncing}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${
+              cloudSyncSuccess
+                ? 'bg-emerald-600 text-white border-emerald-500'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+            }`}
+            title="সকল হাজিরার তথ্য সরাসরি গুগল ক্লাউড ফায়ারস্টোর ডাটাবেসে সেভ করুন"
+          >
+            <Cloud className={`w-4 h-4 ${isCloudSyncing ? 'animate-spin text-amber-300' : 'text-cyan-300'}`} />
+            <span>{isCloudSyncing ? 'সিঙ্ক হচ্ছে...' : cloudSyncSuccess ? 'ক্লাউডে সেভড ✓' : 'ক্লাউড সিঙ্ক'}</span>
           </button>
           {isStaffOrAdmin && (
             <>

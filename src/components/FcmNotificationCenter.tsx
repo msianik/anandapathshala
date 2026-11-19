@@ -76,6 +76,8 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
                 className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                   activeToast.type === 'urgent_pickup'
                     ? 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
+                    : activeToast.type === 'cloud_sync_alert'
+                    ? 'bg-rose-500/30 text-rose-300 border border-rose-500 animate-pulse'
                     : activeToast.type === 'inventory_low_stock'
                     ? 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
                     : activeToast.type === 'fee_due_reminder'
@@ -85,7 +87,9 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
                     : 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
                 }`}
               >
-                {activeToast.type === 'urgent_pickup' ? (
+                {activeToast.type === 'cloud_sync_alert' ? (
+                  <AlertTriangle className="w-4 h-4 text-rose-300" />
+                ) : activeToast.type === 'urgent_pickup' ? (
                   <ShieldAlert className="w-4 h-4" />
                 ) : activeToast.type === 'inventory_low_stock' ? (
                   <Package className="w-4 h-4 text-rose-300" />
@@ -139,7 +143,9 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
                 className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <span>
-                  {activeToast.type === 'urgent_pickup'
+                  {activeToast.type === 'cloud_sync_alert'
+                    ? 'সিঙ্ক স্ট্যাটাস দেখুন'
+                    : activeToast.type === 'urgent_pickup'
                     ? 'গেট-পাস মডিউলে যান'
                     : activeToast.type === 'inventory_low_stock'
                     ? 'ইনভেন্টরি দেখুন'

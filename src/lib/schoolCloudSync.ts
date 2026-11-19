@@ -132,6 +132,29 @@ export function setLocalTimestamp(key: string, timestamp: number = Date.now()) {
 }
 
 /**
+ * Global Cloud Sync Error Notification Dispatcher
+ * Dispatches an event across the window so App.tsx can show an active FCM Toast
+ * and notify administrators/teachers if any database table fails to sync.
+ */
+export function notifySyncError(moduleNameBn: string, rawError?: any) {
+  const errMsg = rawError?.message || String(rawError || 'নেটওয়ার্ক সংযোগ বা পারমিশন জনিত ত্রুটি');
+  console.error(`[CloudSync Error] ${moduleNameBn} সিঙ্ক ব্যর্থ:`, errMsg);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('ananda-cloud-sync-error', {
+        detail: {
+          module: moduleNameBn,
+          error: errMsg,
+          timestamp: Date.now(),
+          messageBn: `⚠️ ${moduleNameBn} গুগল ফায়ারস্টোর ক্লাউডে সিঙ্ক হতে সমস্যা হয়েছে! ডাটা অফলাইনে ক্যাশ করা আছে। ইন্টারনেট সংযোগ বা ফায়ারস্টোর পারমিশন চেক করুন।`,
+        },
+      })
+    );
+  }
+}
+
+/**
  * Auto-merges updated portal account details (from custom portal accounts)
  * into student records.
  */
@@ -222,6 +245,7 @@ export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save students to Firestore:', err);
+    notifySyncError('শিক্ষার্থীদের তথ্য', err);
     return false;
   }
 }
@@ -245,6 +269,7 @@ export async function cloudSaveTeachers(teachers: TeacherMember[]): Promise<bool
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save teachers to Firestore:', err);
+    notifySyncError('শিক্ষক ও কর্মী তথ্য', err);
     return false;
   }
 }
@@ -267,6 +292,7 @@ export async function cloudSavePortalAccounts(accounts: PortalAccount[]): Promis
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save portal accounts to Firestore:', err);
+    notifySyncError('ইউজার ও পোর্টাল অ্যাকাউন্ট', err);
     return false;
   }
 }
@@ -289,6 +315,7 @@ export async function cloudSaveInvoices(invoices: FeeInvoice[]): Promise<boolean
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save invoices to Firestore:', err);
+    notifySyncError('ফি ও ইনভয়েস', err);
     return false;
   }
 }
@@ -311,6 +338,7 @@ export async function cloudSaveAttendance(records: AttendanceRecord[]): Promise<
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save attendance to Firestore:', err);
+    notifySyncError('শিক্ষার্থীদের দৈনিক হাজিরা', err);
     return false;
   }
 }
@@ -332,6 +360,7 @@ export async function cloudSaveStaffAttendance(staffData: Record<string, any[]>)
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save staff attendance to Firestore:', err);
+    notifySyncError('শিক্ষক ও কর্মী হাজিরা', err);
     return false;
   }
 }
@@ -353,6 +382,7 @@ export async function cloudSaveNotices(notices: SchoolNotice[]): Promise<boolean
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save notices to Firestore:', err);
+    notifySyncError('নোটিশ বোর্ড', err);
     return false;
   }
 }
@@ -374,6 +404,7 @@ export async function cloudSaveAssets(assets: SchoolAssetItem[]): Promise<boolea
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save school assets to Firestore:', err);
+    notifySyncError('স্কুল সম্পদ তালিকা', err);
     return false;
   }
 }
@@ -395,6 +426,7 @@ export async function cloudSaveProfile(profile: SchoolProfile): Promise<boolean>
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save school profile to Firestore:', err);
+    notifySyncError('স্কুল প্রোফাইল', err);
     return false;
   }
 }
@@ -416,6 +448,7 @@ export async function cloudSaveDirectors(directors: CommitteeDirector[]): Promis
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save directors to Firestore:', err);
+    notifySyncError('পরিচালক পর্ষদ', err);
     return false;
   }
 }
@@ -438,6 +471,7 @@ export async function cloudSaveBiometricLogs(logs: BiometricPunchLog[]): Promise
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save biometric logs to Firestore:', err);
+    notifySyncError('বায়োমেট্রিক পাঞ্চ লগ', err);
     return false;
   }
 }
@@ -464,6 +498,7 @@ export async function cloudSaveRoutines(routines: ClassRoutinePeriod[]): Promise
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save routines to Firestore:', err);
+    notifySyncError('ক্লাস রুটিন', err);
     return false;
   }
 }
@@ -486,6 +521,7 @@ export async function cloudSaveWeeklyProgress(records: WeeklyClassProgressRecord
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save weekly progress to Firestore:', err);
+    notifySyncError('সাপ্তাহিক পাঠ অগ্রগতি', err);
     return false;
   }
 }
@@ -508,6 +544,7 @@ export async function cloudSaveExamResults(results: StudentExamResult[]): Promis
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save exam results to Firestore:', err);
+    notifySyncError('পরীক্ষার ফলাফল', err);
     return false;
   }
 }
@@ -530,6 +567,7 @@ export async function cloudSaveExamTerms(terms: ExamTerm[]): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save exam terms to Firestore:', err);
+    notifySyncError('পরীক্ষার টার্ম', err);
     return false;
   }
 }
@@ -552,6 +590,7 @@ export async function cloudSaveExamSchedules(schedules: ExamScheduleItem[]): Pro
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save exam schedules to Firestore:', err);
+    notifySyncError('পরীক্ষার সময়সূচি', err);
     return false;
   }
 }
@@ -574,6 +613,7 @@ export async function cloudSaveHealthProfiles(profiles: StudentHealthProfile[]):
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save health profiles to Firestore:', err);
+    notifySyncError('স্বাস্থ্য প্রোফাইল ও টিকা কার্ড', err);
     return false;
   }
 }
@@ -596,6 +636,7 @@ export async function cloudSaveHomeworkChecklists(checklists: DailyClassHomework
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save homework checklists to Firestore:', err);
+    notifySyncError('হোমওয়ার্ক চেকলিস্ট', err);
     return false;
   }
 }
@@ -618,6 +659,7 @@ export async function cloudSaveAcademicEvents(events: AcademicCalendarEvent[]): 
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save academic events to Firestore:', err);
+    notifySyncError('একাডেমিক ক্যালেন্ডার', err);
     return false;
   }
 }
@@ -639,6 +681,7 @@ export async function cloudSaveFeeConfigs(configs: Record<string, StudentFeeConf
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save fee configs to Firestore:', err);
+    notifySyncError('শিক্ষার্থী ফি কনফিগারেশন', err);
     return false;
   }
 }
@@ -661,6 +704,7 @@ export async function cloudSaveStaffLeaves(leaves: TeacherLeaveApplication[]): P
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save staff leaves to Firestore:', err);
+    notifySyncError('স্টাফদের ছুটির আবেদন', err);
     return false;
   }
 }
@@ -683,6 +727,7 @@ export async function cloudSaveDirectChat(messages: ParentTeacherMessage[]): Pro
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save direct chat to Firestore:', err);
+    notifySyncError('অভিভাবক-শিক্ষক সরাসরি চ্যাট', err);
     return false;
   }
 }
@@ -705,6 +750,7 @@ export async function cloudSaveStaffChat(messages: StaffInternalMessage[]): Prom
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save staff chat to Firestore:', err);
+    notifySyncError('স্টাফ রুম চ্যাট', err);
     return false;
   }
 }
@@ -727,6 +773,7 @@ export async function cloudSaveStaffChannels(channels: StaffChannelMeta[]): Prom
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save staff channels to Firestore:', err);
+    notifySyncError('স্টাফ রুম চ্যানেল', err);
     return false;
   }
 }
@@ -749,6 +796,7 @@ export async function cloudSaveCulturalThemes(themes: CulturalDayEventTheme[]): 
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save cultural themes to Firestore:', err);
+    notifySyncError('সাংস্কৃতিক উৎসব ও থিম', err);
     return false;
   }
 }
@@ -771,6 +819,7 @@ export async function cloudSaveCulturalBadges(badges: CulturalStarBadgeAward[]):
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save cultural badges to Firestore:', err);
+    notifySyncError('সাংস্কৃতিক স্টার ব্যাজ', err);
     return false;
   }
 }
@@ -793,6 +842,7 @@ export async function cloudSaveTiffinMenu(menu: PreSchoolTiffinItem[]): Promise<
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save tiffin menu to Firestore:', err);
+    notifySyncError('টিফিন মেনু তালিকা', err);
     return false;
   }
 }
@@ -815,6 +865,7 @@ export async function cloudSaveAdmissionApplications(apps: AdmissionApplication[
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save admission applications to Firestore:', err);
+    notifySyncError('অনলাইন ভর্তি আবেদন', err);
     return false;
   }
 }
@@ -837,6 +888,7 @@ export async function cloudSaveCulturalGallery(items: CulturalGalleryItem[]): Pr
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save cultural gallery to Firestore:', err);
+    notifySyncError('সাংস্কৃতিক ফটো গ্যালারি', err);
     return false;
   }
 }
@@ -859,6 +911,7 @@ export async function cloudSaveBiometricUsers(users: any[]): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save biometric users to Firestore:', err);
+    notifySyncError('বায়োমেট্রিক ডিভাইস ইউজার', err);
     return false;
   }
 }
@@ -1427,7 +1480,11 @@ export function subscribeToSchoolCloud(
           cloudSaveRoutines(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Routines listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Routines listener error:', err);
+        notifySyncError('Routines রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubRoutines);
   } catch (e) {
@@ -1455,7 +1512,11 @@ export function subscribeToSchoolCloud(
           cloudSaveWeeklyProgress(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Weekly progress listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Weekly progress listener error:', err);
+        notifySyncError('Weekly progress রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unweeklyProgress => unsubWeekly());
   } catch (e) {
@@ -1483,7 +1544,11 @@ export function subscribeToSchoolCloud(
           cloudSaveExamResults(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Exam results listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Exam results listener error:', err);
+        notifySyncError('Exam results রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubExamRes);
   } catch (e) {
@@ -1511,7 +1576,11 @@ export function subscribeToSchoolCloud(
           cloudSaveExamTerms(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Exam terms listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Exam terms listener error:', err);
+        notifySyncError('Exam terms রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubExamTerms);
   } catch (e) {
@@ -1539,7 +1608,11 @@ export function subscribeToSchoolCloud(
           cloudSaveExamSchedules(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Exam schedule listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Exam schedule listener error:', err);
+        notifySyncError('Exam schedule রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubExamSched);
   } catch (e) {
@@ -1567,7 +1640,11 @@ export function subscribeToSchoolCloud(
           cloudSaveHealthProfiles(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Health profiles listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Health profiles listener error:', err);
+        notifySyncError('Health profiles রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubHealth);
   } catch (e) {
@@ -1595,7 +1672,11 @@ export function subscribeToSchoolCloud(
           cloudSaveHomeworkChecklists(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Homework checklist listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Homework checklist listener error:', err);
+        notifySyncError('Homework checklist রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubHomework);
   } catch (e) {
@@ -1623,7 +1704,11 @@ export function subscribeToSchoolCloud(
           cloudSaveAcademicEvents(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Academic events listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Academic events listener error:', err);
+        notifySyncError('Academic events রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubAcademic);
   } catch (e) {
@@ -1651,7 +1736,11 @@ export function subscribeToSchoolCloud(
           cloudSaveFeeConfigs(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Fee configs listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Fee configs listener error:', err);
+        notifySyncError('Fee configs রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubFeeConfigs);
   } catch (e) {
@@ -1679,7 +1768,11 @@ export function subscribeToSchoolCloud(
           cloudSaveStaffLeaves(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Staff leaves listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Staff leaves listener error:', err);
+        notifySyncError('Staff leaves রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubLeaves);
   } catch (e) {
@@ -1707,7 +1800,11 @@ export function subscribeToSchoolCloud(
           cloudSaveDirectChat(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Direct chat listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Direct chat listener error:', err);
+        notifySyncError('Direct chat রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubDirectChat);
   } catch (e) {
@@ -1735,7 +1832,11 @@ export function subscribeToSchoolCloud(
           cloudSaveStaffChat(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Staff chat listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Staff chat listener error:', err);
+        notifySyncError('Staff chat রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubStaffChat);
   } catch (e) {
@@ -1763,7 +1864,11 @@ export function subscribeToSchoolCloud(
           cloudSaveStaffChannels(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Staff channels listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Staff channels listener error:', err);
+        notifySyncError('Staff channels রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubChannels);
   } catch (e) {
@@ -1791,7 +1896,11 @@ export function subscribeToSchoolCloud(
           cloudSaveCulturalThemes(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Cultural themes listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Cultural themes listener error:', err);
+        notifySyncError('Cultural themes রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubCultThemes);
   } catch (e) {
@@ -1819,7 +1928,11 @@ export function subscribeToSchoolCloud(
           cloudSaveCulturalBadges(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Cultural badges listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Cultural badges listener error:', err);
+        notifySyncError('Cultural badges রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubCultBadges);
   } catch (e) {
@@ -1847,7 +1960,11 @@ export function subscribeToSchoolCloud(
           cloudSaveTiffinMenu(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Tiffin menu listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Tiffin menu listener error:', err);
+        notifySyncError('Tiffin menu রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubTiffin);
   } catch (e) {
@@ -1875,7 +1992,11 @@ export function subscribeToSchoolCloud(
           cloudSaveAdmissionApplications(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Admissions listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Admissions listener error:', err);
+        notifySyncError('Admissions রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubAdmissions);
   } catch (e) {
@@ -1903,7 +2024,11 @@ export function subscribeToSchoolCloud(
           cloudSaveCulturalGallery(toSeed);
         }
       },
-      (err) => console.warn('[CloudSync] Gallery listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Gallery listener error:', err);
+        notifySyncError('Gallery রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubGallery);
   } catch (e) {
@@ -1927,7 +2052,11 @@ export function subscribeToSchoolCloud(
           }
         }
       },
-      (err) => console.warn('[CloudSync] Biometric users listener error:', err)
+      (err) => {
+        console.warn('[CloudSync] Biometric users listener error:', err);
+        notifySyncError('Biometric users রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
     );
     unsubscribers.push(unsubBioUsers);
   } catch (e) {

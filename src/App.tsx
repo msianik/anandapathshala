@@ -537,6 +537,70 @@ export default function App() {
     saveFcmNotificationToCloud(notif).catch(() => {});
   };
 
+  // Real-Time Cloud Sync Error Listener: Triggers Instant FCM Toast & Warning
+  useEffect(() => {
+    const handleCloudSyncError = (e: Event) => {
+      const cust = e as CustomEvent<{ module: string; error: string; messageBn: string }>;
+      const detail = cust.detail;
+      if (!detail) return;
+
+      dispatchRealTimeFcmNotification({
+        id: `sync-err-${Date.now()}`,
+        type: 'cloud_sync_alert',
+        priority: 'urgent',
+        titleBn: '⚠️ গুগল ফায়ারস্টোর সিঙ্ক সতর্কতা',
+        bodyBn: detail.messageBn || 'ফায়ারস্টোরে ডাটা সিঙ্ক হতে সমস্যা হয়েছে। অফলাইন ক্যাশে সংরক্ষিত আছে।',
+        targetRole: 'all_staff',
+        timestamp: 'এইমাত্র (ক্লাউড ত্রুটি)',
+        read: false,
+        actionTab: 'overview',
+        fcmMessageId: `projects/gen-lang-client-0036381817/messages/sync_err_${Date.now()}`,
+      });
+
+      setCloudSyncInfo({
+        isConnected: false,
+        lastSyncTime: 'সিঙ্ক ত্রুটি (অফলাইন)',
+      });
+    };
+
+    window.addEventListener('ananda-cloud-sync-error', handleCloudSyncError);
+    return () => {
+      window.removeEventListener('ananda-cloud-sync-error', handleCloudSyncError);
+    };
+  }, []);
+
+  // 15-Minute Periodic Background Attendance & Cloud Data Auto-Sync Runner
+  useEffect(() => {
+    const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+
+    const runPeriodicAttendanceSync = async () => {
+      try {
+        console.log('[CloudSync] 15-minute periodic attendance sync running...');
+        const rawAtt = localStorage.getItem('ananda_attendance_v1');
+        if (rawAtt) {
+          const parsed = JSON.parse(rawAtt);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            await cloudSaveAttendance(parsed);
+          }
+        }
+        const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
+        if (rawStaffAtt) {
+          const parsedStaff = JSON.parse(rawStaffAtt);
+          await cloudSaveStaffAttendance(parsedStaff);
+        }
+        setCloudSyncInfo({
+          isConnected: true,
+          lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (১৫ মি. অটো সিঙ্ক)`,
+        });
+      } catch (err) {
+        console.warn('[CloudSync] 15-minute periodic sync error:', err);
+      }
+    };
+
+    const intervalTimer = setInterval(runPeriodicAttendanceSync, FIFTEEN_MINUTES_MS);
+    return () => clearInterval(intervalTimer);
+  }, []);
+
   // Trigger fee due notification ONLY for a logged-in parent whose child has pending/unpaid fees
   const triggerParentFeeReminderIfDue = (parentAccount: PortalAccount) => {
     if (parentAccount.role !== 'parent') return;
