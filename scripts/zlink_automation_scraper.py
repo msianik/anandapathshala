@@ -101,61 +101,75 @@ def run_scraper():
             page.goto(transaction_url, wait_until="domcontentloaded")
             time.sleep(5)
 
-            # ৩. টেবিল থেকে লাইভ পাঞ্চ ডাটা সংগ্রহ
+            # ৩. পেজ সাইজ ১০০ এ পরিবর্তন করে সকল পৃষ্ঠা থেকে পূর্ণাঙ্গ ডেটা সংগ্রহ
             try:
-                page.wait_for_selector(".ant-table-tbody tr", timeout=15000)
-            except Exception:
-                pass
-            time.sleep(2)
-
-            rows = page.locator(".ant-table-tbody tr").all()
-            print(f"[*] টেবিলে প্রাপ্ত লাইভ রেকর্ড সংখ্যা: {len(rows)}", flush=True)
+                size_changer = page.locator('.ant-pagination-options-size-changer').first
+                if size_changer.is_visible():
+                    size_changer.click()
+                    time.sleep(1)
+                    opt_100 = page.locator('.ant-select-item-option:has-text("100")').first
+                    if opt_100.is_visible():
+                        opt_100.click()
+                        time.sleep(4)
+            except Exception as e:
+                print(f"[!] পেজ সাইজ ১০০ পরিবর্তনে ব্যতিক্রম: {e}", flush=True)
 
             records = []
-            for idx, r in enumerate(rows):
-                cols = [c.strip() for c in r.locator("td").all_text_contents() if c.strip()]
-                if idx < 3:
-                    print(f"DEBUG ROW {idx} cols count={len(cols)}: {cols}", flush=True)
+            seen_keys = set()
+            page_num = 1
 
-                if cols and len(cols) >= 5:
-                    person_id = cols[0].strip()
-                    name = cols[1].strip() if len(cols) > 1 else ""
-                    department = cols[2].strip() if len(cols) > 2 else "Student"
-                    
-                    # ফাইন্ড পাঞ্চ টাইম (যেকোনো কলাম যাতে YYYY-MM-DD বা HH:MM আছে)
-                    punch_time = ""
-                    for c in cols:
-                        if ("-" in c and ":" in c) or ("2026" in c) or ("2025" in c):
-                            punch_time = c
-                            break
-                    if not punch_time and len(cols) >= 7:
-                        punch_time = cols[6]
+            while True:
+                time.sleep(3)
+                rows = page.locator('.ant-table-tbody tr:not(.ant-table-measure-row)').all()
+                print(f"[*] পৃষ্ঠা {page_num} থেকে {len(rows)} টি ডাটা রো পর্যবেক্ষণ করা হচ্ছে...", flush=True)
 
-                    verification = "fingerprint"
-                    for c in cols:
-                        if "card" in c.lower():
-                            verification = "card"
-                            break
-                        elif "finger" in c.lower():
-                            verification = "fingerprint"
-                            break
+                for r in rows:
+                    cols = [c.strip() for c in r.locator("td").all_text_contents() if c.strip()]
+                    if cols and len(cols) >= 5:
+                        person_id = cols[0].strip()
+                        name = cols[1].strip() if len(cols) > 1 else ""
+                        department = cols[2].strip() if len(cols) > 2 else "Student"
+                        
+                        punch_time = ""
+                        for c in cols:
+                            if ("-" in c and ":" in c) or ("2026" in c) or ("2025" in c):
+                                punch_time = c
+                                break
+                        if not punch_time and len(cols) >= 7:
+                            punch_time = cols[6]
 
-                    device_sn = "JUS3251800031"
+                        verification = "fingerprint"
+                        for c in cols:
+                            if "card" in c.lower():
+                                verification = "card"
+                                break
+                            elif "finger" in c.lower():
+                                verification = "fingerprint"
+                                break
 
-                    if person_id:
-                        records.append({
-                            "userId": person_id,
-                            "enrollId": person_id,
-                            "name": name,
-                            "department": department,
-                            "personType": "teacher" if "teacher" in department.lower() else "student",
-                            "punchTime": punch_time,
-                            "time": punch_time,
-                            "verificationMode": verification,
-                            "deviceSn": device_sn,
-                            "status": "on_time",
-                            "fetchedAt": datetime.now().isoformat()
-                        })
+                        key = f"{person_id}_{punch_time}"
+                        if key not in seen_keys and person_id and punch_time:
+                            seen_keys.add(key)
+                            records.append({
+                                "userId": person_id,
+                                "enrollId": person_id,
+                                "name": name,
+                                "department": department,
+                                "personType": "teacher" if "teacher" in department.lower() else "student",
+                                "punchTime": punch_time,
+                                "time": punch_time,
+                                "verificationMode": verification,
+                                "deviceSn": "JUS3251800031",
+                                "status": "on_time",
+                                "fetchedAt": datetime.now().isoformat()
+                            })
+
+                next_btn = page.locator('.ant-pagination-next:not(.ant-pagination-disabled)').first
+                if next_btn.is_visible() and next_btn.is_enabled():
+                    next_btn.click(force=True)
+                    page_num += 1
+                else:
+                    break
 
             # ৪. JSON ফাইলে আউটপুট সেভ
             payload = {
