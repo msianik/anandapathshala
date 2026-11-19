@@ -99,7 +99,6 @@ import {
   BarChart3,
   FileCheck,
   LogOut,
-  RefreshCw,
 } from 'lucide-react';
 import { syncStaffWithBiometricMachine } from '../utils/biometricAttendanceLogic';
 
@@ -809,47 +808,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       password: '',
       portalRole: 'teacher',
     });
-    setStaffCheckInToast(`✓ নতুন স্টাফ "${member.nameBn}" এর তথ্য ক্লাউডে সফলভাবে সংরক্ষিত হয়েছে!`);
-    setTimeout(() => setStaffCheckInToast(null), 5000);
-  };
-        nameBn: member.nameBn,
-        nameEn: member.nameEn,
-        role: member.portalRole || 'teacher',
-        phone: member.phone || '01914057511',
-        username: member.username || generatedUsername,
-        passwordHint: member.password || '123456',
-        avatarUrl: member.photoUrl,
-        assignedClass: member.assignedClass,
-      });
-    } catch {}
-
-    const updated = saveStaffMember(member);
-    setStaffList(updated);
-    setIsAddStaffOpen(false);
-    setNewStaff({
-      nameBn: '',
-      nameEn: '',
-      designationBn: '',
-      designationEn: '',
-      departmentBn: 'একাডেমিক শিক্ষণ ও শিশু পরিচর্যা শাখা',
-      staffCategory: 'teacher',
-      phone: '',
-      email: '',
-      bloodGroup: 'B+',
-      photoUrl: '/assets/biddalay/fatema_akter.jpg',
-      assignedClass: 'Nursery',
-      basicSalary: 15000,
-      salaryStatus: 'paid',
-      qualificationBn: 'স্নাতকোত্তর / বি.এড',
-      joiningDateBn: '০১ জানুয়ারি ২০২৪',
-      nationalId: '',
-      addressBn: 'কুষ্টিয়া সদর, কুষ্টিয়া',
-      username: '',
-      password: '',
-      portalRole: 'teacher',
-      biometricEnrollId: '',
-    });
-    setStaffCheckInToast(`✓ নতুন শিক্ষক/কর্মী "${member.nameBn}" সফলভাবে যুক্ত হয়েছে এবং ডিজিটাল বায়োমেট্রিক মেশিনে অটো-সিঙ্ক সম্পন্ন হয়েছে!`);
+    setStaffCheckInToast(`✓ নতুন স্টাফ "${member.nameBn}" এর তথ্য ক্লাউড ও ডিভাইসে সফলভাবে সংরক্ষিত হয়েছে!`);
     setTimeout(() => setStaffCheckInToast(null), 5000);
   };
 
