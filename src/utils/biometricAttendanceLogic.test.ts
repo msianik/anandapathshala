@@ -100,6 +100,41 @@ describe('biometricAttendanceLogic tests', () => {
   });
 
   it('synchronizes biometric punch logs into AttendanceRecord checkInTime and checkOutTime', () => {
+    saveBiometricLogs([
+      {
+        id: 'test-bio-1',
+        enrollId: '১০০',
+        personType: 'student',
+        personId: 'std-0',
+        nameBn: 'তানিশা ইসলাম',
+        nameEn: 'Tanisha Islam',
+        className: 'HateKhori',
+        rollNo: '১০০',
+        punchType: 'entry',
+        punchTimeStr: 'সকাল ০৭:৫৫',
+        timestamp: new Date('2026-11-19T07:55:00').getTime(),
+        dateStr: '১৯ নভেম্বর ২০২৬',
+        verificationMode: 'fingerprint',
+        status: 'on_time',
+      },
+      {
+        id: 'test-bio-2',
+        enrollId: '১০০',
+        personType: 'student',
+        personId: 'std-0',
+        nameBn: 'তানিশা ইসলাম',
+        nameEn: 'Tanisha Islam',
+        className: 'HateKhori',
+        rollNo: '১০০',
+        punchType: 'exit',
+        punchTimeStr: 'দুপুর ১২:৪০',
+        timestamp: new Date('2026-11-19T12:40:00').getTime(),
+        dateStr: '১৯ নভেম্বর ২০২৬',
+        verificationMode: 'fingerprint',
+        status: 'regular_exit',
+      },
+    ]);
+
     const existingAttendance: AttendanceRecord[] = [
       {
         studentId: 'std-0',
@@ -151,7 +186,24 @@ describe('biometricAttendanceLogic tests', () => {
   });
 
   it('exports biometric logs to CSV with BOM', () => {
-    const logs = getBiometricLogs();
+    const logs = [
+      {
+        id: 'test-bio-1',
+        enrollId: '১০০',
+        personType: 'student' as const,
+        personId: 'std-0',
+        nameBn: 'তানিশা ইসলাম',
+        nameEn: 'Tanisha Islam',
+        className: 'HateKhori',
+        rollNo: '১০০',
+        punchType: 'entry' as const,
+        punchTimeStr: 'সকাল ০৭:৫৫',
+        timestamp: new Date('2026-11-19T07:55:00').getTime(),
+        dateStr: '১৯ নভেম্বর ২০২৬',
+        verificationMode: 'fingerprint' as const,
+        status: 'on_time' as const,
+      },
+    ];
     const csv = exportBiometricLogsCsv(logs);
     expect(csv.startsWith('\uFEFF')).toBe(true);
     expect(csv).toContain('লগ আইডি');
@@ -173,6 +225,25 @@ describe('biometricAttendanceLogic tests', () => {
   });
 
   it('synchronizes live attendance records from ZLink Minerva IoT Cloud', () => {
+    saveBiometricLogs([
+      {
+        id: 'test-bio-1',
+        enrollId: '১০০',
+        personType: 'student',
+        personId: 'std-0',
+        nameBn: 'তানিশা ইসলাম',
+        nameEn: 'Tanisha Islam',
+        className: 'HateKhori',
+        rollNo: '১০০',
+        punchType: 'entry',
+        punchTimeStr: 'সকাল ০৭:৫৫',
+        timestamp: new Date('2026-11-19T07:55:00').getTime(),
+        dateStr: '১৯ নভেম্বর ২০২৬',
+        verificationMode: 'fingerprint',
+        status: 'on_time',
+      },
+    ]);
+
     const res = syncZlinkCloudAttendance({
       students: mockStudents,
       staffList: mockStaff,

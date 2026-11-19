@@ -7,7 +7,8 @@ import {
   Student,
 } from '../types/school';
 import { toBengaliNumber } from './schoolLogic';
-import { SCHOOL_TEACHERS } from '../data/mockData';
+import { SCHOOL_TEACHERS, INITIAL_STAFF_ATTENDANCE } from '../data/mockData';
+import { cloudSaveAttendance, cloudSaveStaffAttendance, cloudSaveBiometricLogs } from '../lib/schoolCloudSync';
 
 const BIOMETRIC_CONFIG_KEY = 'ap_biometric_device_config_v1';
 const BIOMETRIC_LOGS_KEY = 'ap_biometric_punch_logs_v1';
@@ -39,329 +40,8 @@ export const DEFAULT_BIOMETRIC_CONFIG: BiometricDeviceConfig = {
   cloudMorningSchedulerTime: '08:30',
 };
 
-// Initial realistic punch logs for the school day
-export const INITIAL_BIOMETRIC_PUNCH_LOGS: BiometricPunchLog[] = [
-  {
-    id: 'bio-log-1',
-    enrollId: '১০০',
-    personType: 'student',
-    personId: 'std-0',
-    nameBn: 'তানিশা ইসলাম',
-    nameEn: 'Tanisha Islam',
-    className: 'HateKhori',
-    rollNo: '১০০',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৭:৫৫',
-    timestamp: new Date('2026-11-08T07:55:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রবেশ (সময়মতো)',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3600000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-2',
-    enrollId: '১০০',
-    personType: 'student',
-    personId: 'std-0',
-    nameBn: 'তানিশা ইসলাম',
-    nameEn: 'Tanisha Islam',
-    className: 'HateKhori',
-    rollNo: '১০০',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ১২:৪০',
-    timestamp: new Date('2026-11-08T12:40:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক প্রস্থান',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1800000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-3',
-    enrollId: '১০১',
-    personType: 'student',
-    personId: 'std-1',
-    nameBn: 'আদিত্য রায়',
-    nameEn: 'Aditya Roy',
-    className: 'Nursery',
-    rollNo: '১০১',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৮:০২',
-    timestamp: new Date('2026-11-08T08:02:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রবেশ (সময়মতো)',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3500000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-4',
-    enrollId: '১০১',
-    personType: 'student',
-    personId: 'std-1',
-    nameBn: 'আদিত্য রায়',
-    nameEn: 'Aditya Roy',
-    className: 'Nursery',
-    rollNo: '১০১',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ১২:৩৫',
-    timestamp: new Date('2026-11-08T12:35:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক প্রস্থান',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1900000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-5',
-    enrollId: '১০২',
-    personType: 'student',
-    personId: 'std-2',
-    nameBn: 'সুমাইয়া জাহান',
-    nameEn: 'Sumaiya Jahan',
-    className: 'Play',
-    rollNo: '১০২',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৮:১০',
-    timestamp: new Date('2026-11-08T08:10:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রবেশ (সময়মতো)',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3400000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-6',
-    enrollId: '১০৩',
-    personType: 'student',
-    personId: 'std-3',
-    nameBn: 'আরিয়ান খান',
-    nameEn: 'Ariyan Khan',
-    className: 'KG',
-    rollNo: '১০৩',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৮:২৩',
-    timestamp: new Date('2026-11-08T08:23:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'late',
-    statusLabelBn: 'বিলম্বিত প্রবেশ (৮ মিনিট বিলম্ব)',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3200000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-7',
-    enrollId: '১০৪',
-    personType: 'student',
-    personId: 'std-4',
-    nameBn: 'জারা তাবাসসুম',
-    nameEn: 'Zara Tabassum',
-    className: 'Class-1',
-    rollNo: '১০৪',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৭:৪৮',
-    timestamp: new Date('2026-11-08T07:48:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রবেশ (সময়মতো)',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3700000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-8',
-    enrollId: '১০৪',
-    personType: 'student',
-    personId: 'std-4',
-    nameBn: 'জারা তাবাসসুম',
-    nameEn: 'Zara Tabassum',
-    className: 'Class-1',
-    rollNo: '১০৪',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ০১:১৫',
-    timestamp: new Date('2026-11-08T13:15:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক প্রস্থান',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1500000,
-    smsNotified: true,
-  },
-  {
-    id: 'bio-log-9',
-    enrollId: 'TCH-1',
-    personType: 'teacher',
-    personId: 'tch-1',
-    nameBn: 'নিলুফার ইয়াসমিন',
-    nameEn: 'Nilufar Yasmin',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৭:৪৫',
-    timestamp: new Date('2026-11-08T07:45:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রাতঃকালীন চেক-ইন',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3800000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-10',
-    enrollId: 'TCH-2',
-    personType: 'teacher',
-    personId: 'tch-2',
-    nameBn: 'মো. আসাদুজ্জামান',
-    nameEn: 'Md. Asaduzzaman',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৭:৫২',
-    timestamp: new Date('2026-11-08T07:52:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রাতঃকালীন চেক-ইন',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3700000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-11',
-    enrollId: 'TCH-1',
-    personType: 'teacher',
-    personId: 'tch-1',
-    nameBn: 'নিলুফার ইয়াসমিন',
-    nameEn: 'Nilufar Yasmin',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ০২:০৫',
-    timestamp: new Date('2026-11-08T14:05:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1200000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-12',
-    enrollId: 'TCH-2',
-    personType: 'teacher',
-    personId: 'tch-2',
-    nameBn: 'মো. আসাদুজ্জামান',
-    nameEn: 'Md. Asaduzzaman',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ০২:১২',
-    timestamp: new Date('2026-11-08T14:12:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1100000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-13',
-    enrollId: 'TCH-4',
-    personType: 'teacher',
-    personId: 'tch-4',
-    nameBn: 'মোছা. রোকসানা খাতুন',
-    nameEn: 'Mst. Roksana Khatun',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৭:৫০',
-    timestamp: new Date('2026-11-08T07:50:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'on_time',
-    statusLabelBn: 'অন-টাইম প্রাতঃকালীন চেক-ইন',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3600000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-14',
-    enrollId: 'TCH-4',
-    personType: 'teacher',
-    personId: 'tch-4',
-    nameBn: 'মোছা. রোকসানা খাতুন',
-    nameEn: 'Mst. Roksana Khatun',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ০২:১৫',
-    timestamp: new Date('2026-11-08T14:15:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 1000000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-15',
-    enrollId: 'TCH-8',
-    personType: 'teacher',
-    personId: 'tch-8',
-    nameBn: 'সুমাইয়া আক্তার',
-    nameEn: 'Sumaiya Akter',
-    punchType: 'entry',
-    punchTimeStr: 'সকাল ০৮:৪৫',
-    timestamp: new Date('2026-11-08T08:45:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'late',
-    statusLabelBn: 'বিলম্বিত প্রাতঃকালীন চেক-ইন',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 3200000,
-    smsNotified: false,
-  },
-  {
-    id: 'bio-log-16',
-    enrollId: 'TCH-8',
-    personType: 'teacher',
-    personId: 'tch-8',
-    nameBn: 'সুমাইয়া আক্তার',
-    nameEn: 'Sumaiya Akter',
-    punchType: 'exit',
-    punchTimeStr: 'দুপুর ০২:৩০',
-    timestamp: new Date('2026-11-08T14:30:00').getTime(),
-    dateStr: '০৮ নভেম্বর ২০২৬',
-    verificationMode: 'fingerprint',
-    status: 'regular_exit',
-    statusLabelBn: 'ছুটি পরবর্তী স্বাভাবিক চেকআউট',
-    deviceId: 'zk-ap-terminal-01',
-    deviceNameBn: 'মূল ফটক টার্মিনাল ১',
-    syncedAt: Date.now() - 800000,
-    smsNotified: false,
-  },
-];
+// Real biometric punch logs list (empty initial state for live physical machine operation)
+export const INITIAL_BIOMETRIC_PUNCH_LOGS: BiometricPunchLog[] = [];
 
 // In-memory fallback for environments without localStorage (e.g. SSR or Node tests)
 const memoryStore: Record<string, string> = {};
@@ -431,29 +111,97 @@ export function saveBiometricConfig(config: BiometricDeviceConfig): void {
 }
 
 /**
- * Get all biometric punch logs with today's dynamic date
+ * Get all biometric punch logs (clean real logs only, auto-purges any obsolete mock logs)
  */
 export function getBiometricLogs(): BiometricPunchLog[] {
   try {
-    const now = new Date();
-    const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
     const raw = safeGetItem(BIOMETRIC_LOGS_KEY) || safeGetItem('ananda_biometric_punch_logs_v1');
     if (!raw) {
-      const todayLogs = INITIAL_BIOMETRIC_PUNCH_LOGS.map((l) => ({ ...l, dateStr: todayBn }));
-      saveBiometricLogs(todayLogs);
-      return todayLogs;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      // Refresh dateStr to today's date if old mock date was present
-      return parsed.map((l) => ({
-        ...l,
-        dateStr: l.dateStr && !l.dateStr.includes('০৮ নভেম্বর') ? l.dateStr : todayBn,
-      }));
+    if (Array.isArray(parsed)) {
+      // Auto-filter obsolete mock logs if present
+      const cleanLogs = parsed.filter(
+        (l) => l && l.id && !l.id.startsWith('bio-log-') && !l.dateStr?.includes('০৮ নভেম্বর ২০২৬')
+      );
+      if (cleanLogs.length !== parsed.length) {
+        saveBiometricLogs(cleanLogs);
+      }
+      return cleanLogs;
     }
-    return INITIAL_BIOMETRIC_PUNCH_LOGS;
+    return [];
   } catch {
-    return INITIAL_BIOMETRIC_PUNCH_LOGS;
+    return [];
+  }
+}
+
+/**
+ * Purge all mock attendance data & punch logs across browser and cloud,
+ * switching completely to 100% Real Physical Biometric Machine Attendance Mode.
+ */
+export function purgeMockAttendanceAndResetRealMode(): {
+  clearedPunches: number;
+  clearedAttendance: number;
+  messageBn: string;
+} {
+  try {
+    // 1. Purge biometric punch logs
+    const rawLogs = safeGetItem(BIOMETRIC_LOGS_KEY) || safeGetItem('ananda_biometric_punch_logs_v1');
+    let punchCount = 0;
+    if (rawLogs) {
+      try {
+        const parsed = JSON.parse(rawLogs);
+        punchCount = Array.isArray(parsed) ? parsed.length : 0;
+      } catch {}
+    }
+    safeSetItem(BIOMETRIC_LOGS_KEY, '[]');
+    safeSetItem('ananda_biometric_punch_logs_v1', '[]');
+    cloudSaveBiometricLogs([]);
+
+    // 2. Reset student attendance to clean empty state (waiting for real machine punches)
+    const rawAtt = safeGetItem('ananda_attendance_v1');
+    let attCount = 0;
+    if (rawAtt) {
+      try {
+        const parsed = JSON.parse(rawAtt);
+        attCount = Array.isArray(parsed) ? parsed.length : 0;
+      } catch {}
+    }
+    safeSetItem('ananda_attendance_v1', '[]');
+    cloudSaveAttendance([]);
+
+    // 3. Reset staff attendance to clean absent state
+    const todayStr = new Date().toISOString().split('T')[0];
+    const cleanStaffAttendance = INITIAL_STAFF_ATTENDANCE;
+    const staffStorage: Record<string, any> = {};
+    staffStorage[todayStr] = cleanStaffAttendance;
+    safeSetItem('ananda_staff_attendance_v1', JSON.stringify(staffStorage));
+    cloudSaveStaffAttendance(staffStorage);
+
+    // 4. Mark real attendance mode active
+    safeSetItem('ananda_real_attendance_mode_v2', 'true');
+
+    // 5. Dispatch UI update events
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: [] } }));
+      window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: { records: [] } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
+    }
+
+    return {
+      clearedPunches: punchCount,
+      clearedAttendance: attCount,
+      messageBn: 'সকল ডেমো/মক হাজিরা সফলভাবে মুছে দেওয়া হয়েছে। এখন সম্পূর্ণ রিয়েল বায়োমেট্রিক মোড সক্রিয়!',
+    };
+  } catch (err) {
+    console.error('Failed to purge mock attendance:', err);
+    return {
+      clearedPunches: 0,
+      clearedAttendance: 0,
+      messageBn: 'মক ডাটা মুছতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+    };
   }
 }
 
@@ -699,7 +447,7 @@ export function syncBiometricAttendanceData({
         checkOutMethod: outTimeStr ? 'biometric' : undefined,
         entryTimestamp: entryPunch?.timestamp,
         exitTimestamp: exitPunch?.timestamp,
-        dateStr: 'আজ, ০৮ নভেম্বর ২০২৬ (রবিবার)',
+        dateStr: `আজ, ${new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })}`,
         remarks: `বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (প্রবেশ: ${inTimeStr || 'N/A'}${
           outTimeStr ? `, প্রস্থান: ${outTimeStr}` : ''
         })`,
@@ -879,7 +627,7 @@ export function recordBiometricPunch({
     punchType,
     punchTimeStr: timeStr,
     timestamp: now.getTime(),
-    dateStr: 'আজ, ০৮ নভেম্বর ২০২৬',
+    dateStr: `আজ, ${now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })}`,
     verificationMode: 'fingerprint',
     status,
     statusLabelBn,
@@ -978,7 +726,7 @@ export function parseBiometricMachineFile(
               punchType,
               punchTimeStr: timeFormatted,
               timestamp: validDate.getTime(),
-              dateStr: '০৮ নভেম্বর ২০২৬',
+              dateStr: validDate.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
               verificationMode: 'fingerprint',
               status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
               statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত প্রবেশ' : 'অন-টাইম প্রবেশ') : 'স্বাভাবিক প্রস্থান',
@@ -998,7 +746,7 @@ export function parseBiometricMachineFile(
               punchType,
               punchTimeStr: timeFormatted,
               timestamp: validDate.getTime(),
-              dateStr: '০৮ নভেম্বর ২০২৬',
+              dateStr: validDate.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
               verificationMode: 'fingerprint',
               status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
               statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত উপস্থিতি' : 'অন-টাইম উপস্থিতি') : 'প্রস্থান',
@@ -1125,7 +873,7 @@ export function parseBiometricMachineFile(
             punchType,
             punchTimeStr: timeFormatted,
             timestamp: validDate.getTime(),
-            dateStr: '০৮ নভেম্বর ২০২৬',
+            dateStr: validDate.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
             verificationMode: 'fingerprint',
             status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
             statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত প্রবেশ' : 'অন-টাইম প্রবেশ') : 'স্বাভাবিক প্রস্থান',
@@ -1145,7 +893,7 @@ export function parseBiometricMachineFile(
             punchType,
             punchTimeStr: timeFormatted,
             timestamp: validDate.getTime(),
-            dateStr: '০৮ নভেম্বর ২০২৬',
+            dateStr: validDate.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
             verificationMode: 'fingerprint',
             status: punchType === 'entry' ? (hour > 8 ? 'late' : 'on_time') : 'regular_exit',
             statusLabelBn: punchType === 'entry' ? (hour > 8 ? 'বিলম্বিত উপস্থিতি' : 'অন-টাইম উপস্থিতি') : 'প্রস্থান',

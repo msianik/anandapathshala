@@ -24,6 +24,7 @@ import {
   getCloudIntakeMethodDetails,
   formatBanglaTime,
   syncBiometricDeviceClock,
+  purgeMockAttendanceAndResetRealMode,
 } from '../utils/biometricAttendanceLogic';
 import { toBengaliNumber, getSchoolClassNameBn } from '../utils/schoolLogic';
 import { SCHOOL_TEACHERS } from '../data/mockData';
@@ -69,6 +70,7 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  Trash2,
   Calendar,
 } from 'lucide-react';
 
@@ -222,6 +224,17 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
       setSyncToast(res.messageBn);
       setTimeout(() => setSyncToast(null), 6000);
     }, 450);
+  };
+
+  // Purge Mock Attendance and Switch to Real Biometric Mode
+  const handlePurgeMockData = () => {
+    if (window.confirm('আপনি কি সকল ডেমো/মক পাঞ্চ লগ ও হাজিরা মুছে ফেলে রিয়েল ফিঙ্গারপ্রিন্ট মেশিনের ডাটা সক্রিয় করতে চান?')) {
+      const res = purgeMockAttendanceAndResetRealMode();
+      onUpdateAttendance([]);
+      setPunchLogs([]);
+      setSyncToast(res.messageBn);
+      setTimeout(() => setSyncToast(null), 6000);
+    }
   };
 
   // Manual Trigger: Sync Now
@@ -519,6 +532,15 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : 'এখনই সিঙ্ক করুন'}</span>
+            </button>
+
+            <button
+              onClick={handlePurgeMockData}
+              className="px-3.5 py-3 bg-rose-600/80 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl text-xs sm:text-sm border border-rose-400/40 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              title="সকল ডেমো বা মক পাঞ্চ লগ মুছে ফেলে রিয়েল ফিঙ্গারপ্রিন্ট মেশিনের ডাটা সক্রিয় করুন"
+            >
+              <Trash2 className="w-4 h-4 text-rose-200" />
+              <span>মক ক্লিয়ার (রিয়েল মোড)</span>
             </button>
 
             <button

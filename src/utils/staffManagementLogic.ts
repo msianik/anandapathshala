@@ -251,7 +251,7 @@ function applyBiometricPunchesToStaffRecord(record: TeacherAttendanceRecord): Te
     return {
       ...record,
       status: record.status === 'leave' ? 'leave' : isLate ? 'late' : 'present',
-      checkInTime: entryPunch?.punchTimeStr || record.checkInTime || 'সকাল ০৮:১৫',
+      checkInTime: entryPunch?.punchTimeStr || record.checkInTime,
       checkOutTime: exitPunch?.punchTimeStr || record.checkOutTime,
       checkInMethod: 'biometric',
       checkOutMethod: exitPunch ? 'biometric' : record.checkOutMethod,
@@ -283,9 +283,9 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
             departmentBn: tch.departmentBn,
             photoUrl: tch.photoUrl,
             phone: tch.phone,
-            status: 'present',
-            checkInTime: '০৮:০০ AM',
-            remarksBn: 'স্বাভাবিক উপস্থিতি',
+            status: 'absent',
+            checkInTime: undefined,
+            remarksBn: 'এখনও ডিজিটাল পাঞ্চ করেননি (অপেক্ষমাণ)',
           }));
           const merged = [...existing, ...newRecords].map(applyBiometricPunchesToStaffRecord);
           parsed[dateStr] = merged;
@@ -297,43 +297,9 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
     }
   } catch {}
 
-  // Generate default attendance for this date based on teachers
+  // Generate real default attendance for this date based on teachers (unpunched/absent until biometric scan)
   const teachers = getStoredStaffMembers();
-  const defaultAttendance: TeacherAttendanceRecord[] = teachers.map((tch, idx) => {
-    // Mahmud Haque is on approved leave today (tch-3)
-    if (tch.id === 'tch-3') {
-      return {
-        id: `att-${dateStr}-${tch.id}`,
-        date: dateStr,
-        teacherId: tch.id,
-        teacherNameBn: tch.nameBn,
-        teacherNameEn: tch.nameEn,
-        designationBn: tch.designationBn,
-        departmentBn: tch.departmentBn,
-        photoUrl: tch.photoUrl,
-        phone: tch.phone,
-        status: 'leave',
-        remarksBn: 'অনুমোদিত নৈমিত্তিক ছুটি',
-      };
-    }
-    // One teacher arrived late (tch-8)
-    if (tch.id === 'tch-8') {
-      return {
-        id: `att-${dateStr}-${tch.id}`,
-        date: dateStr,
-        teacherId: tch.id,
-        teacherNameBn: tch.nameBn,
-        teacherNameEn: tch.nameEn,
-        designationBn: tch.designationBn,
-        departmentBn: tch.departmentBn,
-        photoUrl: tch.photoUrl,
-        phone: tch.phone,
-        status: 'late',
-        checkInTime: '০৮:৪৫ AM',
-        remarksBn: 'যানজটের কারণে দেরিতে উপস্থিতি',
-      };
-    }
-    // Default present
+  const defaultAttendance: TeacherAttendanceRecord[] = teachers.map((tch) => {
     return {
       id: `att-${dateStr}-${tch.id}`,
       date: dateStr,
@@ -344,9 +310,10 @@ export function getStoredStaffAttendance(dateStr: string): TeacherAttendanceReco
       departmentBn: tch.departmentBn,
       photoUrl: tch.photoUrl,
       phone: tch.phone,
-      status: 'present',
-      checkInTime: '০৮:১৫ AM',
-      checkOutTime: '০২:০০ PM',
+      status: 'absent',
+      checkInTime: undefined,
+      checkOutTime: undefined,
+      remarksBn: 'এখনও ডিজিটাল পাঞ্চ করেননি (অপেক্ষমাণ)',
     };
   });
 

@@ -841,14 +841,7 @@ export const INITIAL_INVOICES: FeeInvoice[] = [
   },
 ];
 
-export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
-  { studentId: 'std-0', studentNameBn: 'তানিশা ইসলাম', rollNo: '১০০', className: 'HateKhori', status: 'present', checkInTime: 'সকাল ০৮:৩৫' },
-  { studentId: 'std-1', studentNameBn: 'আদিত্য রায়', rollNo: '১০১', className: 'Nursery', status: 'present', checkInTime: 'সকাল ০৮:৫০' },
-  { studentId: 'std-2', studentNameBn: 'সুমাইয়া জাহান', rollNo: '১০২', className: 'Play', status: 'present', checkInTime: 'সকাল ০৮:৫৫' },
-  { studentId: 'std-3', studentNameBn: 'আরিয়ান খান', rollNo: '১০৩', className: 'KG', status: 'present', checkInTime: 'সকাল ০৮:৪৫' },
-  { studentId: 'std-4', studentNameBn: 'জারা তাবাসসুম', rollNo: '১০৪', className: 'Class-1', status: 'present', checkInTime: 'সকাল ০৮:৪০' },
-  { studentId: 'std-5', studentNameBn: 'রায়ান চৌধুরী', rollNo: '১০৫', className: 'Class-2', status: 'present', checkInTime: 'সকাল ০৮:৩০' },
-];
+export const INITIAL_ATTENDANCE: AttendanceRecord[] = [];
 
 export const INITIAL_ADMISSIONS: AdmissionApplication[] = [
   {
@@ -1364,63 +1357,6 @@ export const INITIAL_SCHOOL_NOTICES: SchoolNotice[] = [
 ];
 
 export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = ZLINK_SYNCED_TEACHERS.map((teacher, index) => {
-  const isPrincipal = teacher.id === 'tch-7' || teacher.staffCategory === 'principal';
-  const isHead = teacher.isHeadTeacher;
-  const isAdmin = teacher.id === 'tch-admin';
-  const isGate = teacher.id === 'tch-gate';
-
-  let status: StaffAttendanceRecord['status'] = 'present';
-  let checkInTime = 'সকাল ০৭:৫৫';
-  let checkInTimestamp: number | undefined = 1793932500000;
-  let isLate = false;
-  let lateMinutes: number | undefined = undefined;
-  let remarksBn = 'অন-টাইম ডিজিটাল চেক-ইন সম্পন্ন।';
-  let checkInMethod: 'self_digital' | 'biometric' | 'admin_manual' = 'self_digital';
-
-  if (isGate) {
-    checkInTime = 'সকাল ০৭:১৫';
-    checkInTimestamp = 1793930100000;
-    remarksBn = 'ক্যাম্পাস প্রধান ফটক সিকিউরিটি ও গেট-পাস স্ক্যানিং পয়েন্ট প্রস্তুত ও সক্রিয়।';
-    checkInMethod = 'biometric';
-  } else if (isAdmin) {
-    checkInTime = 'সকাল ০৭:৩৫';
-    checkInTimestamp = 1793931300000;
-    remarksBn = 'স্কুল অফিস, সার্ভার ম্যানেজমেন্ট ও শিক্ষার্থী অভ্যর্থনা ডেস্ক চালু করেছেন।';
-  } else if (isPrincipal) {
-    checkInTime = 'সকাল ০৭:৪৫';
-    checkInTimestamp = 1793931900000;
-    remarksBn = 'সকালে ক্যাম্পাসে উপস্থিত হয়ে প্রাতঃকালীন অ্যাসেম্বলি প্রস্তুতি পর্যবেক্ষণ করেছেন।';
-  } else if (isHead) {
-    checkInTime = 'সকাল ০৭:৪৮';
-    checkInTimestamp = 1793932080000;
-    remarksBn = 'ক্লাসরুম পরিদর্শন, শিক্ষক সমন্বয় ও ডায়রি পোস্ট চেকিং দায়িত্ব সম্পন্ন।';
-  } else if (teacher.id === 'tch-10') {
-    status = 'leave';
-    checkInTime = undefined as any;
-    checkInTimestamp = undefined as any;
-    remarksBn = 'শারীরিক অসুস্থতাজনিত কারণে পূর্বানুমোদিত এক দিনের নৈমিত্তিক ছুটি (Casual Leave)।';
-  } else if (teacher.id === 'tch-15') {
-    status = 'absent';
-    checkInTime = undefined as any;
-    checkInTimestamp = undefined as any;
-    remarksBn = 'এখনও ডিজিটাল চেক-ইন করেননি (অপেক্ষমাণ)।';
-  } else if (teacher.id === 'tch-4') {
-    status = 'late';
-    checkInTime = 'সকাল ০৮:১৮';
-    checkInTimestamp = 1793933880000;
-    isLate = true;
-    lateMinutes = 3;
-    remarksBn = 'যানজটের কারণে ৩ মিনিট বিলম্বে চেক-ইন করেছেন।';
-  } else {
-    const mins = 50 + (index % 15);
-    const hourVal = mins >= 60 ? '০৮' : '০৭';
-    const minVal = mins >= 60 ? mins - 60 : mins;
-    const minDigits = String(minVal).padStart(2, '0').replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]);
-    checkInTime = `সকাল ${hourVal}:${minDigits}`;
-    checkInTimestamp = 1793932200000 + index * 60000;
-    remarksBn = `${teacher.assignedClass ? teacher.assignedClass + ' শ্রেণির ' : ''}প্রাতঃকালীন পাঠদান ও অ্যাসেম্বলি প্রস্তুতি সম্পন্ন।`;
-  }
-
   return {
     id: `stf-att-${index + 1}`,
     teacherId: teacher.id,
@@ -1430,15 +1366,18 @@ export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = ZLINK_SYNCED_TE
     departmentBn: teacher.departmentBn,
     photoUrl: teacher.photoUrl,
     phone: teacher.phone,
-    date: '2026-11-06',
-    dateBn: '০৬ নভেম্বর ২০২৬',
-    checkInTime,
-    checkInTimestamp,
-    status,
-    checkInMethod,
-    remarksBn,
-    isLate,
-    lateMinutes,
+    date: new Date().toISOString().split('T')[0],
+    dateBn: new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
+    checkInTime: undefined,
+    checkInTimestamp: undefined,
+    checkOutTime: undefined,
+    checkOutTimestamp: undefined,
+    status: 'absent' as const,
+    checkInMethod: 'biometric' as const,
+    remarksBn: 'এখনও ডিজিটাল পাঞ্চ করেননি (অপেক্ষমাণ)',
+    isLate: false,
+    lateMinutes: undefined,
+    biometricSynced: false,
   };
 });
 

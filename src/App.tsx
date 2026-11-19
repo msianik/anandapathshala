@@ -41,7 +41,7 @@ import {
   getPermissionForDirector,
   ALL_PORTAL_MODULE_IDS,
 } from './utils/schoolLogic';
-import { syncStudentToBiometricDevice } from './utils/biometricAttendanceLogic';
+import { syncStudentToBiometricDevice, purgeMockAttendanceAndResetRealMode } from './utils/biometricAttendanceLogic';
 import {
   subscribeToSchoolCloud,
   cloudSaveStudents,
@@ -435,6 +435,33 @@ export default function App() {
         syncStudentToBiometricDevice(std);
       });
     } catch {}
+  }, []);
+
+  // Auto-cleanse any legacy mock attendance on mount once
+  useEffect(() => {
+    try {
+      const modeKey = 'ananda_real_attendance_mode_v2';
+      const hasCleaned = localStorage.getItem(modeKey);
+      if (!hasCleaned) {
+        const rawAtt = localStorage.getItem('ananda_attendance_v1');
+        const rawBio =
+          localStorage.getItem('ananda_biometric_punch_logs_v1') ||
+          localStorage.getItem('ananda_biometric_punch_logs_v2') ||
+          localStorage.getItem('ap_biometric_punch_logs_v1');
+        const hasMockAtt = rawAtt && (rawAtt.includes('std-0') || rawAtt.includes('সকাল ০৮:৩৫'));
+        const hasMockBio = rawBio && (rawBio.includes('bio-log-1') || rawBio.includes('০৮ নভেম্বর ২০২৬'));
+
+        if (hasMockAtt || hasMockBio) {
+          console.log('[RealAttendanceMode] Purging obsolete mock attendance data...');
+          purgeMockAttendanceAndResetRealMode();
+          setAttendanceRecords([]);
+        } else {
+          localStorage.setItem(modeKey, 'true');
+        }
+      }
+    } catch (e) {
+      console.warn('Real attendance init check error:', e);
+    }
   }, []);
 
   const handleUpdateSchoolAssets = (updated: SchoolAssetItem[]) => {

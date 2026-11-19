@@ -47,10 +47,11 @@ import {
   Fingerprint,
   RefreshCw,
   Cloud,
+  Trash2,
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
-import { syncBiometricAttendanceData } from '../utils/biometricAttendanceLogic';
+import { syncBiometricAttendanceData, purgeMockAttendanceAndResetRealMode } from '../utils/biometricAttendanceLogic';
 import { cloudSaveAttendance } from '../lib/schoolCloudSync';
 
 const PRE_SCHOOL_LATE_REASONS = [
@@ -136,20 +137,41 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     }
   };
 
+  const handlePurgeMockAttendance = () => {
+    if (window.confirm('আপনি কি সকল ডেমো/মক হাজিরা ও টেস্ট পাঞ্চ লগ মুছে ফেলে শতভাগ রিয়েল ফিঙ্গারপ্রিন্ট মেশিন মোড চালু করতে চান?')) {
+      const res = purgeMockAttendanceAndResetRealMode();
+      onUpdateAttendance([]);
+      setAlertSuccessBanner(res.messageBn);
+      setTimeout(() => setAlertSuccessBanner(null), 6000);
+    }
+  };
+
   const classStudents = useMemo(() => {
     return students.filter((s) => isSameSchoolClass(s.className, selectedClass));
   }, [students, selectedClass]);
 
-  const classRecords = useMemo(() => {
-    return attendanceRecords.filter((r) => isSameSchoolClass(r.className, selectedClass));
-  }, [attendanceRecords, selectedClass]);
+  const effectiveClassRecords = useMemo(() => {
+    return classStudents.map((std) => {
+      const rec = attendanceRecords.find((r) => r.studentId === std.id);
+      if (rec) return rec;
+      return {
+        studentId: std.id,
+        studentNameBn: std.nameBn,
+        rollNo: std.rollNo,
+        className: std.className,
+        status: 'absent' as const,
+      };
+    });
+  }, [classStudents, attendanceRecords]);
 
-  const stats = calculateAttendanceStats(classRecords);
+  const stats = useMemo(() => {
+    return calculateAttendanceStats(effectiveClassRecords);
+  }, [effectiveClassRecords]);
 
   const filteredClassStudents = useMemo(() => {
     return classStudents.filter((std) => {
       const record = attendanceRecords.find((r) => r.studentId === std.id);
-      const currentStat = record?.status || 'present';
+      const currentStat = record?.status || 'absent';
 
       if (dailyStatusFilter !== 'all' && currentStat !== dailyStatusFilter) {
         return false;
@@ -174,9 +196,10 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     return classStudents
       .map((std) => {
         const record = attendanceRecords.find((r) => r.studentId === std.id);
-        return { student: std, record };
+        const currentStat = record?.status || 'absent';
+        return { student: std, record, currentStat };
       })
-      .filter((item) => item.record?.status === 'absent');
+      .filter((item) => item.currentStat === 'absent');
   }, [classStudents, attendanceRecords]);
 
   // Generate monthly attendance summary for the chosen month and class scope
@@ -468,6 +491,17 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
             <span>{isCloudSyncing ? 'সিঙ্ক হচ্ছে...' : cloudSyncSuccess ? 'ক্লাউডে সেভড ✓' : 'ক্লাউড সিঙ্ক'}</span>
           </button>
           {isStaffOrAdmin && (
+            <button
+              type="button"
+              onClick={handlePurgeMockAttendance}
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border bg-rose-500/25 hover:bg-rose-500/40 text-rose-200 border-rose-400/40"
+              title="সকল ডেমো বা মক হাজিরা মুছে ফেলে বায়োমেট্রিক ফিঙ্গারপ্রিন্ট মেশিনের লাইভ রিয়েল মোড চালু করুন"
+            >
+              <Trash2 className="w-4 h-4 text-rose-300" />
+              <span>🧹 মক হাজিরা ক্লিয়ার (রিয়েল মোড)</span>
+            </button>
+          )}
+          {isStaffOrAdmin && (
             <>
               <button
                 type="button"
@@ -709,7 +743,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-teal-600" />
             <h3 className="text-sm font-bold text-slate-900">
-              {selectedClass} শ্রেণির শিক্ষার্থীদের দৈনিক রোল কল তালিকা (৩১ অক্টোবর ২০২৬)
+              {selectedClass} শ্রেণির শিক্ষার্থীদের দৈনিক রোল কল তালিকা ({new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })})
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -731,7 +765,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
         <div className="divide-y divide-slate-100">
           {classStudents.map((std) => {
             const record = attendanceRecords.find((r) => r.studentId === std.id);
-            const currentStat = record?.status || 'present';
+            const currentStat = record?.status || 'absent';
             const inTime = record?.checkInTime;
             const outTime = record?.checkOutTime;
 
