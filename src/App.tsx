@@ -272,6 +272,11 @@ export default function App() {
   });
 
   // Auto-route to Login Portal modal if /login or #login is loaded in URL
+  // Ensure pure Bengali browser tab title
+  useEffect(() => {
+    document.title = 'আনন্দ পাঠশালা';
+  }, []);
+
   useEffect(() => {
     const handleUrlRouting = () => {
       try {
