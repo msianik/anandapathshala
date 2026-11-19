@@ -689,7 +689,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             আনন্দ পাঠশালা (কুষ্টিয়া) • মোবাইল পোর্টাল
           </p>
           <p className="text-slate-400 text-[11px] mt-0.5">
-            iOS অ্যাপ ভার্সন ২.১ (সিকিউর সেশন)
+            স্মার্ট মোবাইল অ্যাপ সংস্করণ (সিকিউর সেশন)
           </p>
         </div>
       </div>

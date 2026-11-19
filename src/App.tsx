@@ -254,7 +254,7 @@ export default function App() {
         const isStandalone =
           (window.navigator as any).standalone === true ||
           window.matchMedia('(display-mode: standalone)').matches;
-        const hasAppParam = search.includes('app=') || search.includes('portal') || search.includes('ios');
+        const hasAppParam = search.includes('app=') || search.includes('portal') || search.includes('ios') || search.includes('android');
         const hasLoginPath = path.includes('/login') || hash.includes('login');
         const isCapacitor = Boolean((window as any).Capacitor);
 
