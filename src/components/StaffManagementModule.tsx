@@ -22,7 +22,7 @@ import {
   STAFF_CHANGE_EVENT,
   TEACHERS_UPDATED_EVENT,
 } from '../utils/staffManagementLogic';
-import { toBengaliNumber, downloadAttendanceCsvFile, removePortalAccountByEntityId } from '../utils/schoolLogic';
+import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
 import {
   StaffMonthlyAttendanceSummary,
   StaffMonthlyReportMeta,
