@@ -47,7 +47,6 @@ import {
   Fingerprint,
   RefreshCw,
   Cloud,
-  Trash2,
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';
@@ -134,15 +133,6 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       setSmsSentToast('❌ ক্লাউড সিঙ্ক ত্রুটি: ' + String(err));
     } finally {
       setIsCloudSyncing(false);
-    }
-  };
-
-  const handlePurgeMockAttendance = () => {
-    if (window.confirm('আপনি কি সকল ডেমো/মক হাজিরা ও টেস্ট পাঞ্চ লগ মুছে ফেলে শতভাগ রিয়েল ফিঙ্গারপ্রিন্ট মেশিন মোড চালু করতে চান?')) {
-      const res = purgeMockAttendanceAndResetRealMode();
-      onUpdateAttendance([]);
-      setAlertSuccessBanner(res.messageBn);
-      setTimeout(() => setAlertSuccessBanner(null), 6000);
     }
   };
 
@@ -490,17 +480,6 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
             <Cloud className={`w-4 h-4 ${isCloudSyncing ? 'animate-spin text-amber-300' : 'text-cyan-300'}`} />
             <span>{isCloudSyncing ? 'সিঙ্ক হচ্ছে...' : cloudSyncSuccess ? 'ক্লাউডে সেভড ✓' : 'ক্লাউড সিঙ্ক'}</span>
           </button>
-          {isStaffOrAdmin && (
-            <button
-              type="button"
-              onClick={handlePurgeMockAttendance}
-              className="px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border bg-rose-500/25 hover:bg-rose-500/40 text-rose-200 border-rose-400/40"
-              title="সকল ডেমো বা মক হাজিরা মুছে ফেলে বায়োমেট্রিক ফিঙ্গারপ্রিন্ট মেশিনের লাইভ রিয়েল মোড চালু করুন"
-            >
-              <Trash2 className="w-4 h-4 text-rose-300" />
-              <span>🧹 মক হাজিরা ক্লিয়ার (রিয়েল মোড)</span>
-            </button>
-          )}
           {isStaffOrAdmin && (
             <>
               <button

@@ -48,6 +48,7 @@ import {
   cloudSaveInvoices,
   cloudSaveAttendance,
   cloudSaveStaffAttendance,
+  cloudSaveBiometricLogs,
   cloudSaveAssets,
   cloudSaveProfile,
   enrichStudentsWithPortalAccounts,
@@ -602,7 +603,7 @@ export default function App() {
 
     const runPeriodicAttendanceSync = async () => {
       try {
-        console.log('[CloudSync] 15-minute periodic attendance sync running...');
+        console.log('[CloudSync] Automatic real attendance cloud sync running...');
         const rawAtt = localStorage.getItem('ananda_attendance_v1');
         if (rawAtt) {
           const parsed = JSON.parse(rawAtt);
@@ -615,15 +616,26 @@ export default function App() {
           const parsedStaff = JSON.parse(rawStaffAtt);
           await cloudSaveStaffAttendance(parsedStaff);
         }
+        const rawBio =
+          localStorage.getItem('ap_biometric_punch_logs_v1') ||
+          localStorage.getItem('ananda_biometric_punch_logs_v1');
+        if (rawBio) {
+          const parsedBio = JSON.parse(rawBio);
+          if (Array.isArray(parsedBio) && parsedBio.length > 0) {
+            await cloudSaveBiometricLogs(parsedBio);
+          }
+        }
         setCloudSyncInfo({
           isConnected: true,
-          lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (১৫ মি. অটো সিঙ্ক)`,
+          lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (অটো ক্লাউড সিঙ্ক)`,
         });
       } catch (err) {
-        console.warn('[CloudSync] 15-minute periodic sync error:', err);
+        console.warn('[CloudSync] Periodic attendance sync error:', err);
       }
     };
 
+    // Run once on load for immediate live alignment
+    runPeriodicAttendanceSync();
     const intervalTimer = setInterval(runPeriodicAttendanceSync, FIFTEEN_MINUTES_MS);
     return () => clearInterval(intervalTimer);
   }, []);
