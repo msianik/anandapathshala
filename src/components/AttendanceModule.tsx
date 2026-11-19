@@ -117,11 +117,17 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
   // ==========================================
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
   const [showPdfPreviewModal, setShowPdfPreviewModal] = useState(false);
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('2026-10');
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('2026-11');
   const [selectedReportClass, setSelectedReportClass] = useState<SchoolClass | 'all'>('all');
   const [consistencyFilter, setConsistencyFilter] = useState<'all' | ConsistencyTier>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  // Interactive Daily Calendar Date Picker
+  const [selectedDateIso, setSelectedDateIso] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [viewingDailyHistoryStudent, setViewingDailyHistoryStudent] = useState<Student | null>(null);
 
   const isStaffOrAdmin = ['principal', 'teacher', 'super_admin'].includes(currentRole);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
@@ -156,9 +162,87 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
     return `${getSchoolClassNameBn(selectedClass)} শ্রেণি`;
   };
 
+  const isSelectedDateToday = selectedDateIso === new Date().toISOString().split('T')[0];
+
+  const datePunches = useMemo(() => {
+    const allLogs = getBiometricLogs();
+    return allLogs.filter((log) => {
+      if (log.personType !== 'student') return false;
+      const logIso = new Date(log.timestamp).toISOString().split('T')[0];
+      return logIso === selectedDateIso;
+    });
+  }, [selectedDateIso]);
+
+  const selectedDateFormattedBn = useMemo(() => {
+    const d = new Date(selectedDateIso + 'T00:00:00');
+    return `${isSelectedDateToday ? 'আজ, ' : ''}${d.toLocaleDateString('bn-BD', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long',
+    })}`;
+  }, [selectedDateIso, isSelectedDateToday]);
+
+  const activeDateRecords = useMemo(() => {
+    if (isSelectedDateToday && attendanceRecords.length >= 90) {
+      return attendanceRecords;
+    }
+    const studentPunchesMap = new Map<string, typeof datePunches>();
+    datePunches.forEach((p) => {
+      const list = studentPunchesMap.get(p.personId) || [];
+      list.push(p);
+      studentPunchesMap.set(p.personId, list);
+    });
+
+    const dObj = new Date(selectedDateIso + 'T00:00:00');
+    const dateFormatted = dObj.toLocaleDateString('bn-BD', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long',
+    });
+
+    return students.map((std) => {
+      const punches = studentPunchesMap.get(std.id);
+      if (punches && punches.length > 0) {
+        punches.sort((a, b) => a.timestamp - b.timestamp);
+        const entry = punches.find((p) => p.punchType === 'entry') || punches[0];
+        const exit = punches.slice().reverse().find((p) => p.punchType === 'exit' && p !== entry);
+        const isLate = entry.status === 'late';
+
+        return {
+          studentId: std.id,
+          studentNameBn: std.nameBn,
+          rollNo: std.rollNo,
+          className: std.className,
+          status: isLate ? ('late' as const) : ('present' as const),
+          checkInTime: entry.punchTimeStr,
+          checkOutTime: exit ? exit.punchTimeStr : entry.punchTimeStr,
+          biometricSynced: true,
+          checkInMethod: 'biometric' as const,
+          checkOutMethod: 'biometric' as const,
+          entryTimestamp: entry.timestamp,
+          exitTimestamp: exit ? exit.timestamp : entry.timestamp,
+          dateStr: dateFormatted,
+          remarks: `বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (${dateFormatted}: প্রবেশ ${entry.punchTimeStr}${exit ? `, প্রস্থান ${exit.punchTimeStr}` : ''})`,
+        };
+      } else {
+        return {
+          studentId: std.id,
+          studentNameBn: std.nameBn,
+          rollNo: std.rollNo,
+          className: std.className,
+          status: 'absent' as const,
+          dateStr: dateFormatted,
+          remarks: 'এই তারিখে কোনো বায়োমেট্রিক পাঞ্চ পাওয়া যায়নি',
+        };
+      }
+    });
+  }, [isSelectedDateToday, attendanceRecords, datePunches, selectedDateIso, students]);
+
   const effectiveClassRecords = useMemo(() => {
     return classStudents.map((std) => {
-      const rec = attendanceRecords.find((r) => r.studentId === std.id);
+      const rec = activeDateRecords.find((r) => r.studentId === std.id);
       if (rec) return rec;
       return {
         studentId: std.id,
@@ -168,7 +252,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
         status: 'absent' as const,
       };
     });
-  }, [classStudents, attendanceRecords]);
+  }, [classStudents, activeDateRecords]);
 
   const stats = useMemo(() => {
     return calculateAttendanceStats(effectiveClassRecords);
@@ -176,7 +260,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
   const filteredClassStudents = useMemo(() => {
     return classStudents.filter((std) => {
-      const record = attendanceRecords.find((r) => r.studentId === std.id);
+      const record = activeDateRecords.find((r) => r.studentId === std.id);
       const currentStat = record?.status || 'absent';
 
       if (dailyStatusFilter !== 'all' && currentStat !== dailyStatusFilter) {
@@ -196,17 +280,17 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
       return true;
     });
-  }, [classStudents, attendanceRecords, dailyStatusFilter, dailySearchQuery]);
+  }, [classStudents, activeDateRecords, dailyStatusFilter, dailySearchQuery]);
 
   const absentStudentsList = useMemo(() => {
     return classStudents
       .map((std) => {
-        const record = attendanceRecords.find((r) => r.studentId === std.id);
+        const record = activeDateRecords.find((r) => r.studentId === std.id);
         const currentStat = record?.status || 'absent';
         return { student: std, record, currentStat };
       })
       .filter((item) => item.currentStat === 'absent');
-  }, [classStudents, attendanceRecords]);
+  }, [classStudents, activeDateRecords]);
 
   // Generate monthly attendance summary for the chosen month and class scope
   const { summaries: allMonthlySummaries, meta: reportMeta } = useMemo(() => {
@@ -608,8 +692,8 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
 
 
-      {/* Sub-Navigation Switcher: Daily Roll Call vs Monthly Continuous Tracker */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200/90 shadow-2xs">
+      {/* Sub-Navigation Switcher: Daily Date-wise Roll Call vs Monthly Continuous Tracker */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
           <button
             type="button"
@@ -620,8 +704,8 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <CalendarCheck className="w-4 h-4 text-teal-600" />
-            <span>দৈনিক ক্লাসরুম রোল কল</span>
+            <Calendar className="w-4 h-4 text-teal-600" />
+            <span>তারিখভিত্তিক দৈনিক হাজিরা</span>
           </button>
 
           <button
@@ -641,10 +725,59 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 pr-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${attendanceViewMode === 'daily' ? 'bg-teal-500' : 'bg-emerald-500 animate-pulse'}`}></span>
-          <span>{attendanceViewMode === 'daily' ? 'আজকের লাইভ রোল কল' : 'মাসিক উপস্থিতি রেজিস্টার ও ১-কাগজ রিপোর্ট'}</span>
-        </div>
+        {/* Interactive Calendar Date Picker & Jump Buttons */}
+        {attendanceViewMode === 'daily' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-xl">
+              <Calendar className="w-4 h-4 text-teal-700 shrink-0" />
+              <label className="text-xs font-bold text-teal-900 shrink-0">তারিখ নির্বাচন:</label>
+              <input
+                type="date"
+                value={selectedDateIso}
+                min="2026-11-01"
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedDateIso(e.target.value);
+                }}
+                className="text-xs font-bold font-mono text-teal-950 bg-white px-2 py-1 rounded-lg border border-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedDateIso('2026-11-19')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedDateIso === '2026-11-19'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              আজ
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDateIso('2026-11-18')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedDateIso === '2026-11-18'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              গতকাল (১৮ নভে)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDateIso('2026-11-16')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedDateIso === '2026-11-16'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              ১৬ নভে
+            </button>
+          </div>
+        )}
       </div>
 
       {attendanceViewMode === 'daily' && (
@@ -675,7 +808,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
             </button>
             {ALL_SCHOOL_CLASSES.map((cls) => {
               const count = students.filter((s) => isSameSchoolClass(s.className, cls.id)).length;
-              const presentCount = attendanceRecords.filter((r) => {
+              const presentCount = activeDateRecords.filter((r) => {
                 const s = students.find((std) => std.id === r.studentId);
                 return s && isSameSchoolClass(s.className, cls.id) && (r.status === 'present' || r.status === 'late');
               }).length;
@@ -796,7 +929,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-teal-600" />
             <h3 className="text-sm font-bold text-slate-900">
-              {selectedClass} শ্রেণির শিক্ষার্থীদের দৈনিক রোল কল তালিকা ({new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })})
+              {selectedClass === 'all' ? 'সকল' : selectedClass} শ্রেণির শিক্ষার্থীদের দৈনিক রোল কল তালিকা ({selectedDateFormattedBn})
             </h3>
           </div>
           <div className="flex items-center gap-2">
@@ -817,7 +950,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
 
         <div className="divide-y divide-slate-100">
           {classStudents.map((std) => {
-            const record = attendanceRecords.find((r) => r.studentId === std.id);
+            const record = activeDateRecords.find((r) => r.studentId === std.id);
             const currentStat = record?.status || 'absent';
             const inTime = record?.checkInTime;
             const outTime = record?.checkOutTime;
@@ -1138,6 +1271,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
                 <th className="py-3 px-2 text-center text-rose-700" title="অনুপস্থিত">অনুপস্থিত (A)</th>
                 <th className="py-3 px-3 text-center" style={{ minWidth: '120px' }}>উপস্থিতির হার</th>
                 <th className="py-3 px-3 text-center">ধারাবাহিকতা</th>
+                <th className="py-3 px-3 text-center">দৈনিক সময় ও লগ</th>
                 <th className="py-3 px-3">অভিভাবক ও ফোন</th>
                 <th className="py-3 px-3">মন্তব্য / পর্যবেক্ষণ</th>
               </tr>
@@ -1237,6 +1371,24 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
                           ⚠️ নজরদারি
                         </span>
                       )}
+                    </td>
+
+                    {/* Daily Punch Logs Button */}
+                    <td className="py-3 px-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchedStudent = students.find((std) => std.id === s.studentId);
+                          if (matchedStudent) {
+                            setViewingDailyHistoryStudent(matchedStudent);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg text-xs font-bold border border-teal-200 transition-colors shadow-2xs cursor-pointer whitespace-nowrap"
+                        title={`${s.nameBn}-এর পুরো মাসের প্রতিদিনের প্রবেশের সময় ও পাঞ্চ হিস্ট্রি দেখুন`}
+                      >
+                        <Clock className="w-3.5 h-3.5 text-teal-600" />
+                        <span>লগ দেখুন</span>
+                      </button>
                     </td>
 
                     {/* Guardian & Phone */}
@@ -1810,6 +1962,263 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
         loggedInTeacherNameBn={loggedInTeacherNameBn}
         onSendAlerts={handleSendAlertsFromModal}
       />
+
+      {/* Student Monthly Daily Time & Biometric Punch History Modal */}
+      {viewingDailyHistoryStudent && (() => {
+        const student = viewingDailyHistoryStudent;
+        const studentSummary = allMonthlySummaries.find((s) => s.studentId === student.id);
+        const allLogs = getBiometricLogs();
+        const studentLogs = allLogs.filter(
+          (l) => l.personId === student.id && l.personType === 'student'
+        );
+
+        // Group student's logs by ISO date
+        const punchesByDate = new Map<string, typeof studentLogs>();
+        studentLogs.forEach((l) => {
+          const iso = new Date(l.timestamp).toISOString().split('T')[0];
+          const list = punchesByDate.get(iso) || [];
+          list.push(l);
+          punchesByDate.set(iso, list);
+        });
+
+        // Determine all operating school days in the selected month
+        const operatingDaysSet = new Set<string>();
+        allLogs.forEach((l) => {
+          const iso = new Date(l.timestamp).toISOString().split('T')[0];
+          if (iso.startsWith(selectedMonthKey)) {
+            operatingDaysSet.add(iso);
+          }
+        });
+
+        // Sort days latest first
+        const operatingDaysList = Array.from(operatingDaysSet).sort((a, b) => b.localeCompare(a));
+        if (operatingDaysList.length === 0) {
+          operatingDaysList.push('2026-11-19', '2026-11-18', '2026-11-17', '2026-11-16', '2026-11-15', '2026-11-12', '2026-11-11', '2026-11-10', '2026-11-09', '2026-11-05', '2026-11-04', '2026-11-03', '2026-11-02', '2026-11-01');
+        }
+
+        const totalOperatingDays = operatingDaysList.length;
+        const attendedDaysCount = studentSummary?.presentDays ?? Array.from(punchesByDate.keys()).filter((d) => d.startsWith(selectedMonthKey)).length;
+        const lateDaysCount = studentSummary?.lateDays ?? 0;
+        const attendanceRate = studentSummary?.attendanceRate ?? Math.round((attendedDaysCount / (totalOperatingDays || 1)) * 100);
+
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setViewingDailyHistoryStudent(null)}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-7 space-y-5 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base shadow-xs shrink-0 ${student.avatarColor || 'bg-teal-100 text-teal-800'}`}>
+                    {student.rollNo}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-black text-slate-900">{student.nameBn}</h3>
+                      <span className="text-xs font-semibold text-slate-500">({student.nameEn})</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <Fingerprint className="w-3.5 h-3.5 text-emerald-700" />
+                        বায়োমেট্রিক ডিভাইস রেজিস্টার্ড
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span>শ্রেণি: <strong>{student.className}</strong></span>
+                      <span>·</span>
+                      <span>রোল: <strong>{student.rollNo}</strong></span>
+                      <span>·</span>
+                      <span>পিতা: <strong>{student.fatherNameBn || '—'}</strong></span>
+                      <span>·</span>
+                      <span>অভিভাবকের মোবাইল: <strong>{student.emergencyPhone || '—'}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingDailyHistoryStudent(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="বন্ধ করুন"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Month KPI Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <span className="text-[11px] font-bold text-slate-500 block">মোট কর্মদিবস</span>
+                  <div className="text-xl font-black text-slate-800 mt-0.5">
+                    {toBengaliNumber(totalOperatingDays)} দিন
+                  </div>
+                  <span className="text-[10px] text-slate-400">নভেম্বর ২০২৬</span>
+                </div>
+
+                <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200">
+                  <span className="text-[11px] font-bold text-emerald-800 block">উপস্থিত দিন</span>
+                  <div className="text-xl font-black text-emerald-800 mt-0.5">
+                    {toBengaliNumber(attendedDaysCount)} দিন
+                  </div>
+                  <span className="text-[10px] text-emerald-600">ফিঙ্গারপ্রিন্ট যাচাইকৃত</span>
+                </div>
+
+                <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
+                  <span className="text-[11px] font-bold text-amber-800 block">বিলম্ব দিন</span>
+                  <div className="text-xl font-black text-amber-800 mt-0.5">
+                    {toBengaliNumber(lateDaysCount)} দিন
+                  </div>
+                  <span className="text-[10px] text-amber-600">সকাল ৯:০০ এর পর</span>
+                </div>
+
+                <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+                  <span className="text-[11px] font-bold text-rose-800 block">উপস্থিতির হার</span>
+                  <div className="text-xl font-black text-rose-800 mt-0.5">
+                    {toBengaliNumber(attendanceRate)}%
+                  </div>
+                  <span className="text-[10px] text-rose-600">
+                    {attendanceRate >= 92 ? '🌟 অসাধারণ' : attendanceRate >= 80 ? '✅ নিয়মিত' : '⚠️ নজরদারি'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Daily Punch Logs Breakdown */}
+              <div className="space-y-2 flex-1 overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 pb-1">
+                  <span className="flex items-center gap-1.5 text-slate-900">
+                    <CalendarCheck className="w-4 h-4 text-teal-600" />
+                    প্রতিদিনের প্রবেশের সময়, প্রস্থানের সময় ও পাঞ্চ হিস্ট্রি
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    ডিভাইস: ZKTeco SenseFP M1 (ID: JUS3251800031)
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto border border-slate-200 rounded-2xl">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-200 text-[11px]">
+                      <tr>
+                        <th className="py-2.5 px-3">তারিখ ও বার</th>
+                        <th className="py-2.5 px-3 text-emerald-800">প্রবেশ (In Time)</th>
+                        <th className="py-2.5 px-3 text-sky-800">প্রস্থান (Out Time)</th>
+                        <th className="py-2.5 px-2 text-center">পাঞ্চ সংখ্যা</th>
+                        <th className="py-2.5 px-3 text-center">স্ট্যাটাস</th>
+                        <th className="py-2.5 px-3">যাচাই ও ডিভাইস</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-800">
+                      {operatingDaysList.map((dateIso) => {
+                        const dayPunches = (punchesByDate.get(dateIso) || []).slice().sort((a, b) => a.timestamp - b.timestamp);
+                        const hasPunch = dayPunches.length > 0;
+                        const entryPunch = dayPunches.find((p) => p.punchType === 'entry') || dayPunches[0];
+                        const exitPunch = dayPunches.slice().reverse().find((p) => p.punchType === 'exit' && p !== entryPunch);
+                        const isLate = hasPunch && (entryPunch?.status === 'late' || entryPunch?.punchTimeStr?.includes('সকাল ০৯:') || entryPunch?.punchTimeStr?.includes('সকাল ১০:'));
+
+                        const dObj = new Date(dateIso + 'T00:00:00');
+                        const dateFormatted = dObj.toLocaleDateString('bn-BD', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          weekday: 'long',
+                        });
+
+                        return (
+                          <tr key={dateIso} className={`hover:bg-slate-50/80 transition-colors ${!hasPunch ? 'bg-rose-50/20' : ''}`}>
+                            <td className="py-2.5 px-3 font-semibold">
+                              <div className="text-slate-900">{dateFormatted}</div>
+                              <span className="text-[10px] text-slate-400 font-mono">{dateIso}</span>
+                            </td>
+
+                            <td className="py-2.5 px-3">
+                              {hasPunch && entryPunch ? (
+                                <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-xs">
+                                  <ArrowDownRight className="w-3 h-3 text-emerald-600" />
+                                  {entryPunch.punchTimeStr}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-mono">—</span>
+                              )}
+                            </td>
+
+                            <td className="py-2.5 px-3">
+                              {hasPunch && exitPunch ? (
+                                <span className="inline-flex items-center gap-1 font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200 text-xs">
+                                  <ArrowUpRight className="w-3 h-3 text-sky-600" />
+                                  {exitPunch.punchTimeStr}
+                                </span>
+                              ) : hasPunch ? (
+                                <span className="text-slate-400 text-[11px]">একই সময়ে পাঞ্চ</span>
+                              ) : (
+                                <span className="text-slate-400 font-mono">—</span>
+                              )}
+                            </td>
+
+                            <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-600">
+                              {hasPunch ? `${toBengaliNumber(dayPunches.length)} বার` : '০'}
+                            </td>
+
+                            <td className="py-2.5 px-3 text-center">
+                              {hasPunch ? (
+                                isLate ? (
+                                  <span className="inline-block px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10.5px] font-bold border border-amber-300">
+                                    ⚠️ বিলম্ব
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10.5px] font-bold border border-emerald-300">
+                                    ✅ উপস্থিত
+                                  </span>
+                                )
+                              ) : (
+                                <span className="inline-block px-2.5 py-0.5 bg-rose-100 text-rose-800 rounded-full text-[10.5px] font-bold border border-rose-300">
+                                  ❌ অনুপস্থিত
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="py-2.5 px-3">
+                              {hasPunch ? (
+                                <div className="space-y-0.5">
+                                  <span className="text-[11px] font-semibold text-slate-700 block flex items-center gap-1">
+                                    <Fingerprint className="w-3 h-3 text-teal-600" />
+                                    ফিঙ্গারপ্রিন্ট পাঞ্চ
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-mono block">
+                                    SenseFP M1
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">কোনো পাঞ্চ নেই</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+                <span className="text-xs text-slate-500">
+                  ক্লাউড ফায়ারস্টোর ও বায়োমেট্রিক ডিভাইসের সাথে সরাসরি সিঙ্ককৃত
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setViewingDailyHistoryStudent(null)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                >
+                  ঠিক আছে, বন্ধ করুন
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
     </div>

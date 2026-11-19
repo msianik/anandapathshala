@@ -26,6 +26,7 @@ import {
   MANAGEMENT_COMMITTEE,
   INITIAL_STUDENTS,
 } from '../data/mockData';
+import { REAL_DEVICE_BIOMETRIC_LOGS } from '../data/realBiometricInitialData';
 
 export const ALL_PORTAL_MODULE_IDS = [
   'overview',
@@ -2379,10 +2380,10 @@ export interface MonthConfig {
 }
 
 export const MONTH_OPTIONS: MonthConfig[] = [
+  { key: '2026-11', nameBn: 'নভেম্বর ২০২৬ (চলতি মাস)', nameEn: 'November', year: 2026, totalWorkingDays: 14 },
   { key: '2026-10', nameBn: 'অক্টোবর ২০২৬', nameEn: 'October', year: 2026, totalWorkingDays: 22 },
   { key: '2026-09', nameBn: 'সেপ্টেম্বর ২০২৬', nameEn: 'September', year: 2026, totalWorkingDays: 24 },
   { key: '2026-08', nameBn: 'আগস্ট ২০২৬', nameEn: 'August', year: 2026, totalWorkingDays: 21 },
-  { key: '2026-11', nameBn: 'নভেম্বর ২০২৬ (চলতি মাস)', nameEn: 'November', year: 2026, totalWorkingDays: 20 },
 ];
 
 /**
@@ -2594,21 +2595,62 @@ export function generateMonthlyAttendanceSummary(
   const totalWorkingDays = monthConfig.totalWorkingDays;
 
   const summaries: StudentMonthlyAttendanceSummary[] = targetStudents.map((std) => {
-    const studentHistory = BASELINE_MONTHLY_ATTENDANCE[std.id]?.[monthKey];
-    let presentDays = studentHistory?.present ?? Math.max(1, totalWorkingDays - 2);
-    let lateDays = studentHistory?.late ?? 1;
-    let absentDays = studentHistory?.absent ?? Math.max(0, totalWorkingDays - presentDays - lateDays);
+    let presentDays = 0;
+    let lateDays = 0;
+    let absentDays = 0;
+    let isRealBiometricComputed = false;
 
-    // If viewing October 2026 (current active demo month), incorporate live daily record changes
-    if (monthKey === '2026-10') {
-      const todayRecord = currentDailyRecords.find((r) => r.studentId === std.id);
-      if (todayRecord) {
-        if (todayRecord.status === 'absent' && absentDays === 0) {
-          absentDays = 1;
-          presentDays = Math.max(0, presentDays - 1);
-        } else if (todayRecord.status === 'late' && lateDays === 0) {
-          lateDays = 1;
-          presentDays = Math.max(0, presentDays - 1);
+    // For November 2026, compute exact metrics from the real 703 biometric punch logs
+    if (monthKey === '2026-11') {
+      const studentPunches = REAL_DEVICE_BIOMETRIC_LOGS.filter(
+        (log) => log.personType === 'student' && log.personId === std.id && log.dateStr?.includes('নভেম্বর')
+      );
+      if (studentPunches.length > 0) {
+        isRealBiometricComputed = true;
+        const dateGroups = new Map<string, typeof REAL_DEVICE_BIOMETRIC_LOGS>();
+        studentPunches.forEach((p) => {
+          const d = new Date(p.timestamp).toISOString().split('T')[0];
+          const arr = dateGroups.get(d) || [];
+          arr.push(p);
+          dateGroups.set(d, arr);
+        });
+
+        dateGroups.forEach((dayPunches) => {
+          dayPunches.sort((a, b) => a.timestamp - b.timestamp);
+          const firstPunch = dayPunches[0];
+          if (firstPunch.status === 'late') {
+            lateDays++;
+          } else {
+            presentDays++;
+          }
+        });
+        const attended = presentDays + lateDays;
+        absentDays = Math.max(0, totalWorkingDays - attended);
+      } else {
+        isRealBiometricComputed = true;
+        presentDays = 0;
+        lateDays = 0;
+        absentDays = totalWorkingDays;
+      }
+    }
+
+    if (!isRealBiometricComputed) {
+      const studentHistory = BASELINE_MONTHLY_ATTENDANCE[std.id]?.[monthKey];
+      presentDays = studentHistory?.present ?? Math.max(1, totalWorkingDays - 2);
+      lateDays = studentHistory?.late ?? 1;
+      absentDays = studentHistory?.absent ?? Math.max(0, totalWorkingDays - presentDays - lateDays);
+
+      // If viewing October 2026 (demo month), incorporate live daily record changes
+      if (monthKey === '2026-10') {
+        const todayRecord = currentDailyRecords.find((r) => r.studentId === std.id);
+        if (todayRecord) {
+          if (todayRecord.status === 'absent' && absentDays === 0) {
+            absentDays = 1;
+            presentDays = Math.max(0, presentDays - 1);
+          } else if (todayRecord.status === 'late' && lateDays === 0) {
+            lateDays = 1;
+            presentDays = Math.max(0, presentDays - 1);
+          }
         }
       }
     }
