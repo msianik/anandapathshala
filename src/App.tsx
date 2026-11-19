@@ -467,6 +467,14 @@ export default function App() {
         },
         onStatusChange: (isConnected, lastSyncTime) => {
           setCloudSyncInfo({ isConnected, lastSyncTime });
+          if (isConnected) {
+            setActiveFcmToast((current) => {
+              if (current?.type === 'cloud_sync_alert') {
+                return null;
+              }
+              return current;
+            });
+          }
         },
       },
       {
@@ -635,7 +643,7 @@ export default function App() {
       const detail = cust.detail;
       if (!detail) return;
 
-      dispatchRealTimeFcmNotification({
+      const syncAlert: FcmNotification = {
         id: `sync-err-${Date.now()}`,
         type: 'cloud_sync_alert',
         priority: 'urgent',
@@ -645,12 +653,15 @@ export default function App() {
         timestamp: 'এইমাত্র (ক্লাউড ত্রুটি)',
         read: false,
         actionTab: 'overview',
-        fcmMessageId: `projects/gen-lang-client-0036381817/messages/sync_err_${Date.now()}`,
-      });
+        fcmMessageId: `sync_err_${Date.now()}`,
+      };
+
+      setFcmNotifications((prev) => mergeNotificationsIdempotent(prev, syncAlert));
+      setActiveFcmToast(syncAlert);
 
       setCloudSyncInfo({
         isConnected: false,
-        lastSyncTime: 'সিঙ্ক ত্রুটি (অফলাইন)',
+        lastSyncTime: 'সিঙ্ক ত্রুটি (অফলাইন ক্যাশ সচল)',
       });
     };
 

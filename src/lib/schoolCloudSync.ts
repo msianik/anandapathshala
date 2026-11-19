@@ -135,14 +135,24 @@ export function setLocalTimestamp(key: string, timestamp: number = Date.now()) {
   } catch {}
 }
 
+const lastErrorNotificationTimes: Record<string, number> = {};
+
 /**
  * Global Cloud Sync Error Notification Dispatcher
  * Dispatches an event across the window so App.tsx can show an active FCM Toast
  * and notify administrators/teachers if any database table fails to sync.
+ * Throttles duplicate error alerts per module to avoid UI alert flooding.
  */
 export function notifySyncError(moduleNameBn: string, rawError?: any) {
+  const now = Date.now();
+  const lastTime = lastErrorNotificationTimes[moduleNameBn] || 0;
+  if (now - lastTime < 60000) {
+    return;
+  }
+  lastErrorNotificationTimes[moduleNameBn] = now;
+
   const errMsg = rawError?.message || String(rawError || 'নেটওয়ার্ক সংযোগ বা পারমিশন জনিত ত্রুটি');
-  console.error(`[CloudSync Error] ${moduleNameBn} সিঙ্ক ব্যর্থ:`, errMsg);
+  console.warn(`[CloudSync Error] ${moduleNameBn} সিঙ্ক ব্যর্থ:`, errMsg);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
@@ -150,7 +160,7 @@ export function notifySyncError(moduleNameBn: string, rawError?: any) {
         detail: {
           module: moduleNameBn,
           error: errMsg,
-          timestamp: Date.now(),
+          timestamp: now,
           messageBn: `⚠️ ${moduleNameBn} গুগল ফায়ারস্টোর ক্লাউডে সিঙ্ক হতে সমস্যা হয়েছে! ডাটা অফলাইনে ক্যাশ করা আছে। ইন্টারনেট সংযোগ বা ফায়ারস্টোর পারমিশন চেক করুন।`,
         },
       })
@@ -465,19 +475,33 @@ export async function cloudSaveBiometricLogs(logs: BiometricPunchLog[]): Promise
   safeLocalSet('ananda_biometric_punch_logs_v1', sanitized);
   setLocalTimestamp('biometric_logs', now);
 
-  try {
-    await setDoc(doc(db, COLLECTION_NAME, 'biometric_logs'), {
-      items: sanitized,
-      updatedAt: isoTime,
-      updatedAtMs: now,
-      count: sanitized.length,
-    });
-    return true;
-  } catch (err) {
-    console.error('[CloudSync] Failed to save biometric logs to Firestore:', err);
-    notifySyncError('বায়োমেট্রিক পাঞ্চ লগ', err);
-    return false;
+  // Keep latest 300 logs for high-speed cloud sync to stay well below Firestore 1MB document limit
+  const itemsToSave = Array.isArray(sanitized) && sanitized.length > 300
+    ? sanitized.slice(0, 300)
+    : sanitized;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await setDoc(doc(db, COLLECTION_NAME, 'biometric_logs'), {
+        items: itemsToSave,
+        updatedAt: isoTime,
+        updatedAtMs: now,
+        count: Array.isArray(sanitized) ? sanitized.length : 0,
+      });
+      return true;
+    } catch (err) {
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1200));
+        continue;
+      }
+      console.warn('[CloudSync] Failed to save biometric logs to Firestore:', err);
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        notifySyncError('বায়োমেট্রিক পাঞ্চ লগ', err);
+      }
+      return false;
+    }
   }
+  return false;
 }
 
 // =============================================================
