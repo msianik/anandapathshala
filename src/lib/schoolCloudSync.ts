@@ -53,7 +53,11 @@ import {
   PreSchoolTiffinItem,
   AdmissionApplication,
   CulturalGalleryItem,
+  DirectorAccessPermission,
+  RolePolicyConfig,
+  DEFAULT_ROLE_POLICY_CONFIG,
 } from '../types/school';
+import { INITIAL_DIRECTOR_PERMISSIONS } from '../utils/schoolLogic';
 
 // Default initial data sources for cloud bootstrapping
 import { INITIAL_CLASS_ROUTINES } from '../data/mockRoutines';
@@ -916,6 +920,76 @@ export async function cloudSaveBiometricUsers(users: any[]): Promise<boolean> {
   }
 }
 
+export async function cloudSaveDirectorPermissions(perms: DirectorAccessPermission[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(perms);
+
+  safeLocalSet('ananda_director_access_permissions_v1', sanitized);
+  setLocalTimestamp('director_permissions', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'director_permissions'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save director permissions to Firestore:', err);
+    notifySyncError('পরিচালকদের অ্যাক্সেস পারমিশন', err);
+    return false;
+  }
+}
+
+export async function cloudSaveRolePolicy(policy: RolePolicyConfig): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(policy);
+
+  safeLocalSet('ananda_role_policy_config_v1', sanitized);
+  setLocalTimestamp('role_policy', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'role_policy'), {
+      data: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save role policy to Firestore:', err);
+    notifySyncError('রোল পলিসি কনফিগারেশন', err);
+    return false;
+  }
+}
+
+export async function cloudSaveThemeColor(themeHex: string): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('ananda_school_theme_color', themeHex);
+    } catch {}
+  }
+  setLocalTimestamp('school_theme', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'school_theme'), {
+      themeColor: themeHex,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save theme color to Firestore:', err);
+    notifySyncError('স্কুল থিম কালার', err);
+    return false;
+  }
+}
+
 /**
  * Master One-Click Sync Function
  * ------------------------------
@@ -962,6 +1036,9 @@ export async function syncAllPortalDataToCloud(): Promise<{
   const admissions = safeLocalGet<AdmissionApplication[]>('anando_admission_applications_v1') || INITIAL_ADMISSIONS;
   const gallery = safeLocalGet<CulturalGalleryItem[]>('anando_cultural_gallery_v1') || getGalleryItems();
   const bioUsers = safeLocalGet<any[]>('ananda_biometric_device_users_v1') || [];
+  const dirPerms = safeLocalGet<DirectorAccessPermission[]>('ananda_director_access_permissions_v1') || INITIAL_DIRECTOR_PERMISSIONS;
+  const rolePolicy = safeLocalGet<RolePolicyConfig>('ananda_role_policy_config_v1') || DEFAULT_ROLE_POLICY_CONFIG;
+  const themeHex = (typeof window !== 'undefined' ? localStorage.getItem('ananda_school_theme_color') : null) || '#059669';
 
   await Promise.allSettled([
     students.length ? pushTask('students', () => cloudSaveStudents(students)) : Promise.resolve(),
@@ -986,6 +1063,9 @@ export async function syncAllPortalDataToCloud(): Promise<{
     pushTask('admission_applications', () => cloudSaveAdmissionApplications(admissions)),
     pushTask('cultural_gallery', () => cloudSaveCulturalGallery(gallery)),
     bioUsers.length ? pushTask('biometric_users', () => cloudSaveBiometricUsers(bioUsers)) : Promise.resolve(),
+    pushTask('director_permissions', () => cloudSaveDirectorPermissions(dirPerms)),
+    pushTask('role_policy', () => cloudSaveRolePolicy(rolePolicy)),
+    pushTask('school_theme', () => cloudSaveThemeColor(themeHex)),
   ]);
 
   return {
@@ -2063,6 +2143,97 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching biometric users listener:', e);
   }
 
+  // 30. Director Permissions Subscription
+  try {
+    const unsubDirPerms = onSnapshot(
+      doc(db, COLLECTION_NAME, 'director_permissions'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_director_access_permissions_v1', data.items);
+              window.dispatchEvent(new CustomEvent('ananda-director-permissions-updated', { detail: { permissions: data.items } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<DirectorAccessPermission[]>('ananda_director_access_permissions_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_DIRECTOR_PERMISSIONS;
+          cloudSaveDirectorPermissions(toSeed);
+        }
+      },
+      (err) => {
+        console.warn('[CloudSync] Director permissions listener error:', err);
+        notifySyncError('Director permissions রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
+    );
+    unsubscribers.push(unsubDirPerms);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching director permissions listener:', e);
+  }
+
+  // 31. Role Policy Subscription
+  try {
+    const unsubRolePolicy = onSnapshot(
+      doc(db, COLLECTION_NAME, 'role_policy'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data?.data && typeof data.data === 'object') {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_role_policy_config_v1', data.data);
+              window.dispatchEvent(new CustomEvent('ananda-role-policy-updated', { detail: data.data }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<RolePolicyConfig>('ananda_role_policy_config_v1');
+          const toSeed = existingLocal || DEFAULT_ROLE_POLICY_CONFIG;
+          cloudSaveRolePolicy(toSeed);
+        }
+      },
+      (err) => {
+        console.warn('[CloudSync] Role policy listener error:', err);
+        notifySyncError('Role policy রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
+    );
+    unsubscribers.push(unsubRolePolicy);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching role policy listener:', e);
+  }
+
+  // 32. School Theme Subscription
+  try {
+    const unsubTheme = onSnapshot(
+      doc(db, COLLECTION_NAME, 'school_theme'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data?.themeColor && typeof data.themeColor === 'string') {
+            safeProcessCloudUpdate(() => {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('ananda_school_theme_color', data.themeColor);
+              }
+              window.dispatchEvent(new CustomEvent('school-theme-updated', { detail: { themeColor: data.themeColor } }));
+            });
+          }
+        }
+      },
+      (err) => {
+        console.warn('[CloudSync] Theme listener error:', err);
+        notifySyncError('School theme রিয়েল-টাইম ক্লাউড সংযোগ', err);
+        updateStatus(false);
+      }
+    );
+    unsubscribers.push(unsubTheme);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching theme listener:', e);
+  }
+
   // =============================================================
   // Automatic Event Bridge: Listen to Local UI Events & Sync Cloud
   // =============================================================
@@ -2258,6 +2429,27 @@ export function subscribeToSchoolCloud(
     if (profile) cloudSaveProfile(profile);
   };
 
+  const handleDirectorPermissionsUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ permissions?: DirectorAccessPermission[] }>;
+    const perms = cust.detail?.permissions || safeLocalGet<DirectorAccessPermission[]>('ananda_director_access_permissions_v1');
+    if (perms) cloudSaveDirectorPermissions(perms);
+  };
+
+  const handleRolePolicyUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<RolePolicyConfig>;
+    const policy = cust.detail || safeLocalGet<RolePolicyConfig>('ananda_role_policy_config_v1');
+    if (policy) cloudSaveRolePolicy(policy);
+  };
+
+  const handleThemeColorUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ themeColor?: string }>;
+    const color = cust.detail?.themeColor || (typeof window !== 'undefined' ? localStorage.getItem('ananda_school_theme_color') : null);
+    if (color) cloudSaveThemeColor(color);
+  };
+
   window.addEventListener('ananda-students-updated', handleStudentsUpdated);
   window.addEventListener('ananda-teachers-updated', handleTeachersUpdated);
   window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
@@ -2286,6 +2478,9 @@ export function subscribeToSchoolCloud(
   window.addEventListener('ananda-notices-updated', handleNoticesUpdated);
   window.addEventListener('ananda-assets-updated', handleAssetsUpdated);
   window.addEventListener('ananda-school-profile-updated', handleProfileUpdated);
+  window.addEventListener('ananda-director-permissions-updated', handleDirectorPermissionsUpdated);
+  window.addEventListener('ananda-role-policy-updated', handleRolePolicyUpdated);
+  window.addEventListener('school-theme-updated', handleThemeColorUpdated);
 
   return () => {
     unsubscribers.forEach((u) => {
@@ -2321,5 +2516,8 @@ export function subscribeToSchoolCloud(
     window.removeEventListener('ananda-notices-updated', handleNoticesUpdated);
     window.removeEventListener('ananda-assets-updated', handleAssetsUpdated);
     window.removeEventListener('ananda-school-profile-updated', handleProfileUpdated);
+    window.removeEventListener('ananda-director-permissions-updated', handleDirectorPermissionsUpdated);
+    window.removeEventListener('ananda-role-policy-updated', handleRolePolicyUpdated);
+    window.removeEventListener('school-theme-updated', handleThemeColorUpdated);
   };
 }
