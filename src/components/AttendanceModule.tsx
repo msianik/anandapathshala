@@ -47,6 +47,8 @@ import {
   Fingerprint,
   RefreshCw,
   Cloud,
+  ArrowDownRight,
+  ArrowUpRight,
 } from 'lucide-react';
 import { exportMonthlyAttendancePdf, generateAttendancePdfHtml, downloadAttendanceDocFile } from '../utils/attendancePdfExport';
 import { AbsentAlertModal } from './dashboard/AbsentAlertModal';

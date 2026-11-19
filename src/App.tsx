@@ -118,6 +118,8 @@ import {
 
 interface DashboardErrorBoundaryProps {
   children: React.ReactNode;
+  currentTab?: string;
+  onResetToOverview?: () => void;
 }
 
 interface DashboardErrorBoundaryState {
@@ -139,20 +141,45 @@ class DashboardErrorBoundary extends React.Component<DashboardErrorBoundaryProps
     console.error('Portal Error Boundary caught:', error, errorInfo);
   }
 
+  componentDidUpdate(prevProps: DashboardErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.currentTab !== this.props.currentTab) {
+      this.setState({ hasError: false, error: undefined });
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 my-6 max-w-xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl text-center space-y-3 shadow-md">
+        <div className="p-8 my-6 max-w-xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl text-center space-y-4 shadow-md">
           <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl font-bold">⚠️</div>
           <h3 className="text-base font-bold text-amber-900">একটি সাময়িক রেন্ডারিং সমস্যা হয়েছে</h3>
-          <p className="text-xs text-amber-700">আপনার অ্যাডমিন সেশন সুরক্ষিত রয়েছে। নিচের বাটনে ক্লিক করে পুনরায় চেষ্টা করুন।</p>
-          <button
-            type="button"
-            onClick={() => this.setState({ hasError: false })}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition"
-          >
-            পুনরায় লোড করুন
-          </button>
+          <p className="text-xs text-amber-700">আপনার অ্যাডমিন সেশন সুরক্ষিত রয়েছে। নিচে দেওয়া বাটনে ক্লিক করে ড্যাশবোর্ডে ফিরে যান বা পৃষ্ঠাটি পুনরায় লোড করুন।</p>
+          {this.state.error && (
+            <p className="text-[11px] font-mono text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200 text-left overflow-x-auto max-h-24">
+              {this.state.error.message}
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: undefined });
+                if (this.props.onResetToOverview) {
+                  this.props.onResetToOverview();
+                }
+              }}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition"
+            >
+              ড্যাশবোর্ডে ফিরে যান
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition"
+            >
+              পুনরায় লোড করুন
+            </button>
+          </div>
         </div>
       );
     }
@@ -1256,7 +1283,10 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <DashboardErrorBoundary>
+                <DashboardErrorBoundary
+                  currentTab={currentTab}
+                  onResetToOverview={() => setCurrentTab('overview')}
+                >
                   <Suspense
                     fallback={
                     <div className="flex flex-col items-center justify-center p-16 text-emerald-800 space-y-3">
