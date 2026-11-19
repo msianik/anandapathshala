@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">আনন্দ পাঠশালা</string>
+    <string name="title_activity_main">আনন্দ পাঠশালা</string>
+    <string name="package_name">com.anandapathshala.portal</string>
+    <string name="custom_url_scheme">com.anandapathshala.portal</string>
+</resources>
