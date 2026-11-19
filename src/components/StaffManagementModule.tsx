@@ -123,6 +123,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
   currentRole,
   initialTab = 'directory',
 }) => {
+  const isPrincipal = currentRole === 'super_admin' || currentRole === 'principal' || currentRole === 'admin';
   const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'idcards' | 'payroll' | 'leaves'>(initialTab);
 
   useEffect(() => {
