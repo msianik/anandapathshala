@@ -58,6 +58,7 @@ import { ExamScheduleTab } from './ExamScheduleTab';
 import { CulturalDayHubTab } from './CulturalDayHubTab';
 import { WeeklyTiffinMenuTab } from './WeeklyTiffinMenuTab';
 import { HomeworkChecklistModule } from './HomeworkChecklistModule';
+import { cloudSaveRoutines } from '../lib/schoolCloudSync';
 import {
   Calendar,
   Clock,
@@ -90,6 +91,7 @@ import {
   Apple,
   Palette,
   Award,
+  Cloud,
 } from 'lucide-react';
 
 /**
@@ -153,6 +155,8 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const [allowOverlapOverride, setAllowOverlapOverride] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showDetailedLessonPlans, setShowDetailedLessonPlans] = useState<boolean>(true);
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [cloudSyncSuccess, setCloudSyncSuccess] = useState<boolean>(false);
 
   // Weekly Summary View & Whole-Week Progress State
   const [activeRoutineTab, setActiveRoutineTab] = useState<
@@ -260,6 +264,24 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleManualCloudSync = async () => {
+    setIsCloudSyncing(true);
+    try {
+      const ok = await cloudSaveRoutines(routines);
+      if (ok) {
+        setCloudSyncSuccess(true);
+        setTimeout(() => setCloudSyncSuccess(false), 3000);
+        showToast('✅ সকল ক্লাস রুটিন ও পাঠ পরিকল্পনা সফলভাবে গুগল ক্লাউড ফায়ারস্টোরে সিঙ্ক হয়েছে!');
+      } else {
+        showToast('❌ ক্লাউড সিঙ্ক সম্পন্ন হতে পারেনি। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      }
+    } catch (err) {
+      showToast('❌ ক্লাউড সিঙ্ক ত্রুটি: ' + String(err));
+    } finally {
+      setIsCloudSyncing(false);
+    }
   };
 
   // Teacher / Admin 1-Click Whole Week Completed / Pending Toggle
@@ -957,6 +979,21 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
             <span>CSV রুটিন ও লেসন প্ল্যান</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleManualCloudSync}
+            disabled={isCloudSyncing}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${
+              cloudSyncSuccess
+                ? 'bg-emerald-600 text-white border-emerald-500'
+                : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+            }`}
+            title="সকল ক্লাস রুটিন ও পাঠ পরিকল্পনা সরাসরি গুগল ক্লাউড ফায়ারস্টোর ডাটাবেসে সেভ করুন"
+          >
+            <Cloud className={`w-4 h-4 ${isCloudSyncing ? 'animate-spin text-amber-300' : 'text-cyan-300'}`} />
+            <span>{isCloudSyncing ? 'সিঙ্ক হচ্ছে...' : cloudSyncSuccess ? 'ক্লাউডে সেভড ✓' : 'ক্লাউড সিঙ্ক'}</span>
           </button>
 
           <button

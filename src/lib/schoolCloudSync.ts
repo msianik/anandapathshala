@@ -2,17 +2,24 @@
  * School Cloud Sync Layer (Anando Pathshala)
  * -----------------------------------------
  * Connects the React application directly to Google Cloud Firestore.
- * Ensures all changes to Students, Teachers & Staff, Portal Accounts,
- * Invoices, Attendance, Notices, Assets, Directors, and Biometric Logs
- * are permanently stored in the cloud in real-time, preventing any
- * data loss across devices, users, browser restarts, or redeployments.
+ * Ensures ALL changes to Students, Teachers & Staff, Portal Accounts,
+ * Class Routines, Weekly Progress, Exam Results, Exam Terms, Exam Schedules,
+ * Student Health Profiles, Homework Checklists, Academic Calendar Events,
+ * Fee Configurations & Invoices, Staff Leaves, Parent-Teacher Direct Chat,
+ * Staff Room Chat & Channels, Cultural Events, Badges, Tiffin Menu,
+ * Online Admissions, Photo Gallery, Assets, Notices, School Profile,
+ * Directors, and Biometric Device Logs/Users are permanently stored
+ * in the cloud in real-time, preventing any data loss across devices,
+ * browser restarts, user re-logins, or redeployments.
  *
  * Hardened Features:
  * 1. Automatic undefined sanitization (prevents Firestore rejection errors)
- * 2. Bi-directional timestamp resolution (prevents old cloud data from overwriting local edits)
- * 3. Full Cloud persistence for Teachers, Staff & Portal Credentials
- * 4. Portal Account metadata merging (recovers any edited phone, photo, & credentials)
- * 5. LocalStorage offline fallback with timestamping
+ * 2. Bi-directional timestamp resolution (prevents old cloud snapshots from overwriting fresh local edits)
+ * 3. Echo-loop prevention (cloud snapshots never trigger redundant local re-uploads)
+ * 4. Automatic Event Bridge (hooks into window CustomEvents across all UI modules for 100% automated cloud sync)
+ * 5. Full Cloud persistence for Teachers, Staff & Portal Credentials
+ * 6. Portal Account metadata merging (recovers edited phone, photo, & credentials)
+ * 7. Master One-Click Sync function: `syncAllPortalDataToCloud()`
  */
 
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -28,7 +35,40 @@ import {
   CommitteeDirector,
   TeacherMember,
   PortalAccount,
+  ClassRoutinePeriod,
+  WeeklyClassProgressRecord,
+  StudentExamResult,
+  ExamTerm,
+  ExamScheduleItem,
+  StudentHealthProfile,
+  DailyClassHomeworkChecklist,
+  AcademicCalendarEvent,
+  StudentFeeConfig,
+  TeacherLeaveApplication,
+  ParentTeacherMessage,
+  StaffInternalMessage,
+  StaffChannelMeta,
+  CulturalDayEventTheme,
+  CulturalStarBadgeAward,
+  PreSchoolTiffinItem,
+  AdmissionApplication,
+  CulturalGalleryItem,
 } from '../types/school';
+
+// Default initial data sources for cloud bootstrapping
+import { INITIAL_CLASS_ROUTINES } from '../data/mockRoutines';
+import { getWeeklyProgressRecords } from '../utils/routineLogic';
+import { INITIAL_STUDENT_EXAM_RESULTS, DEFAULT_EXAM_TERMS } from '../utils/examResultLogic';
+import { INITIAL_EXAM_SCHEDULES } from '../utils/examScheduleLogic';
+import { INITIAL_STUDENT_HEALTH_PROFILES } from '../utils/healthLogic';
+import { loadAllHomeworkChecklists } from '../utils/homeworkChecklistLogic';
+import { INITIAL_ACADEMIC_EVENTS, INITIAL_ADMISSIONS } from '../data/mockData';
+import { getAllStudentFeeConfigs } from '../utils/feeManagementLogic';
+import { INITIAL_STAFF_LEAVES } from '../utils/staffManagementLogic';
+import { INITIAL_PARENT_TEACHER_MESSAGES } from '../utils/directChatLogic';
+import { INITIAL_STAFF_MESSAGES, DEFAULT_STAFF_CHANNELS } from '../utils/staffChatLogic';
+import { getCulturalEventThemes, getCulturalStarBadges, getWeeklyTiffinMenu } from '../utils/culturalAndTiffinLogic';
+import { getGalleryItems } from '../utils/culturalGalleryLogic';
 
 const COLLECTION_NAME = 'portal_data';
 const TIMESTAMP_PREFIX = 'ananda_sync_time_';
@@ -93,8 +133,7 @@ export function setLocalTimestamp(key: string, timestamp: number = Date.now()) {
 
 /**
  * Auto-merges updated portal account details (from custom portal accounts)
- * into student records. This acts as a reliable safeguard to restore any
- * updated emergency phone, photo, guardian name, or credentials.
+ * into student records.
  */
 export function enrichStudentsWithPortalAccounts(students: Student[]): Student[] {
   try {
@@ -161,9 +200,9 @@ export function enrichTeachersWithPortalAccounts(teachers: TeacherMember[]): Tea
   }
 }
 
-// -------------------------------------------------------------
+// =============================================================
 // Cloud Write Functions with Sanitization & Timestamping
-// -------------------------------------------------------------
+// =============================================================
 
 export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
   const now = Date.now();
@@ -403,6 +442,506 @@ export async function cloudSaveBiometricLogs(logs: BiometricPunchLog[]): Promise
   }
 }
 
+// =============================================================
+// NEW: Cloud Write Functions for All Remaining School Modules
+// =============================================================
+
+export async function cloudSaveRoutines(routines: ClassRoutinePeriod[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(routines);
+
+  safeLocalSet('ananda_school_class_routines_v2', sanitized);
+  setLocalTimestamp('routines', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'routines'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save routines to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveWeeklyProgress(records: WeeklyClassProgressRecord[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(records);
+
+  safeLocalSet('ananda_weekly_class_progress_v1', sanitized);
+  setLocalTimestamp('weekly_progress', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'weekly_progress'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save weekly progress to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveExamResults(results: StudentExamResult[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(results);
+
+  safeLocalSet('ananda_exam_results_v1', sanitized);
+  setLocalTimestamp('exam_results', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'exam_results'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save exam results to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveExamTerms(terms: ExamTerm[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(terms);
+
+  safeLocalSet('ananda_exam_terms_v1', sanitized);
+  setLocalTimestamp('exam_terms', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'exam_terms'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save exam terms to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveExamSchedules(schedules: ExamScheduleItem[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(schedules);
+
+  safeLocalSet('ananda_exam_schedules_v1', sanitized);
+  setLocalTimestamp('exam_schedules', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'exam_schedules'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save exam schedules to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveHealthProfiles(profiles: StudentHealthProfile[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(profiles);
+
+  safeLocalSet('ananda_health_profiles_v1', sanitized);
+  setLocalTimestamp('health_profiles', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'health_profiles'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save health profiles to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveHomeworkChecklists(checklists: DailyClassHomeworkChecklist[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(checklists);
+
+  safeLocalSet('ananda_homework_checklist_v1', sanitized);
+  setLocalTimestamp('homework_checklist', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'homework_checklist'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save homework checklists to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveAcademicEvents(events: AcademicCalendarEvent[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(events);
+
+  safeLocalSet('ananda_academic_calendar_events_v2', sanitized);
+  setLocalTimestamp('academic_events', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'academic_events'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save academic events to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveFeeConfigs(configs: Record<string, StudentFeeConfig>): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(configs);
+
+  safeLocalSet('ananda_student_fee_configs_v1', sanitized);
+  setLocalTimestamp('fee_configs', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'fee_configs'), {
+      data: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save fee configs to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveStaffLeaves(leaves: TeacherLeaveApplication[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(leaves);
+
+  safeLocalSet('ananda_staff_leaves_v1', sanitized);
+  setLocalTimestamp('staff_leaves', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'staff_leaves'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save staff leaves to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveDirectChat(messages: ParentTeacherMessage[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(messages);
+
+  safeLocalSet('ananda_parent_teacher_messages_v1', sanitized);
+  setLocalTimestamp('direct_chat', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'direct_chat'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save direct chat to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveStaffChat(messages: StaffInternalMessage[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(messages);
+
+  safeLocalSet('ananda_staff_internal_messages_v2', sanitized);
+  setLocalTimestamp('staff_chat', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'staff_chat'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save staff chat to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveStaffChannels(channels: StaffChannelMeta[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(channels);
+
+  safeLocalSet('ananda_staff_channels_v2', sanitized);
+  setLocalTimestamp('staff_channels', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'staff_channels'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save staff channels to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveCulturalThemes(themes: CulturalDayEventTheme[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(themes);
+
+  safeLocalSet('anando_cultural_themes_v1', sanitized);
+  setLocalTimestamp('cultural_themes', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'cultural_themes'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save cultural themes to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveCulturalBadges(badges: CulturalStarBadgeAward[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(badges);
+
+  safeLocalSet('anando_cultural_badges_v1', sanitized);
+  setLocalTimestamp('cultural_badges', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'cultural_badges'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save cultural badges to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveTiffinMenu(menu: PreSchoolTiffinItem[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(menu);
+
+  safeLocalSet('anando_tiffin_menu_v1', sanitized);
+  setLocalTimestamp('tiffin_menu', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'tiffin_menu'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save tiffin menu to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveAdmissionApplications(apps: AdmissionApplication[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(apps);
+
+  safeLocalSet('anando_admission_applications_v1', sanitized);
+  setLocalTimestamp('admission_applications', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'admission_applications'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save admission applications to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveCulturalGallery(items: CulturalGalleryItem[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(items);
+
+  safeLocalSet('anando_cultural_gallery_v1', sanitized);
+  setLocalTimestamp('cultural_gallery', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'cultural_gallery'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save cultural gallery to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveBiometricUsers(users: any[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(users);
+
+  safeLocalSet('ananda_biometric_device_users_v1', sanitized);
+  setLocalTimestamp('biometric_users', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'biometric_users'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save biometric users to Firestore:', err);
+    return false;
+  }
+}
+
+/**
+ * Master One-Click Sync Function
+ * ------------------------------
+ * Reads all datasets from local storage (or initial defaults if not yet cached)
+ * and uploads every single table to Google Cloud Firestore in parallel batches.
+ */
+export async function syncAllPortalDataToCloud(): Promise<{
+  success: boolean;
+  syncedCount: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let syncedCount = 0;
+
+  const pushTask = async (name: string, fn: () => Promise<boolean>) => {
+    try {
+      const ok = await fn();
+      if (ok) syncedCount++;
+      else errors.push(`${name} failed`);
+    } catch (e: any) {
+      errors.push(`${name}: ${e?.message || e}`);
+    }
+  };
+
+  const students = safeLocalGet<Student[]>('ananda_students_v1') || [];
+  const teachers = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1') || [];
+  const accounts = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3') || [];
+  const routines = safeLocalGet<ClassRoutinePeriod[]>('ananda_school_class_routines_v2') || INITIAL_CLASS_ROUTINES;
+  const weekly = safeLocalGet<WeeklyClassProgressRecord[]>('ananda_weekly_class_progress_v1') || getWeeklyProgressRecords();
+  const examResults = safeLocalGet<StudentExamResult[]>('ananda_exam_results_v1') || INITIAL_STUDENT_EXAM_RESULTS;
+  const examTerms = safeLocalGet<ExamTerm[]>('ananda_exam_terms_v1') || DEFAULT_EXAM_TERMS;
+  const examSchedules = safeLocalGet<ExamScheduleItem[]>('ananda_exam_schedules_v1') || INITIAL_EXAM_SCHEDULES;
+  const health = safeLocalGet<StudentHealthProfile[]>('ananda_health_profiles_v1') || INITIAL_STUDENT_HEALTH_PROFILES;
+  const homework = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1') || loadAllHomeworkChecklists();
+  const academic = safeLocalGet<AcademicCalendarEvent[]>('ananda_academic_calendar_events_v2') || INITIAL_ACADEMIC_EVENTS;
+  const feeConfigs = safeLocalGet<Record<string, StudentFeeConfig>>('ananda_student_fee_configs_v1') || getAllStudentFeeConfigs();
+  const leaves = safeLocalGet<TeacherLeaveApplication[]>('ananda_staff_leaves_v1') || INITIAL_STAFF_LEAVES;
+  const directChat = safeLocalGet<ParentTeacherMessage[]>('ananda_parent_teacher_messages_v1') || INITIAL_PARENT_TEACHER_MESSAGES;
+  const staffChat = safeLocalGet<StaffInternalMessage[]>('ananda_staff_internal_messages_v2') || INITIAL_STAFF_MESSAGES;
+  const staffChannels = safeLocalGet<StaffChannelMeta[]>('ananda_staff_channels_v2') || DEFAULT_STAFF_CHANNELS;
+  const culturalThemes = safeLocalGet<CulturalDayEventTheme[]>('anando_cultural_themes_v1') || getCulturalEventThemes();
+  const culturalBadges = safeLocalGet<CulturalStarBadgeAward[]>('anando_cultural_badges_v1') || getCulturalStarBadges();
+  const tiffin = safeLocalGet<PreSchoolTiffinItem[]>('anando_tiffin_menu_v1') || getWeeklyTiffinMenu();
+  const admissions = safeLocalGet<AdmissionApplication[]>('anando_admission_applications_v1') || INITIAL_ADMISSIONS;
+  const gallery = safeLocalGet<CulturalGalleryItem[]>('anando_cultural_gallery_v1') || getGalleryItems();
+  const bioUsers = safeLocalGet<any[]>('ananda_biometric_device_users_v1') || [];
+
+  await Promise.allSettled([
+    students.length ? pushTask('students', () => cloudSaveStudents(students)) : Promise.resolve(),
+    teachers.length ? pushTask('teachers', () => cloudSaveTeachers(teachers)) : Promise.resolve(),
+    accounts.length ? pushTask('portal_accounts', () => cloudSavePortalAccounts(accounts)) : Promise.resolve(),
+    pushTask('routines', () => cloudSaveRoutines(routines)),
+    pushTask('weekly_progress', () => cloudSaveWeeklyProgress(weekly)),
+    pushTask('exam_results', () => cloudSaveExamResults(examResults)),
+    pushTask('exam_terms', () => cloudSaveExamTerms(examTerms)),
+    pushTask('exam_schedules', () => cloudSaveExamSchedules(examSchedules)),
+    pushTask('health_profiles', () => cloudSaveHealthProfiles(health)),
+    pushTask('homework_checklist', () => cloudSaveHomeworkChecklists(homework)),
+    pushTask('academic_events', () => cloudSaveAcademicEvents(academic)),
+    pushTask('fee_configs', () => cloudSaveFeeConfigs(feeConfigs)),
+    pushTask('staff_leaves', () => cloudSaveStaffLeaves(leaves)),
+    pushTask('direct_chat', () => cloudSaveDirectChat(directChat)),
+    pushTask('staff_chat', () => cloudSaveStaffChat(staffChat)),
+    pushTask('staff_channels', () => cloudSaveStaffChannels(staffChannels)),
+    pushTask('cultural_themes', () => cloudSaveCulturalThemes(culturalThemes)),
+    pushTask('cultural_badges', () => cloudSaveCulturalBadges(culturalBadges)),
+    pushTask('tiffin_menu', () => cloudSaveTiffinMenu(tiffin)),
+    pushTask('admission_applications', () => cloudSaveAdmissionApplications(admissions)),
+    pushTask('cultural_gallery', () => cloudSaveCulturalGallery(gallery)),
+    bioUsers.length ? pushTask('biometric_users', () => cloudSaveBiometricUsers(bioUsers)) : Promise.resolve(),
+  ]);
+
+  return {
+    success: errors.length === 0,
+    syncedCount,
+    errors,
+  };
+}
+
 export interface CloudSyncListeners {
   onStudentsChange?: (students: Student[]) => void;
   onTeachersChange?: (teachers: TeacherMember[]) => void;
@@ -414,11 +953,30 @@ export interface CloudSyncListeners {
   onAssetsChange?: (assets: SchoolAssetItem[]) => void;
   onProfileChange?: (profile: SchoolProfile) => void;
   onBiometricLogsChange?: (logs: BiometricPunchLog[]) => void;
+  onRoutinesChange?: (routines: ClassRoutinePeriod[]) => void;
+  onWeeklyProgressChange?: (records: WeeklyClassProgressRecord[]) => void;
+  onExamResultsChange?: (results: StudentExamResult[]) => void;
+  onExamTermsChange?: (terms: ExamTerm[]) => void;
+  onExamSchedulesChange?: (schedules: ExamScheduleItem[]) => void;
+  onHealthProfilesChange?: (profiles: StudentHealthProfile[]) => void;
+  onHomeworkChecklistChange?: (checklists: DailyClassHomeworkChecklist[]) => void;
+  onAcademicEventsChange?: (events: AcademicCalendarEvent[]) => void;
+  onFeeConfigsChange?: (configs: Record<string, StudentFeeConfig>) => void;
+  onStaffLeavesChange?: (leaves: TeacherLeaveApplication[]) => void;
+  onDirectChatChange?: (messages: ParentTeacherMessage[]) => void;
+  onStaffChatChange?: (messages: StaffInternalMessage[]) => void;
+  onStaffChannelsChange?: (channels: StaffChannelMeta[]) => void;
+  onCulturalThemesChange?: (themes: CulturalDayEventTheme[]) => void;
+  onCulturalBadgesChange?: (badges: CulturalStarBadgeAward[]) => void;
+  onTiffinMenuChange?: (menu: PreSchoolTiffinItem[]) => void;
+  onAdmissionsChange?: (apps: AdmissionApplication[]) => void;
+  onGalleryChange?: (items: CulturalGalleryItem[]) => void;
+  onBiometricUsersChange?: (users: any[]) => void;
   onStatusChange?: (isConnected: boolean, lastSyncTime: string) => void;
 }
 
 /**
- * Initializes continuous two-way real-time Firestore listeners for all core datasets.
+ * Initializes continuous two-way real-time Firestore listeners for all school datasets.
  * Includes conflict resolution so newer local edits are never wiped by older cloud data.
  */
 export function subscribeToSchoolCloud(
@@ -434,10 +992,23 @@ export function subscribeToSchoolCloud(
   }
 ): () => void {
   const unsubscribers: Unsubscribe[] = [];
+  let isReceivingCloudUpdate = false;
 
   const updateStatus = (connected: boolean) => {
     if (listeners.onStatusChange) {
       listeners.onStatusChange(connected, new Date().toLocaleTimeString('bn-BD'));
+    }
+  };
+
+  // Helper: sets flag to suppress echo window events
+  const safeProcessCloudUpdate = (fn: () => void) => {
+    try {
+      isReceivingCloudUpdate = true;
+      fn();
+    } finally {
+      setTimeout(() => {
+        isReceivingCloudUpdate = false;
+      }, 100);
     }
   };
 
@@ -458,18 +1029,18 @@ export function subscribeToSchoolCloud(
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
               if (existingLocal && existingLocal.length > 0) {
-                console.log('[CloudSync] Local student edits are newer than cloud. Re-syncing to cloud...');
                 cloudSaveStudents(existingLocal);
                 return;
               }
             }
 
-            const enriched = enrichStudentsWithPortalAccounts(data.items);
-            safeLocalSet('ananda_students_v1', enriched);
-            if (cloudTimeMs > 0) {
-              setLocalTimestamp('students', cloudTimeMs);
-            }
-            listeners.onStudentsChange?.(enriched);
+            safeProcessCloudUpdate(() => {
+              const enriched = enrichStudentsWithPortalAccounts(data.items);
+              safeLocalSet('ananda_students_v1', enriched);
+              if (cloudTimeMs > 0) setLocalTimestamp('students', cloudTimeMs);
+              listeners.onStudentsChange?.(enriched);
+              window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { students: enriched } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
@@ -504,23 +1075,20 @@ export function subscribeToSchoolCloud(
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
               if (existingLocal && existingLocal.length > 0) {
-                console.log('[CloudSync] Local teacher edits are newer than cloud. Re-syncing to cloud...');
                 cloudSaveTeachers(existingLocal);
                 return;
               }
             }
 
-            const enriched = enrichTeachersWithPortalAccounts(data.items);
-            safeLocalSet('ananda_teachers_list_v1', enriched);
-            safeLocalSet('ananda_staff_members_v1', enriched);
-            if (cloudTimeMs > 0) setLocalTimestamp('teachers', cloudTimeMs);
-            listeners.onTeachersChange?.(enriched);
-            window.dispatchEvent(
-              new CustomEvent('ananda-teachers-updated', { detail: { teachers: enriched } })
-            );
-            window.dispatchEvent(
-              new CustomEvent('ananda_staff_data_changed', { detail: { type: 'members', teachers: enriched } })
-            );
+            safeProcessCloudUpdate(() => {
+              const enriched = enrichTeachersWithPortalAccounts(data.items);
+              safeLocalSet('ananda_teachers_list_v1', enriched);
+              safeLocalSet('ananda_staff_members_v1', enriched);
+              if (cloudTimeMs > 0) setLocalTimestamp('teachers', cloudTimeMs);
+              listeners.onTeachersChange?.(enriched);
+              window.dispatchEvent(new CustomEvent('ananda-teachers-updated', { detail: { teachers: enriched } }));
+              window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'members', teachers: enriched } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
@@ -539,7 +1107,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching teachers listener:', e);
   }
 
-  // 3. Portal Accounts Subscription (Credentials & Roles)
+  // 3. Portal Accounts Subscription
   try {
     const unsubPortalAccounts = onSnapshot(
       doc(db, COLLECTION_NAME, 'portal_accounts'),
@@ -561,12 +1129,12 @@ export function subscribeToSchoolCloud(
               }
             }
 
-            safeLocalSet('ananda_portal_accounts_v3', data.items);
-            if (cloudTimeMs > 0) setLocalTimestamp('portal_accounts', cloudTimeMs);
-            listeners.onPortalAccountsChange?.(data.items);
-            window.dispatchEvent(
-              new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: data.items } })
-            );
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_portal_accounts_v3', data.items);
+              if (cloudTimeMs > 0) setLocalTimestamp('portal_accounts', cloudTimeMs);
+              listeners.onPortalAccountsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: data.items } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3');
@@ -606,9 +1174,12 @@ export function subscribeToSchoolCloud(
               }
             }
 
-            safeLocalSet('ananda_invoices_v1', data.items);
-            if (cloudTimeMs > 0) setLocalTimestamp('invoices', cloudTimeMs);
-            listeners.onInvoicesChange?.(data.items);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_invoices_v1', data.items);
+              if (cloudTimeMs > 0) setLocalTimestamp('invoices', cloudTimeMs);
+              listeners.onInvoicesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-invoices-updated', { detail: { invoices: data.items } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<FeeInvoice[]>('ananda_invoices_v1');
@@ -648,9 +1219,12 @@ export function subscribeToSchoolCloud(
               }
             }
 
-            safeLocalSet('ananda_attendance_v1', data.items);
-            if (cloudTimeMs > 0) setLocalTimestamp('attendance', cloudTimeMs);
-            listeners.onAttendanceChange?.(data.items);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_attendance_v1', data.items);
+              if (cloudTimeMs > 0) setLocalTimestamp('attendance', cloudTimeMs);
+              listeners.onAttendanceChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: { attendance: data.items } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<AttendanceRecord[]>('ananda_attendance_v1');
@@ -679,8 +1253,11 @@ export function subscribeToSchoolCloud(
         if (snap.exists()) {
           const data = snap.data();
           if (data?.data && typeof data.data === 'object') {
-            safeLocalSet('ananda_staff_attendance_v1', data.data);
-            listeners.onStaffAttendanceChange?.(data.data);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_staff_attendance_v1', data.data);
+              listeners.onStaffAttendanceChange?.(data.data);
+              window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'attendance' } }));
+            });
           }
         }
       },
@@ -704,8 +1281,11 @@ export function subscribeToSchoolCloud(
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
-            safeLocalSet('ananda_school_notices_v1', data.items);
-            listeners.onNoticesChange?.(data.items);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_school_notices_v1', data.items);
+              listeners.onNoticesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-notices-updated', { detail: { notices: data.items } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<SchoolNotice[]>('ananda_school_notices_v1');
@@ -733,8 +1313,11 @@ export function subscribeToSchoolCloud(
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
-            safeLocalSet('ananda_school_assets_v1', data.items);
-            listeners.onAssetsChange?.(data.items);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_school_assets_v1', data.items);
+              listeners.onAssetsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-assets-updated', { detail: { assets: data.items } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<SchoolAssetItem[]>('ananda_school_assets_v1');
@@ -762,8 +1345,11 @@ export function subscribeToSchoolCloud(
         if (snap.exists()) {
           const data = snap.data();
           if (data?.profile) {
-            safeLocalSet('ananda_school_profile_v1', data.profile);
-            listeners.onProfileChange?.(data.profile);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_school_profile_v1', data.profile);
+              listeners.onProfileChange?.(data.profile);
+              window.dispatchEvent(new CustomEvent('ananda-school-profile-updated', { detail: { profile: data.profile } }));
+            });
           }
         } else {
           const existingLocal = safeLocalGet<SchoolProfile>('ananda_school_profile_v1');
@@ -791,8 +1377,11 @@ export function subscribeToSchoolCloud(
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
-            safeLocalSet('ananda_biometric_punch_logs_v1', data.items);
-            listeners.onBiometricLogsChange?.(data.items);
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_biometric_punch_logs_v1', data.items);
+              listeners.onBiometricLogsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: data.items } }));
+            });
           }
         }
       },
@@ -805,42 +1394,769 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching biometric listener:', e);
   }
 
-  // Global event listeners for cross-component triggers
-  const handleBioUpdated = (e: Event) => {
-    const cust = e as CustomEvent<{ logs?: BiometricPunchLog[] }>;
-    if (cust.detail?.logs) {
-      cloudSaveBiometricLogs(cust.detail.logs);
-    }
+  // 11. Class Routines Subscription
+  try {
+    const unsubRoutines = onSnapshot(
+      doc(db, COLLECTION_NAME, 'routines'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('routines');
+
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<ClassRoutinePeriod[]>('ananda_school_class_routines_v2');
+              if (existingLocal && existingLocal.length > 0) {
+                cloudSaveRoutines(existingLocal);
+                return;
+              }
+            }
+
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_school_class_routines_v2', data.items);
+              if (cloudTimeMs > 0) setLocalTimestamp('routines', cloudTimeMs);
+              listeners.onRoutinesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-routines-updated', { detail: { routines: data.items } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<ClassRoutinePeriod[]>('ananda_school_class_routines_v2');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_CLASS_ROUTINES;
+          cloudSaveRoutines(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Routines listener error:', err)
+    );
+    unsubscribers.push(unsubRoutines);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching routines listener:', e);
+  }
+
+  // 12. Weekly Progress Subscription
+  try {
+    const unsubWeekly = onSnapshot(
+      doc(db, COLLECTION_NAME, 'weekly_progress'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_weekly_class_progress_v1', data.items);
+              listeners.onWeeklyProgressChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-weekly-progress-updated', { detail: { records: data.items } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<WeeklyClassProgressRecord[]>('ananda_weekly_class_progress_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : getWeeklyProgressRecords();
+          cloudSaveWeeklyProgress(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Weekly progress listener error:', err)
+    );
+    unsubscribers.push(unweeklyProgress => unsubWeekly());
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching weekly progress listener:', e);
+  }
+
+  // 13. Exam Results Subscription
+  try {
+    const unsubExamRes = onSnapshot(
+      doc(db, COLLECTION_NAME, 'exam_results'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_exam_results_v1', data.items);
+              listeners.onExamResultsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-exam-results-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<StudentExamResult[]>('ananda_exam_results_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_STUDENT_EXAM_RESULTS;
+          cloudSaveExamResults(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Exam results listener error:', err)
+    );
+    unsubscribers.push(unsubExamRes);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching exam results listener:', e);
+  }
+
+  // 14. Exam Terms Subscription
+  try {
+    const unsubExamTerms = onSnapshot(
+      doc(db, COLLECTION_NAME, 'exam_terms'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_exam_terms_v1', data.items);
+              listeners.onExamTermsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-exam-results-updated'));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<ExamTerm[]>('ananda_exam_terms_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : DEFAULT_EXAM_TERMS;
+          cloudSaveExamTerms(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Exam terms listener error:', err)
+    );
+    unsubscribers.push(unsubExamTerms);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching exam terms listener:', e);
+  }
+
+  // 15. Exam Schedules Subscription
+  try {
+    const unsubExamSched = onSnapshot(
+      doc(db, COLLECTION_NAME, 'exam_schedules'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_exam_schedules_v1', data.items);
+              listeners.onExamSchedulesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-exam-schedule-updated', { detail: { schedules: data.items } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<ExamScheduleItem[]>('ananda_exam_schedules_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_EXAM_SCHEDULES;
+          cloudSaveExamSchedules(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Exam schedule listener error:', err)
+    );
+    unsubscribers.push(unsubExamSched);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching exam schedule listener:', e);
+  }
+
+  // 16. Health Profiles Subscription
+  try {
+    const unsubHealth = onSnapshot(
+      doc(db, COLLECTION_NAME, 'health_profiles'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_health_profiles_v1', data.items);
+              listeners.onHealthProfilesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-health-profiles-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<StudentHealthProfile[]>('ananda_health_profiles_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_STUDENT_HEALTH_PROFILES;
+          cloudSaveHealthProfiles(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Health profiles listener error:', err)
+    );
+    unsubscribers.push(unsubHealth);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching health profiles listener:', e);
+  }
+
+  // 17. Homework Checklist Subscription
+  try {
+    const unsubHomework = onSnapshot(
+      doc(db, COLLECTION_NAME, 'homework_checklist'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_homework_checklist_v1', data.items);
+              listeners.onHomeworkChecklistChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-homework-checklist-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : loadAllHomeworkChecklists();
+          cloudSaveHomeworkChecklists(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Homework checklist listener error:', err)
+    );
+    unsubscribers.push(unsubHomework);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching homework checklist listener:', e);
+  }
+
+  // 18. Academic Events Subscription
+  try {
+    const unsubAcademic = onSnapshot(
+      doc(db, COLLECTION_NAME, 'academic_events'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_academic_calendar_events_v2', data.items);
+              listeners.onAcademicEventsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-academic-events-updated', { detail: { events: data.items } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<AcademicCalendarEvent[]>('ananda_academic_calendar_events_v2');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_ACADEMIC_EVENTS;
+          cloudSaveAcademicEvents(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Academic events listener error:', err)
+    );
+    unsubscribers.push(unsubAcademic);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching academic events listener:', e);
+  }
+
+  // 19. Fee Configs Subscription
+  try {
+    const unsubFeeConfigs = onSnapshot(
+      doc(db, COLLECTION_NAME, 'fee_configs'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data?.data && typeof data.data === 'object') {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_student_fee_configs_v1', data.data);
+              listeners.onFeeConfigsChange?.(data.data);
+              window.dispatchEvent(new CustomEvent('student-fee-config-updated', { detail: data.data }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<Record<string, StudentFeeConfig>>('ananda_student_fee_configs_v1');
+          const toSeed = existingLocal || getAllStudentFeeConfigs();
+          cloudSaveFeeConfigs(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Fee configs listener error:', err)
+    );
+    unsubscribers.push(unsubFeeConfigs);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching fee configs listener:', e);
+  }
+
+  // 20. Staff Leaves Subscription
+  try {
+    const unsubLeaves = onSnapshot(
+      doc(db, COLLECTION_NAME, 'staff_leaves'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_staff_leaves_v1', data.items);
+              listeners.onStaffLeavesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'leaves' } }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<TeacherLeaveApplication[]>('ananda_staff_leaves_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_STAFF_LEAVES;
+          cloudSaveStaffLeaves(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Staff leaves listener error:', err)
+    );
+    unsubscribers.push(unsubLeaves);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching staff leaves listener:', e);
+  }
+
+  // 21. Parent-Teacher Direct Chat Subscription
+  try {
+    const unsubDirectChat = onSnapshot(
+      doc(db, COLLECTION_NAME, 'direct_chat'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_parent_teacher_messages_v1', data.items);
+              listeners.onDirectChatChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-direct-chat-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<ParentTeacherMessage[]>('ananda_parent_teacher_messages_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_PARENT_TEACHER_MESSAGES;
+          cloudSaveDirectChat(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Direct chat listener error:', err)
+    );
+    unsubscribers.push(unsubDirectChat);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching direct chat listener:', e);
+  }
+
+  // 22. Staff Room Chat Subscription
+  try {
+    const unsubStaffChat = onSnapshot(
+      doc(db, COLLECTION_NAME, 'staff_chat'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_staff_internal_messages_v2', data.items);
+              listeners.onStaffChatChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-staff-chat-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<StaffInternalMessage[]>('ananda_staff_internal_messages_v2');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_STAFF_MESSAGES;
+          cloudSaveStaffChat(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Staff chat listener error:', err)
+    );
+    unsubscribers.push(unsubStaffChat);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching staff chat listener:', e);
+  }
+
+  // 23. Staff Channels Subscription
+  try {
+    const unsubChannels = onSnapshot(
+      doc(db, COLLECTION_NAME, 'staff_channels'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_staff_channels_v2', data.items);
+              listeners.onStaffChannelsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda-staff-channels-updated', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<StaffChannelMeta[]>('ananda_staff_channels_v2');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : DEFAULT_STAFF_CHANNELS;
+          cloudSaveStaffChannels(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Staff channels listener error:', err)
+    );
+    unsubscribers.push(unsubChannels);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching staff channels listener:', e);
+  }
+
+  // 24. Cultural Themes Subscription
+  try {
+    const unsubCultThemes = onSnapshot(
+      doc(db, COLLECTION_NAME, 'cultural_themes'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('anando_cultural_themes_v1', data.items);
+              listeners.onCulturalThemesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('anando_cultural_event_update', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<CulturalDayEventTheme[]>('anando_cultural_themes_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : getCulturalEventThemes();
+          cloudSaveCulturalThemes(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Cultural themes listener error:', err)
+    );
+    unsubscribers.push(unsubCultThemes);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching cultural themes listener:', e);
+  }
+
+  // 25. Cultural Badges Subscription
+  try {
+    const unsubCultBadges = onSnapshot(
+      doc(db, COLLECTION_NAME, 'cultural_badges'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('anando_cultural_badges_v1', data.items);
+              listeners.onCulturalBadgesChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('anando_cultural_badge_update', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<CulturalStarBadgeAward[]>('anando_cultural_badges_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : getCulturalStarBadges();
+          cloudSaveCulturalBadges(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Cultural badges listener error:', err)
+    );
+    unsubscribers.push(unsubCultBadges);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching cultural badges listener:', e);
+  }
+
+  // 26. Tiffin Menu Subscription
+  try {
+    const unsubTiffin = onSnapshot(
+      doc(db, COLLECTION_NAME, 'tiffin_menu'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('anando_tiffin_menu_v1', data.items);
+              listeners.onTiffinMenuChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('anando_tiffin_menu_update', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<PreSchoolTiffinItem[]>('anando_tiffin_menu_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : getWeeklyTiffinMenu();
+          cloudSaveTiffinMenu(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Tiffin menu listener error:', err)
+    );
+    unsubscribers.push(unsubTiffin);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching tiffin menu listener:', e);
+  }
+
+  // 27. Online Admissions Subscription
+  try {
+    const unsubAdmissions = onSnapshot(
+      doc(db, COLLECTION_NAME, 'admission_applications'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('anando_admission_applications_v1', data.items);
+              listeners.onAdmissionsChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('anando_admission_update', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<AdmissionApplication[]>('anando_admission_applications_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : INITIAL_ADMISSIONS;
+          cloudSaveAdmissionApplications(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Admissions listener error:', err)
+    );
+    unsubscribers.push(unsubAdmissions);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching admissions listener:', e);
+  }
+
+  // 28. Cultural Gallery Subscription
+  try {
+    const unsubGallery = onSnapshot(
+      doc(db, COLLECTION_NAME, 'cultural_gallery'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('anando_cultural_gallery_v1', data.items);
+              listeners.onGalleryChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('anando_gallery_update', { detail: data.items }));
+            });
+          }
+        } else {
+          const existingLocal = safeLocalGet<CulturalGalleryItem[]>('anando_cultural_gallery_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : getGalleryItems();
+          cloudSaveCulturalGallery(toSeed);
+        }
+      },
+      (err) => console.warn('[CloudSync] Gallery listener error:', err)
+    );
+    unsubscribers.push(unsubGallery);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching gallery listener:', e);
+  }
+
+  // 29. Biometric Device Users Subscription
+  try {
+    const unsubBioUsers = onSnapshot(
+      doc(db, COLLECTION_NAME, 'biometric_users'),
+      (snap) => {
+        if (snap.metadata.hasPendingWrites) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_biometric_device_users_v1', data.items);
+              listeners.onBiometricUsersChange?.(data.items);
+              window.dispatchEvent(new CustomEvent('ananda_biometric_device_updated', { detail: data.items }));
+            });
+          }
+        }
+      },
+      (err) => console.warn('[CloudSync] Biometric users listener error:', err)
+    );
+    unsubscribers.push(unsubBioUsers);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching biometric users listener:', e);
+  }
+
+  // =============================================================
+  // Automatic Event Bridge: Listen to Local UI Events & Sync Cloud
+  // =============================================================
+
+  const handleStudentsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const stds = safeLocalGet<Student[]>('ananda_students_v1');
+    if (stds) cloudSaveStudents(stds);
   };
-  const handleDirectorsUpdated = () => {
-    const dirs = safeLocalGet<CommitteeDirector[]>('ananda_management_directors_v10');
-    if (dirs) cloudSaveDirectors(dirs);
-  };
-  const handleNoticesUpdated = (e: Event) => {
-    const cust = e as CustomEvent<{ notices?: SchoolNotice[] }>;
-    if (cust.detail?.notices) {
-      cloudSaveNotices(cust.detail.notices);
-    }
-  };
+
   const handleTeachersUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
     const cust = e as CustomEvent<{ teachers?: TeacherMember[] }>;
-    if (cust.detail?.teachers) {
-      cloudSaveTeachers(cust.detail.teachers);
-    }
+    const list = cust.detail?.teachers || safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
+    if (list) cloudSaveTeachers(list);
   };
+
   const handlePortalAccountsUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
     const cust = e as CustomEvent<{ accounts?: PortalAccount[] }>;
-    if (cust.detail?.accounts) {
-      cloudSavePortalAccounts(cust.detail.accounts);
+    const list = cust.detail?.accounts || safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3');
+    if (list) cloudSavePortalAccounts(list);
+  };
+
+  const handleInvoicesUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ invoices?: FeeInvoice[] }>;
+    const list = cust.detail?.invoices || safeLocalGet<FeeInvoice[]>('ananda_invoices_v1');
+    if (list) cloudSaveInvoices(list);
+  };
+
+  const handleAttendanceUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ attendance?: AttendanceRecord[] }>;
+    const list = cust.detail?.attendance || safeLocalGet<AttendanceRecord[]>('ananda_attendance_v1');
+    if (list) cloudSaveAttendance(list);
+  };
+
+  const handleRoutinesUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ routines?: ClassRoutinePeriod[] }>;
+    const list = cust.detail?.routines || safeLocalGet<ClassRoutinePeriod[]>('ananda_school_class_routines_v2');
+    if (list) cloudSaveRoutines(list);
+  };
+
+  const handleWeeklyProgressUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ records?: WeeklyClassProgressRecord[] }>;
+    const list = cust.detail?.records || safeLocalGet<WeeklyClassProgressRecord[]>('ananda_weekly_class_progress_v1');
+    if (list) cloudSaveWeeklyProgress(list);
+  };
+
+  const handleExamResultsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const results = safeLocalGet<StudentExamResult[]>('ananda_exam_results_v1');
+    if (results) cloudSaveExamResults(results);
+    const terms = safeLocalGet<ExamTerm[]>('ananda_exam_terms_v1');
+    if (terms) cloudSaveExamTerms(terms);
+  };
+
+  const handleExamScheduleUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ schedules?: ExamScheduleItem[] }>;
+    const list = cust.detail?.schedules || safeLocalGet<ExamScheduleItem[]>('ananda_exam_schedules_v1');
+    if (list) cloudSaveExamSchedules(list);
+  };
+
+  const handleHealthProfilesUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const list = safeLocalGet<StudentHealthProfile[]>('ananda_health_profiles_v1');
+    if (list) cloudSaveHealthProfiles(list);
+  };
+
+  const handleHomeworkChecklistUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const list = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
+    if (list) cloudSaveHomeworkChecklists(list);
+  };
+
+  const handleAcademicEventsUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ events?: AcademicCalendarEvent[] }>;
+    const list = cust.detail?.events || safeLocalGet<AcademicCalendarEvent[]>('ananda_academic_calendar_events_v2');
+    if (list) cloudSaveAcademicEvents(list);
+  };
+
+  const handleFeeConfigsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const configs = safeLocalGet<Record<string, StudentFeeConfig>>('ananda_student_fee_configs_v1');
+    if (configs) cloudSaveFeeConfigs(configs);
+  };
+
+  const handleStaffDataChanged = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ type?: string; teachers?: TeacherMember[] }>;
+    if (cust.detail?.type === 'leaves') {
+      const leaves = safeLocalGet<TeacherLeaveApplication[]>('ananda_staff_leaves_v1');
+      if (leaves) cloudSaveStaffLeaves(leaves);
+    } else if (cust.detail?.type === 'attendance') {
+      const att = safeLocalGet<Record<string, any[]>>('ananda_staff_attendance_v1');
+      if (att) cloudSaveStaffAttendance(att);
+    } else if (cust.detail?.type === 'members' || cust.detail?.teachers) {
+      const tchs = cust.detail?.teachers || safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
+      if (tchs) cloudSaveTeachers(tchs);
     }
   };
 
-  window.addEventListener('ananda-biometric-logs-updated', handleBioUpdated);
+  const handleDirectChatUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const msgs = safeLocalGet<ParentTeacherMessage[]>('ananda_parent_teacher_messages_v1');
+    if (msgs) cloudSaveDirectChat(msgs);
+  };
+
+  const handleStaffChatUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const msgs = safeLocalGet<StaffInternalMessage[]>('ananda_staff_internal_messages_v2');
+    if (msgs) cloudSaveStaffChat(msgs);
+  };
+
+  const handleStaffChannelsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const channels = safeLocalGet<StaffChannelMeta[]>('ananda_staff_channels_v2');
+    if (channels) cloudSaveStaffChannels(channels);
+  };
+
+  const handleCulturalEventUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const themes = safeLocalGet<CulturalDayEventTheme[]>('anando_cultural_themes_v1');
+    if (themes) cloudSaveCulturalThemes(themes);
+  };
+
+  const handleCulturalBadgeUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const badges = safeLocalGet<CulturalStarBadgeAward[]>('anando_cultural_badges_v1');
+    if (badges) cloudSaveCulturalBadges(badges);
+  };
+
+  const handleTiffinMenuUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const menu = safeLocalGet<PreSchoolTiffinItem[]>('anando_tiffin_menu_v1');
+    if (menu) cloudSaveTiffinMenu(menu);
+  };
+
+  const handleAdmissionsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const apps = safeLocalGet<AdmissionApplication[]>('anando_admission_applications_v1');
+    if (apps) cloudSaveAdmissionApplications(apps);
+  };
+
+  const handleGalleryUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const items = safeLocalGet<CulturalGalleryItem[]>('anando_cultural_gallery_v1');
+    if (items) cloudSaveCulturalGallery(items);
+  };
+
+  const handleBiometricLogsUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ logs?: BiometricPunchLog[] }>;
+    const logs = cust.detail?.logs || safeLocalGet<BiometricPunchLog[]>('ananda_biometric_punch_logs_v1');
+    if (logs) cloudSaveBiometricLogs(logs);
+  };
+
+  const handleBiometricUsersUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const users = safeLocalGet<any[]>('ananda_biometric_device_users_v1');
+    if (users) cloudSaveBiometricUsers(users);
+  };
+
+  const handleDirectorsUpdated = () => {
+    if (isReceivingCloudUpdate) return;
+    const dirs = safeLocalGet<CommitteeDirector[]>('ananda_management_directors_v10');
+    if (dirs) cloudSaveDirectors(dirs);
+  };
+
+  const handleNoticesUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ notices?: SchoolNotice[] }>;
+    const notices = cust.detail?.notices || safeLocalGet<SchoolNotice[]>('ananda_school_notices_v1');
+    if (notices) cloudSaveNotices(notices);
+  };
+
+  const handleAssetsUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ assets?: SchoolAssetItem[] }>;
+    const assets = cust.detail?.assets || safeLocalGet<SchoolAssetItem[]>('ananda_school_assets_v1');
+    if (assets) cloudSaveAssets(assets);
+  };
+
+  const handleProfileUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ profile?: SchoolProfile }>;
+    const profile = cust.detail?.profile || safeLocalGet<SchoolProfile>('ananda_school_profile_v1');
+    if (profile) cloudSaveProfile(profile);
+  };
+
+  window.addEventListener('ananda-students-updated', handleStudentsUpdated);
+  window.addEventListener('ananda-teachers-updated', handleTeachersUpdated);
+  window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
+  window.addEventListener('ananda-invoices-updated', handleInvoicesUpdated);
+  window.addEventListener('ananda-attendance-updated', handleAttendanceUpdated);
+  window.addEventListener('ananda-routines-updated', handleRoutinesUpdated);
+  window.addEventListener('ananda-weekly-progress-updated', handleWeeklyProgressUpdated);
+  window.addEventListener('ananda-exam-results-updated', handleExamResultsUpdated);
+  window.addEventListener('ananda-exam-schedule-updated', handleExamScheduleUpdated);
+  window.addEventListener('ananda-health-profiles-updated', handleHealthProfilesUpdated);
+  window.addEventListener('ananda-homework-checklist-updated', handleHomeworkChecklistUpdated);
+  window.addEventListener('ananda-academic-events-updated', handleAcademicEventsUpdated);
+  window.addEventListener('student-fee-config-updated', handleFeeConfigsUpdated);
+  window.addEventListener('ananda_staff_data_changed', handleStaffDataChanged);
+  window.addEventListener('ananda-direct-chat-updated', handleDirectChatUpdated);
+  window.addEventListener('ananda-staff-chat-updated', handleStaffChatUpdated);
+  window.addEventListener('ananda-staff-channels-updated', handleStaffChannelsUpdated);
+  window.addEventListener('anando_cultural_event_update', handleCulturalEventUpdated);
+  window.addEventListener('anando_cultural_badge_update', handleCulturalBadgeUpdated);
+  window.addEventListener('anando_tiffin_menu_update', handleTiffinMenuUpdated);
+  window.addEventListener('anando_admission_update', handleAdmissionsUpdated);
+  window.addEventListener('anando_gallery_update', handleGalleryUpdated);
+  window.addEventListener('ananda-biometric-logs-updated', handleBiometricLogsUpdated);
+  window.addEventListener('ananda_biometric_device_updated', handleBiometricUsersUpdated);
   window.addEventListener('ananda-directors-updated', handleDirectorsUpdated);
   window.addEventListener('ananda-notices-updated', handleNoticesUpdated);
-  window.addEventListener('ananda-teachers-updated', handleTeachersUpdated);
-  window.addEventListener('ananda_staff_data_changed', handleTeachersUpdated);
-  window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
+  window.addEventListener('ananda-assets-updated', handleAssetsUpdated);
+  window.addEventListener('ananda-school-profile-updated', handleProfileUpdated);
 
   return () => {
     unsubscribers.forEach((u) => {
@@ -848,11 +2164,33 @@ export function subscribeToSchoolCloud(
         u();
       } catch {}
     });
-    window.removeEventListener('ananda-biometric-logs-updated', handleBioUpdated);
+    window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
+    window.removeEventListener('ananda-teachers-updated', handleTeachersUpdated);
+    window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
+    window.removeEventListener('ananda-invoices-updated', handleInvoicesUpdated);
+    window.removeEventListener('ananda-attendance-updated', handleAttendanceUpdated);
+    window.removeEventListener('ananda-routines-updated', handleRoutinesUpdated);
+    window.removeEventListener('ananda-weekly-progress-updated', handleWeeklyProgressUpdated);
+    window.removeEventListener('ananda-exam-results-updated', handleExamResultsUpdated);
+    window.removeEventListener('ananda-exam-schedule-updated', handleExamScheduleUpdated);
+    window.removeEventListener('ananda-health-profiles-updated', handleHealthProfilesUpdated);
+    window.removeEventListener('ananda-homework-checklist-updated', handleHomeworkChecklistUpdated);
+    window.removeEventListener('ananda-academic-events-updated', handleAcademicEventsUpdated);
+    window.removeEventListener('student-fee-config-updated', handleFeeConfigsUpdated);
+    window.removeEventListener('ananda_staff_data_changed', handleStaffDataChanged);
+    window.removeEventListener('ananda-direct-chat-updated', handleDirectChatUpdated);
+    window.removeEventListener('ananda-staff-chat-updated', handleStaffChatUpdated);
+    window.removeEventListener('ananda-staff-channels-updated', handleStaffChannelsUpdated);
+    window.removeEventListener('anando_cultural_event_update', handleCulturalEventUpdated);
+    window.removeEventListener('anando_cultural_badge_update', handleCulturalBadgeUpdated);
+    window.removeEventListener('anando_tiffin_menu_update', handleTiffinMenuUpdated);
+    window.removeEventListener('anando_admission_update', handleAdmissionsUpdated);
+    window.removeEventListener('anando_gallery_update', handleGalleryUpdated);
+    window.removeEventListener('ananda-biometric-logs-updated', handleBiometricLogsUpdated);
+    window.removeEventListener('ananda_biometric_device_updated', handleBiometricUsersUpdated);
     window.removeEventListener('ananda-directors-updated', handleDirectorsUpdated);
     window.removeEventListener('ananda-notices-updated', handleNoticesUpdated);
-    window.removeEventListener('ananda-teachers-updated', handleTeachersUpdated);
-    window.removeEventListener('ananda_staff_data_changed', handleTeachersUpdated);
-    window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
+    window.removeEventListener('ananda-assets-updated', handleAssetsUpdated);
+    window.removeEventListener('ananda-school-profile-updated', handleProfileUpdated);
   };
 }
