@@ -1673,13 +1673,15 @@ export default function App() {
         )}
 
         {/* Native Mobile App Bottom Navigation Bar */}
-        <MobileBottomNav
-          currentRole={currentRole}
-          currentTab={currentTab}
-          onSelectTab={setCurrentTab}
-          onOpenMobileModal={() => setIsMobileModalOpen(true)}
-          forceVisible={isMobilePreview}
-        />
+        {!(isAppMode && !loggedInAccount) && !isLoginModalOpen && (
+          <MobileBottomNav
+            currentRole={currentRole}
+            currentTab={currentTab}
+            onSelectTab={setCurrentTab}
+            onOpenMobileModal={() => setIsMobileModalOpen(true)}
+            forceVisible={isMobilePreview}
+          />
+        )}
       </div>
     </div>
   );
