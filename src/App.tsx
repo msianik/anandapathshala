@@ -30,6 +30,7 @@ import {
   SCHOOL_PROFILE,
   PRINCIPAL_AND_DIRECTOR_PROFILES,
   INITIAL_SCHOOL_ASSETS,
+  SCHOOL_TEACHERS,
 } from './data/mockData';
 import {
   PORTAL_ACCOUNTS,
@@ -415,6 +416,7 @@ export default function App() {
       },
       {
         students: INITIAL_STUDENTS,
+        teachers: SCHOOL_TEACHERS,
         invoices: INITIAL_INVOICES,
         attendance: INITIAL_ATTENDANCE,
         notices: INITIAL_SCHOOL_NOTICES,

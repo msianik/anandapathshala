@@ -2,15 +2,17 @@
  * School Cloud Sync Layer (Anando Pathshala)
  * -----------------------------------------
  * Connects the React application directly to Google Cloud Firestore.
- * Ensures all changes to Students, Invoices, Attendance, Notices, Assets,
- * Directors, and Biometric Logs are permanently stored in the cloud in real-time,
- * preventing any data loss across devices, users, or redeployments.
+ * Ensures all changes to Students, Teachers & Staff, Portal Accounts,
+ * Invoices, Attendance, Notices, Assets, Directors, and Biometric Logs
+ * are permanently stored in the cloud in real-time, preventing any
+ * data loss across devices, users, browser restarts, or redeployments.
  *
  * Hardened Features:
  * 1. Automatic undefined sanitization (prevents Firestore rejection errors)
  * 2. Bi-directional timestamp resolution (prevents old cloud data from overwriting local edits)
- * 3. Portal Account metadata merging (recovers any edited parent/student phone & details)
- * 4. LocalStorage offline fallback with timestamping
+ * 3. Full Cloud persistence for Teachers, Staff & Portal Credentials
+ * 4. Portal Account metadata merging (recovers any edited phone, photo, & credentials)
+ * 5. LocalStorage offline fallback with timestamping
  */
 
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -24,6 +26,7 @@ import {
   SchoolProfile,
   BiometricPunchLog,
   CommitteeDirector,
+  TeacherMember,
   PortalAccount,
 } from '../types/school';
 
@@ -124,7 +127,44 @@ export function enrichStudentsWithPortalAccounts(students: Student[]): Student[]
   }
 }
 
-// Cloud write functions with guaranteed undefined stripping and timestamping
+/**
+ * Auto-merges updated portal account details into teacher records.
+ */
+export function enrichTeachersWithPortalAccounts(teachers: TeacherMember[]): TeacherMember[] {
+  try {
+    const portalAccounts = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3') || [];
+    if (!portalAccounts.length) return teachers;
+
+    const accountMap = new Map<string, PortalAccount>();
+    portalAccounts.forEach((acc) => {
+      if (acc.id) accountMap.set(acc.id, acc);
+      if (acc.username) accountMap.set(acc.username.toLowerCase(), acc);
+    });
+
+    return teachers.map((tch) => {
+      const acc = accountMap.get(`acc-tch-${tch.id}`) || 
+                  (tch.username ? accountMap.get(tch.username.toLowerCase()) : undefined);
+      if (!acc) return tch;
+
+      return {
+        ...tch,
+        phone: acc.phone || tch.phone,
+        email: acc.email || tch.email,
+        photoUrl: acc.avatarUrl || tch.photoUrl,
+        username: acc.username || tch.username,
+        password: acc.passwordHint || tch.password,
+        portalRole: acc.role || tch.portalRole,
+      };
+    });
+  } catch {
+    return teachers;
+  }
+}
+
+// -------------------------------------------------------------
+// Cloud Write Functions with Sanitization & Timestamping
+// -------------------------------------------------------------
+
 export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
   const now = Date.now();
   const isoTime = new Date(now).toISOString();
@@ -143,6 +183,51 @@ export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save students to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSaveTeachers(teachers: TeacherMember[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(enrichTeachersWithPortalAccounts(teachers));
+
+  safeLocalSet('ananda_teachers_list_v1', sanitized);
+  safeLocalSet('ananda_staff_members_v1', sanitized);
+  setLocalTimestamp('teachers', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'teachers'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save teachers to Firestore:', err);
+    return false;
+  }
+}
+
+export async function cloudSavePortalAccounts(accounts: PortalAccount[]): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(accounts);
+
+  safeLocalSet('ananda_portal_accounts_v3', sanitized);
+  setLocalTimestamp('portal_accounts', now);
+
+  try {
+    await setDoc(doc(db, COLLECTION_NAME, 'portal_accounts'), {
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
+    });
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save portal accounts to Firestore:', err);
     return false;
   }
 }
@@ -320,6 +405,8 @@ export async function cloudSaveBiometricLogs(logs: BiometricPunchLog[]): Promise
 
 export interface CloudSyncListeners {
   onStudentsChange?: (students: Student[]) => void;
+  onTeachersChange?: (teachers: TeacherMember[]) => void;
+  onPortalAccountsChange?: (accounts: PortalAccount[]) => void;
   onInvoicesChange?: (invoices: FeeInvoice[]) => void;
   onAttendanceChange?: (attendance: AttendanceRecord[]) => void;
   onStaffAttendanceChange?: (staffData: Record<string, any[]>) => void;
@@ -338,6 +425,7 @@ export function subscribeToSchoolCloud(
   listeners: CloudSyncListeners,
   initialDefaults: {
     students: Student[];
+    teachers?: TeacherMember[];
     invoices: FeeInvoice[];
     attendance: AttendanceRecord[];
     notices: SchoolNotice[];
@@ -359,10 +447,7 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'students'),
       (snap) => {
         updateStatus(true);
-        if (snap.metadata.hasPendingWrites) {
-          // Local optimistic write pending server confirmation, skip to prevent jumpiness
-          return;
-        }
+        if (snap.metadata.hasPendingWrites) return;
 
         if (snap.exists()) {
           const data = snap.data();
@@ -370,8 +455,6 @@ export function subscribeToSchoolCloud(
             const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
             const localTimeMs = getLocalTimestamp('students');
 
-            // If local changes were made MORE RECENTLY than the cloud document,
-            // never wipe local changes! Push local to cloud instead.
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
               if (existingLocal && existingLocal.length > 0) {
@@ -389,7 +472,6 @@ export function subscribeToSchoolCloud(
             listeners.onStudentsChange?.(enriched);
           }
         } else {
-          // Cloud doc is empty: seed from localStorage or initialDefaults
           const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
           const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : initialDefaults.students;
           cloudSaveStudents(toSeed);
@@ -405,7 +487,104 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching students listener:', e);
   }
 
-  // 2. Invoices Subscription
+  // 2. Teachers & Staff Members Subscription
+  try {
+    const unsubTeachers = onSnapshot(
+      doc(db, COLLECTION_NAME, 'teachers'),
+      (snap) => {
+        updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('teachers');
+
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
+              if (existingLocal && existingLocal.length > 0) {
+                console.log('[CloudSync] Local teacher edits are newer than cloud. Re-syncing to cloud...');
+                cloudSaveTeachers(existingLocal);
+                return;
+              }
+            }
+
+            const enriched = enrichTeachersWithPortalAccounts(data.items);
+            safeLocalSet('ananda_teachers_list_v1', enriched);
+            safeLocalSet('ananda_staff_members_v1', enriched);
+            if (cloudTimeMs > 0) setLocalTimestamp('teachers', cloudTimeMs);
+            listeners.onTeachersChange?.(enriched);
+            window.dispatchEvent(
+              new CustomEvent('ananda-teachers-updated', { detail: { teachers: enriched } })
+            );
+            window.dispatchEvent(
+              new CustomEvent('ananda_staff_data_changed', { detail: { type: 'members', teachers: enriched } })
+            );
+          }
+        } else {
+          const existingLocal = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
+          const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : (initialDefaults.teachers || []);
+          if (toSeed && toSeed.length > 0) {
+            cloudSaveTeachers(toSeed);
+          }
+        }
+      },
+      (err) => {
+        console.warn('[CloudSync] Teachers listener error:', err);
+      }
+    );
+    unsubscribers.push(unsubTeachers);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching teachers listener:', e);
+  }
+
+  // 3. Portal Accounts Subscription (Credentials & Roles)
+  try {
+    const unsubPortalAccounts = onSnapshot(
+      doc(db, COLLECTION_NAME, 'portal_accounts'),
+      (snap) => {
+        updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data?.items)) {
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('portal_accounts');
+
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3');
+              if (existingLocal && existingLocal.length > 0) {
+                cloudSavePortalAccounts(existingLocal);
+                return;
+              }
+            }
+
+            safeLocalSet('ananda_portal_accounts_v3', data.items);
+            if (cloudTimeMs > 0) setLocalTimestamp('portal_accounts', cloudTimeMs);
+            listeners.onPortalAccountsChange?.(data.items);
+            window.dispatchEvent(
+              new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: data.items } })
+            );
+          }
+        } else {
+          const existingLocal = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3');
+          if (existingLocal && existingLocal.length > 0) {
+            cloudSavePortalAccounts(existingLocal);
+          }
+        }
+      },
+      (err) => {
+        console.warn('[CloudSync] Portal accounts listener error:', err);
+      }
+    );
+    unsubscribers.push(unsubPortalAccounts);
+  } catch (e) {
+    console.warn('[CloudSync] Error attaching portal accounts listener:', e);
+  }
+
+  // 4. Invoices Subscription
   try {
     const unsubInvoices = onSnapshot(
       doc(db, COLLECTION_NAME, 'invoices'),
@@ -447,7 +626,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching invoices listener:', e);
   }
 
-  // 3. Attendance Subscription
+  // 5. Attendance Subscription
   try {
     const unsubAttendance = onSnapshot(
       doc(db, COLLECTION_NAME, 'attendance'),
@@ -489,7 +668,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching attendance listener:', e);
   }
 
-  // 4. Staff Attendance Subscription
+  // 6. Staff Attendance Subscription
   try {
     const unsubStaff = onSnapshot(
       doc(db, COLLECTION_NAME, 'staff_attendance'),
@@ -514,7 +693,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching staff attendance listener:', e);
   }
 
-  // 5. Notices Subscription
+  // 7. Notices Subscription
   try {
     const unsubNotices = onSnapshot(
       doc(db, COLLECTION_NAME, 'school_notices'),
@@ -543,7 +722,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching notices listener:', e);
   }
 
-  // 6. Assets Subscription
+  // 8. Assets Subscription
   try {
     const unsubAssets = onSnapshot(
       doc(db, COLLECTION_NAME, 'school_assets'),
@@ -572,7 +751,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching assets listener:', e);
   }
 
-  // 7. Profile Subscription
+  // 9. Profile Subscription
   try {
     const unsubProfile = onSnapshot(
       doc(db, COLLECTION_NAME, 'school_profile'),
@@ -601,7 +780,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching profile listener:', e);
   }
 
-  // 8. Biometric Logs Subscription
+  // 10. Biometric Logs Subscription
   try {
     const unsubBio = onSnapshot(
       doc(db, COLLECTION_NAME, 'biometric_logs'),
@@ -643,10 +822,25 @@ export function subscribeToSchoolCloud(
       cloudSaveNotices(cust.detail.notices);
     }
   };
+  const handleTeachersUpdated = (e: Event) => {
+    const cust = e as CustomEvent<{ teachers?: TeacherMember[] }>;
+    if (cust.detail?.teachers) {
+      cloudSaveTeachers(cust.detail.teachers);
+    }
+  };
+  const handlePortalAccountsUpdated = (e: Event) => {
+    const cust = e as CustomEvent<{ accounts?: PortalAccount[] }>;
+    if (cust.detail?.accounts) {
+      cloudSavePortalAccounts(cust.detail.accounts);
+    }
+  };
 
   window.addEventListener('ananda-biometric-logs-updated', handleBioUpdated);
   window.addEventListener('ananda-directors-updated', handleDirectorsUpdated);
   window.addEventListener('ananda-notices-updated', handleNoticesUpdated);
+  window.addEventListener('ananda-teachers-updated', handleTeachersUpdated);
+  window.addEventListener('ananda_staff_data_changed', handleTeachersUpdated);
+  window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
 
   return () => {
     unsubscribers.forEach((u) => {
@@ -657,5 +851,8 @@ export function subscribeToSchoolCloud(
     window.removeEventListener('ananda-biometric-logs-updated', handleBioUpdated);
     window.removeEventListener('ananda-directors-updated', handleDirectorsUpdated);
     window.removeEventListener('ananda-notices-updated', handleNoticesUpdated);
+    window.removeEventListener('ananda-teachers-updated', handleTeachersUpdated);
+    window.removeEventListener('ananda_staff_data_changed', handleTeachersUpdated);
+    window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
   };
 }
