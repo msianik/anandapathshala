@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import {
   UserRole,
   Student,
@@ -636,9 +636,28 @@ export default function App() {
     saveFcmNotificationToCloud(notif).catch(() => {});
   };
 
-  // Real-Time Cloud Sync Error Listener: Triggers Instant FCM Toast & Warning
+  // Keep live ref of currentRole for global listeners and timers
+  const currentRoleRef = useRef(currentRole);
+  useEffect(() => {
+    currentRoleRef.current = currentRole;
+    // Strict isolation: on live public site or non-admin accounts, clear any residual sync error notification
+    if (!['super_admin', 'principal'].includes(currentRole)) {
+      setActiveFcmToast((curr) => (curr?.type === 'cloud_sync_alert' ? null : curr));
+      setFcmNotifications((prev) => prev.filter((n) => n.type !== 'cloud_sync_alert'));
+    }
+  }, [currentRole]);
+
+  // Real-Time Cloud Sync Error Listener: Triggers Instant FCM Toast ONLY for Super Admin & Admin
   useEffect(() => {
     const handleCloudSyncError = (e: Event) => {
+      // STRICT FILTER: Cloud sync error alerts must NEVER appear on the live website (public)
+      // or to regular accounts. Only 'super_admin' and 'principal' (Admins) are notified.
+      const isAdminOrSuperAdmin =
+        currentRoleRef.current === 'super_admin' || currentRoleRef.current === 'principal';
+      if (!isAdminOrSuperAdmin) {
+        return;
+      }
+
       const cust = e as CustomEvent<{ module: string; error: string; messageBn: string }>;
       const detail = cust.detail;
       if (!detail) return;
@@ -671,11 +690,17 @@ export default function App() {
     };
   }, []);
 
-  // 15-Minute Periodic Background Attendance & Cloud Data Auto-Sync Runner
+  // 15-Minute Periodic Background Attendance & Cloud Data Auto-Sync Runner (Staff & Admin Only)
   useEffect(() => {
     const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
     const runPeriodicAttendanceSync = async () => {
+      // Background physical machine sync only runs inside staff/admin accounts, never on the public site
+      const isStaffOrAdmin = ['super_admin', 'principal', 'teacher'].includes(currentRoleRef.current);
+      if (!isStaffOrAdmin) {
+        return;
+      }
+
       try {
         console.log('[CloudSync] Automatic real biometric attendance sync running...');
 
@@ -851,6 +876,7 @@ export default function App() {
     setCurrentRole('public');
     setCurrentTab('public');
     setActiveFcmToast(null);
+    setFcmNotifications((prev) => prev.filter((n) => n.type !== 'cloud_sync_alert'));
   };
 
   const handleRoleChange = (role: UserRole) => {
@@ -859,6 +885,7 @@ export default function App() {
       setCurrentRole('public');
       setCurrentTab('public');
       setActiveFcmToast(null);
+      setFcmNotifications((prev) => prev.filter((n) => n.type !== 'cloud_sync_alert'));
       return;
     }
     const allAccounts = getAllPortalAccounts();

@@ -55,16 +55,28 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
     'all' | 'urgent_pickup' | 'admission_application' | 'fee_due_reminder' | 'homework_task_assigned' | 'inventory_low_stock'
   >('all');
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const filteredNotifications = notifications.filter((n) => {
+  // Cloud sync error alerts are restricted strictly to Super Admin and Admin (Principal) accounts
+  const isAdminOrSuperAdmin = currentRole === 'super_admin' || currentRole === 'principal';
+
+  const visibleNotifications = notifications.filter(
+    (n) => n.type !== 'cloud_sync_alert' || isAdminOrSuperAdmin
+  );
+
+  const unreadCount = visibleNotifications.filter((n) => !n.read).length;
+
+  const filteredNotifications = visibleNotifications.filter((n) => {
     if (currentRole === 'parent' || filterType === 'all') return true;
     return n.type === filterType;
   });
 
+  const shouldShowToast = Boolean(
+    activeToast && (activeToast.type !== 'cloud_sync_alert' || isAdminOrSuperAdmin)
+  );
+
   return (
     <>
       {/* Real-Time Floating FCM Push Alert Toast Banner */}
-      {activeToast && (
+      {shouldShowToast && activeToast && (
         <div
           role="alert"
           aria-live="assertive"
