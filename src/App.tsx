@@ -175,11 +175,25 @@ export default function App() {
     try {
       const stored = localStorage.getItem('ananda_session_account_v1');
       const storedTab = localStorage.getItem('ananda_session_tab_v1');
-      if (stored && storedTab && storedTab !== 'public') return storedTab;
+      if (stored && storedTab && storedTab !== 'public' && storedTab !== 'biometric') return storedTab;
+      if (stored && storedTab === 'biometric') {
+        localStorage.setItem('ananda_session_tab_v1', 'attendance');
+        return 'attendance';
+      }
       if (stored) return 'overview';
     } catch {}
     return 'public';
   });
+
+  // Divert any residual biometric tab navigation to student attendance
+  useEffect(() => {
+    if (currentTab === 'biometric') {
+      setCurrentTab('attendance');
+      try {
+        localStorage.setItem('ananda_session_tab_v1', 'attendance');
+      } catch {}
+    }
+  }, [currentTab]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -1446,12 +1460,13 @@ export default function App() {
                   )}
 
                   {currentTab === 'biometric' && (
-                    <BiometricAttendanceWidget
+                    <AttendanceModule
                       students={students}
                       attendanceRecords={attendanceRecords}
                       onUpdateAttendance={handleUpdateAttendance}
-                      onUpdateStaffAttendance={handleUpdateStaffAttendance}
                       currentRole={currentRole}
+                      loggedInTeacherNameBn={loggedInAccount?.nameBn}
+                      onSendAttendanceNotification={dispatchRealTimeFcmNotification}
                     />
                   )}
 

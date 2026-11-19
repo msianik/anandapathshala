@@ -248,15 +248,15 @@ test('createAdmissionFcmPayload and createUrgentPickupFcmPayload build valid FCM
 });
 
 test('authenticateAndDetectRole automatically selects principal, teacher, or parent role from credentials', () => {
-  // 1. Principal auto-detection (Shafee Abdullah — Principal)
+  // 1. Principal auto-detection (Shafee Abdullah — Principal & Admin)
   const principalRes = authenticateAndDetectRole('principal@anandapathshala.edu.bd', '123456');
   assert.equal(principalRes.success, true);
-  assert.equal(principalRes.account?.role, 'principal');
+  assert.equal(principalRes.account?.role, 'admin');
   assert.equal(principalRes.account?.nameBn, 'শাফী আব্দুল্লাহ');
 
   const shafeeRes = authenticateAndDetectRole('shafee', '123456');
   assert.equal(shafeeRes.success, true);
-  assert.equal(shafeeRes.account?.role, 'principal');
+  assert.equal(shafeeRes.account?.role, 'admin');
 
   // 2. Head Teacher / Teacher auto-detection (Fatema Akter & Mahmuda Haque)
   const teacherRes = authenticateAndDetectRole('০১৭১৫-১১২২৩৩', '123456');
@@ -281,10 +281,10 @@ test('authenticateAndDetectRole automatically selects principal, teacher, or par
 
 test('getRoleNavMetadata returns role-specific full and compact single-line menu items', () => {
   const principalNav = getRoleNavMetadata('principal');
-  assert.equal(principalNav.length, 17);
+  assert.equal(principalNav.length, 16);
   assert.ok(principalNav.every((item) => item.labelBn.length > 0 && item.shortLabelBn.length > 0));
-  const biometricItem = principalNav.find((i) => i.id === 'biometric');
-  assert.equal(biometricItem?.labelBn, 'ফিঙ্গারপ্রিন্ট মেশিন');
+  const attendanceItem = principalNav.find((i) => i.id === 'attendance');
+  assert.equal(attendanceItem?.labelBn, 'হাজিরা');
   const chatItem = principalNav.find((i) => i.id === 'messages');
   assert.equal(chatItem?.labelBn, 'চ্যাট');
   const resultsItem = principalNav.find((i) => i.id === 'results');
@@ -295,7 +295,7 @@ test('getRoleNavMetadata returns role-specific full and compact single-line menu
   assert.equal(staffItem?.labelBn, 'শিক্ষক ও স্টাফ');
 
   const teacherNav = getRoleNavMetadata('teacher');
-  assert.equal(teacherNav.length, 16);
+  assert.equal(teacherNav.length, 15);
   assert.equal(teacherNav[0].id, 'overview');
 
   const parentNav = getRoleNavMetadata('parent');
@@ -432,14 +432,15 @@ test('createLowStockFcmPayload generates high-priority administrator alerts when
 
 test('getGroupedNavPillars returns simplified, non-repetitive core pillars', () => {
   const adminPillars = getGroupedNavPillars('principal');
-  assert.equal(adminPillars.length, 7);
+  assert.equal(adminPillars.length, 8);
   assert.equal(adminPillars[0].id, 'pillar_overview');
   assert.equal(adminPillars[1].id, 'pillar_students');
-  assert.equal(adminPillars[2].id, 'pillar_academics');
-  assert.equal(adminPillars[3].id, 'pillar_operations');
-  assert.equal(adminPillars[4].id, 'pillar_chat');
-  assert.equal(adminPillars[5].id, 'pillar_notices');
-  assert.equal(adminPillars[6].id, 'pillar_finance');
+  assert.equal(adminPillars[2].id, 'pillar_staff');
+  assert.equal(adminPillars[3].id, 'pillar_academics');
+  assert.equal(adminPillars[4].id, 'pillar_operations');
+  assert.equal(adminPillars[5].id, 'pillar_chat');
+  assert.equal(adminPillars[6].id, 'pillar_notices');
+  assert.equal(adminPillars[7].id, 'pillar_finance');
 
   // Verify all pillars have default tabs and valid items
   for (const pillar of adminPillars) {

@@ -398,10 +398,10 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
-        log.nameBn.toLowerCase().includes(q) ||
-        log.nameEn.toLowerCase().includes(q) ||
+        (log.nameBn && log.nameBn.toLowerCase().includes(q)) ||
+        (log.nameEn && log.nameEn.toLowerCase().includes(q)) ||
         (log.rollNo && log.rollNo.includes(q)) ||
-        log.enrollId.toLowerCase().includes(q) ||
+        (log.enrollId && log.enrollId.toLowerCase().includes(q)) ||
         (log.className && log.className.toLowerCase().includes(q));
 
       return matchesPunchType && matchesPersonType && matchesSearch;
@@ -1158,15 +1158,15 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
 
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-900">{log.nameBn}</h4>
+                        <h4 className="text-sm font-bold text-slate-900">{log.nameBn || log.nameEn || log.enrollId}</h4>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                           {log.personType === 'student'
-                            ? `শ্রেণি: ${getSchoolClassNameBn(log.className as any)}`
+                            ? `শ্রেণি: ${log.className ? getSchoolClassNameBn(log.className as any) : 'N/A'}`
                             : 'শিক্ষক / স্টাফ'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500">
-                        {log.nameEn} · বায়োমেট্রিক আইডি: <span className="font-mono font-semibold">{log.enrollId}</span>
+                        {log.nameEn || log.enrollId} · বায়োমেট্রিক আইডি: <span className="font-mono font-semibold">{log.enrollId}</span>
                       </p>
                     </div>
                   </div>
@@ -1188,7 +1188,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                         )}
 
                         <span className="text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
-                          {log.punchTimeStr}
+                          {log.punchTimeStr || 'N/A'}
                         </span>
                       </div>
 
@@ -1207,7 +1207,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
                               : 'text-sky-600'
                           }`}
                         >
-                          {log.statusLabelBn}
+                          {log.statusLabelBn || (isEntry ? 'অন-টাইম প্রবেশ' : 'স্বাভাবিক প্রস্থান')}
                         </span>
                         {log.smsNotified && (
                           <>
