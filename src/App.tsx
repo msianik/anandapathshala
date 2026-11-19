@@ -49,6 +49,7 @@ import {
   saveBiometricLogs,
   syncBiometricAttendanceData,
 } from './utils/biometricAttendanceLogic';
+import { saveAllStaffMembers } from './utils/staffManagementLogic';
 import { REAL_DEVICE_STUDENT_ATTENDANCE } from './data/realBiometricInitialData';
 import {
   subscribeToSchoolCloud,
@@ -377,21 +378,14 @@ export default function App() {
     return () => window.removeEventListener('school-profile-updated', handleSync);
   }, []);
 
-  // Application Data States
+  // Application Data States (Single Source of Truth for Students)
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const stored = localStorage.getItem('ananda_students_v1');
       if (stored) {
         const parsed: Student[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Automatically merge any newly synced students from Zlink roster
-          const missing = INITIAL_STUDENTS.filter(
-            (initS) => !parsed.some((p) => p.id === initS.id || p.rollNo === initS.rollNo)
-          );
-          const updatedList = missing.length > 0 ? [...parsed, ...missing] : parsed;
-          const enriched = enrichStudentsWithPortalAccounts(updatedList);
-          localStorage.setItem('ananda_students_v1', JSON.stringify(enriched));
-          return enriched;
+          return parsed;
         }
       }
     } catch {}
@@ -399,6 +393,23 @@ export default function App() {
     localStorage.setItem('ananda_students_v1', JSON.stringify(initialEnriched));
     return initialEnriched;
   });
+
+  // Global Real-time Listener for Student Updates Across all Modules
+  useEffect(() => {
+    const handleStudentsUpdated = () => {
+      try {
+        const stored = localStorage.getItem('ananda_students_v1');
+        if (stored) {
+          const parsed: Student[] = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setStudents(parsed);
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('ananda-students-updated', handleStudentsUpdated);
+    return () => window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
+  }, []);
   const [pickupLogs, setPickupLogs] = useState<PickupEvent[]>(INITIAL_PICKUP_LOGS);
   const [activityPosts, setActivityPosts] = useState<ActivityPost[]>(INITIAL_ACTIVITY_POSTS);
   const [assessments, setAssessments] =
@@ -444,6 +455,9 @@ export default function App() {
       {
         onStudentsChange: (cloudStudents) => {
           setStudents(cloudStudents);
+        },
+        onTeachersChange: (cloudTeachers) => {
+          saveAllStaffMembers(cloudTeachers);
         },
         onInvoicesChange: (cloudInvoices) => {
           setInvoices(cloudInvoices);

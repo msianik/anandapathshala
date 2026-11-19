@@ -49,6 +49,7 @@ import {
 } from '../utils/birthdayLogic';
 import { BirthdayCelebrationWidget } from './BirthdayCelebrationWidget';
 import { SCHOOL_TEACHERS } from '../data/mockData';
+import { getStoredStaffMembers, TEACHERS_UPDATED_EVENT, STAFF_CHANGE_EVENT } from '../utils/staffManagementLogic';
 import { ClassroomAttendanceOverviewChart } from './ClassroomAttendanceOverviewChart';
 import {
   BookOpen,
@@ -117,6 +118,20 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
 }) => {
   const teacherAssignedClass: SchoolClass =
     (account.assignedClass as SchoolClass) || 'Nursery';
+
+  const [liveFacultyList, setLiveFacultyList] = useState<TeacherMember[]>(() => getStoredStaffMembers());
+
+  useEffect(() => {
+    const handleSync = () => setLiveFacultyList(getStoredStaffMembers());
+    window.addEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+    window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
+    window.addEventListener('ananda_staff_changed', handleSync);
+    return () => {
+      window.removeEventListener(TEACHERS_UPDATED_EVENT, handleSync);
+      window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+      window.removeEventListener('ananda_staff_changed', handleSync);
+    };
+  }, []);
   const teacherClassStudents = React.useMemo(() => {
     const matched = students.filter((s) => s.className === teacherAssignedClass);
     return matched.length > 0 ? matched : students;
@@ -1452,7 +1467,7 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <UserCheck className="w-5 h-5 text-indigo-700" />
-              <span>সহকর্মী শিক্ষক ও প্রধান শিক্ষক পর্ষদ ({SCHOOL_TEACHERS.length} জন)</span>
+              <span>সহকর্মী শিক্ষক ও প্রধান শিক্ষক পর্ষদ ({liveFacultyList.length} জন)</span>
             </h3>
             <p className="text-xs text-slate-500">
               আনন্দ পাঠশালা কুষ্টিয়ার অফিশিয়াল শিক্ষক ও কর্মকর্তা তালিকা
@@ -1461,7 +1476,7 @@ export const TeacherPortalDashboard: React.FC<TeacherPortalDashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {SCHOOL_TEACHERS.map((t) => (
+          {liveFacultyList.map((t) => (
             <div
               key={t.id}
               className="p-3 rounded-2xl border border-slate-200 bg-slate-50/70 flex items-center gap-3"
@@ -1674,10 +1689,11 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     students.find((s) => s.id === (account.studentId || 'std-1')) || students[0];
   const childAssessment = assessments[myChild.id];
   const childClassTeacher = React.useMemo(() => {
+    const staff = getStoredStaffMembers();
     return (
-      SCHOOL_TEACHERS.find(
+      staff.find(
         (t) => t.assignedClass && isSameSchoolClass(t.assignedClass, myChild.className)
-      ) || SCHOOL_TEACHERS[1]
+      ) || staff[1] || staff[0]
     );
   }, [myChild.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);

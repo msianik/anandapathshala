@@ -81,19 +81,12 @@ export function getStoredStaffMembers(): TeacherMember[] {
   try {
     const raw =
       localStorage.getItem(TEACHERS_STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_STAFF_STORAGE_KEY);
+      localStorage.getItem(LEGACY_STAFF_STORAGE_KEY) ||
+      localStorage.getItem('ananda_pathshala_teachers_v1') ||
+      localStorage.getItem('ananda_school_teachers_v1');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Automatically merge any newly added teachers from Zlink synced roster
-        const missing = SCHOOL_TEACHERS.filter(
-          (t) => !parsed.some((p: TeacherMember) => p.id === t.id || p.nameEn === t.nameEn)
-        );
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          saveAllStaffMembers(merged);
-          return merged;
-        }
         return parsed;
       }
     }
@@ -106,11 +99,16 @@ export function saveAllStaffMembers(members: TeacherMember[]): TeacherMember[] {
     try {
       localStorage.setItem(TEACHERS_STORAGE_KEY, JSON.stringify(members));
       localStorage.setItem(LEGACY_STAFF_STORAGE_KEY, JSON.stringify(members));
+      localStorage.setItem('ananda_pathshala_teachers_v1', JSON.stringify(members));
+      localStorage.setItem('ananda_school_teachers_v1', JSON.stringify(members));
       window.dispatchEvent(
         new CustomEvent(TEACHERS_UPDATED_EVENT, { detail: { teachers: members } })
       );
       window.dispatchEvent(
         new CustomEvent(STAFF_CHANGE_EVENT, { detail: { type: 'members', teachers: members } })
+      );
+      window.dispatchEvent(
+        new CustomEvent('ananda_staff_changed', { detail: { type: 'members', teachers: members } })
       );
     } catch {}
   }

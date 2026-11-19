@@ -249,6 +249,12 @@ export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
   safeLocalSet('ananda_students_v1', sanitized);
   setLocalTimestamp('students', now);
 
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { students: sanitized } }));
+    } catch {}
+  }
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'students'), {
       items: sanitized,
@@ -271,7 +277,17 @@ export async function cloudSaveTeachers(teachers: TeacherMember[]): Promise<bool
 
   safeLocalSet('ananda_teachers_list_v1', sanitized);
   safeLocalSet('ananda_staff_members_v1', sanitized);
+  safeLocalSet('ananda_pathshala_teachers_v1', sanitized);
+  safeLocalSet('ananda_school_teachers_v1', sanitized);
   setLocalTimestamp('teachers', now);
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('ananda-teachers-updated', { detail: { teachers: sanitized } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'members', teachers: sanitized } }));
+      window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'members', teachers: sanitized } }));
+    } catch {}
+  }
 
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'teachers'), {

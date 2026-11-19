@@ -22,7 +22,7 @@ import {
   STAFF_CHANGE_EVENT,
   TEACHERS_UPDATED_EVENT,
 } from '../utils/staffManagementLogic';
-import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
+import { toBengaliNumber, downloadAttendanceCsvFile, removePortalAccountByEntityId } from '../utils/schoolLogic';
 import {
   StaffMonthlyAttendanceSummary,
   StaffMonthlyReportMeta,
@@ -714,6 +714,20 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
     setEditingStaff(null);
     setStaffCheckInToast(`✓ "${updatedStaff.nameBn}" এর পূর্ণাঙ্গ তথ্য, ছবি ও ক্লাউড ডাটাবেজ সফলভাবে সিঙ্ক ও স্থায়ী সংরক্ষণ করা হয়েছে!`);
     setTimeout(() => setStaffCheckInToast(null), 5000);
+  };
+
+  // Handle Delete Staff
+  const handleDeleteStaff = async (teacherId: string) => {
+    const updated = deleteStaffMember(teacherId);
+    setStaffList(updated);
+    setEditingStaff(null);
+    if (selectedStaffDetails?.id === teacherId) {
+      setSelectedStaffDetails(null);
+    }
+    await cloudSaveTeachers(updated);
+    removePortalAccountByEntityId(teacherId);
+    setStaffCheckInToast('✓ স্টাফ সফলভাবে তালিকা ও ক্লাউড থেকে অপসারিত হয়েছেন!');
+    setTimeout(() => setStaffCheckInToast(null), 4000);
   };
 
   // Handle Add New Staff Form
@@ -3821,21 +3835,37 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
               </div>
 
               {/* FOOTER ACTIONS */}
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setEditingStaff(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition"
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-600 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>পূর্ণাঙ্গ প্রোফাইল আপডেট সংরক্ষণ করুন</span>
-                </button>
+              <div className="pt-4 flex items-center justify-between gap-3 border-t border-slate-200 shrink-0">
+                {isPrincipal && editingStaff && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`আপনি কি নিশ্চিত যে "${editingStaff.nameBn}"-কে তালিকা ও ক্লাউড ডাটাবেজ থেকে মুছে ফেলতে চান?`)) {
+                        handleDeleteStaff(editingStaff.id);
+                      }
+                    }}
+                    className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>মুছে ফেলুন</span>
+                  </button>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setEditingStaff(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition"
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-indigo-700 hover:bg-indigo-600 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>পূর্ণাঙ্গ প্রোফাইল আপডেট সংরক্ষণ করুন</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

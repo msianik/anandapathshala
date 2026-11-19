@@ -62,6 +62,7 @@ import {
   SCHOOL_TEACHERS,
   MANAGEMENT_COMMITTEE,
 } from '../../data/mockData';
+import { getStoredStaffMembers, STAFF_CHANGE_EVENT } from '../../utils/staffManagementLogic';
 
 export interface SuperAdminAccessPanelProps {
   isSuperAdmin: boolean;
@@ -126,14 +127,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   const availableTeachers = useMemo<TeacherMember[]>(() => {
     if (propTeachers && propTeachers.length > 0) return propTeachers;
-    try {
-      const raw = localStorage.getItem('ananda_school_teachers_v1');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return SCHOOL_TEACHERS;
+    return getStoredStaffMembers();
   }, [propTeachers]);
 
   const availableDirectors = useMemo<CommitteeDirector[]>(() => {
@@ -307,10 +301,14 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     window.addEventListener('ananda-portal-accounts-updated', handleSync);
     window.addEventListener('ananda-directors-updated', handleSync);
     window.addEventListener('ananda-teachers-updated', handleSync);
+    window.addEventListener(STAFF_CHANGE_EVENT, handleSync);
+    window.addEventListener('ananda_staff_changed', handleSync);
     return () => {
       window.removeEventListener('ananda-portal-accounts-updated', handleSync);
       window.removeEventListener('ananda-directors-updated', handleSync);
       window.removeEventListener('ananda-teachers-updated', handleSync);
+      window.removeEventListener(STAFF_CHANGE_EVENT, handleSync);
+      window.removeEventListener('ananda_staff_changed', handleSync);
     };
   }, []);
 

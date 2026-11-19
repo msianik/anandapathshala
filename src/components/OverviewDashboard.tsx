@@ -85,13 +85,11 @@ import { AddAchievementModal } from './dashboard/AddAchievementModal';
 import { AchievementDetailModal } from './dashboard/AchievementDetailModal';
 import { BroadcastFcmModal } from './dashboard/BroadcastFcmModal';
 import { EditLeaderProfileModal } from './dashboard/EditLeaderProfileModal';
-import { EditTeacherModal } from './dashboard/EditTeacherModal';
 import { EditDirectorModal } from './dashboard/EditDirectorModal';
 import { StudentInspectModal } from './dashboard/StudentInspectModal';
 import { AddEditNoticeModal } from './dashboard/AddEditNoticeModal';
 import { BoardOfDirectorsSection } from './dashboard/BoardOfDirectorsSection';
 import { AchievementsSection } from './dashboard/AchievementsSection';
-import { TeachersDirectorySection } from './dashboard/TeachersDirectorySection';
 import { FacebookGallerySection } from './dashboard/FacebookGallerySection';
 
 interface OverviewDashboardProps {
@@ -204,7 +202,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     (currentRole === 'director' && hasDirectorEditAccess);
 
   const [achievementToast, setAchievementToast] = useState<string | null>(null);
-  const [institutionTab, setInstitutionTab] = useState<'teachers' | 'directors' | 'gallery' | 'achievements'>('teachers');
+  const [institutionTab, setInstitutionTab] = useState<'directors' | 'gallery' | 'achievements'>('directors');
 
   const handleToggleDirectorViewAll = (directorId: string) => {
     const updated = directorPermissions.map((perm) => {
@@ -498,11 +496,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         localStorage.setItem('ananda_school_profile_v1', JSON.stringify(updated));
       } catch {}
     }
-  };
-
-  const persistTeachersList = (updated: TeacherMember[]) => {
-    setTeachersList(updated);
-    saveAllStaffMembers(updated);
   };
 
   // Directors Management State
@@ -847,113 +840,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     setAchievementToast(
       `✅ ${leaderKey === 'principal' ? 'প্রিন্সিপাল' : 'প্রধান শিক্ষক'} এর বাণী ও প্রোফাইল আপডেট করা হয়েছে!`
     );
-    setTimeout(() => setAchievementToast(null), 4000);
-  };
-
-  // Teacher Edit State
-  const [editingTeacher, setEditingTeacher] = useState<TeacherMember | null>(null);
-  const [isAddingNewTeacher, setIsAddingNewTeacher] = useState(false);
-  const [teacherModalCategory, setTeacherModalCategory] = useState<'teacher' | 'support_staff'>('teacher');
-
-  const openAddNewTeacherModal = () => {
-    setEditingTeacher(null);
-    setIsAddingNewTeacher(true);
-    setTeacherModalCategory('teacher');
-  };
-
-  const openAddNewSupportStaffModal = () => {
-    setEditingTeacher(null);
-    setIsAddingNewTeacher(true);
-    setTeacherModalCategory('support_staff');
-  };
-
-  const openEditTeacherModal = (teacher: TeacherMember) => {
-    setEditingTeacher(teacher);
-    setIsAddingNewTeacher(false);
-    setTeacherModalCategory(
-      teacher.staffCategory === 'support_staff' ? 'support_staff' : 'teacher'
-    );
-  };
-
-  const handleSaveTeacher = (
-    teacherData: Omit<TeacherMember, 'id'> & { id?: string },
-    isNew: boolean
-  ) => {
-    const cleanUsername = teacherData.username || `staff_${Date.now().toString().slice(-4)}`;
-    const cleanPassword = teacherData.password || '123456';
-    const assignedRole: PortalAccountRole = teacherData.portalRole || 'teacher';
-
-    if (isNew) {
-      const newTchId = `tch-${Date.now()}`;
-      const newTch: TeacherMember = {
-        ...teacherData,
-        id: newTchId,
-      };
-      const updated = [...teachersList, newTch];
-      persistTeachersList(updated);
-
-      upsertPortalAccount({
-        id: `acc-tch-${newTchId}`,
-        nameBn: newTch.nameBn,
-        nameEn: newTch.nameEn,
-        role: assignedRole,
-        roleTitleBn: `${newTch.designationBn} (${getPortalRoleLabelBn(assignedRole)})`,
-        portalNameBn: getPortalNameForRoleBn(assignedRole),
-        email: newTch.email || `${cleanUsername}@anandapathshala.edu.bd`,
-        phone: normalizeIdentifier(newTch.phone || '01914057511'),
-        username: cleanUsername,
-        passwordHint: cleanPassword,
-        avatarUrl: newTch.photoUrl,
-        assignedClass: newTch.assignedClass,
-      });
-
-      setIsAddingNewTeacher(false);
-      setAchievementToast(
-        `✅ "${newTch.nameBn}" যুক্ত হয়েছেন! লগইন আইডি: ${cleanUsername} · রোল: ${getPortalRoleLabelBn(assignedRole)}`
-      );
-    } else if (editingTeacher) {
-      const updated = teachersList.map((t) =>
-        t.id === editingTeacher.id
-          ? ({ ...t, ...teacherData, id: editingTeacher.id } as TeacherMember)
-          : t
-      );
-      persistTeachersList(updated);
-
-      upsertPortalAccount({
-        id:
-          cleanUsername === 'principal'
-            ? 'acc-principal'
-            : cleanUsername === 'teacher'
-            ? 'acc-teacher'
-            : cleanUsername === 'gate'
-            ? 'acc-gate'
-            : `acc-tch-${editingTeacher.id}`,
-        nameBn: teacherData.nameBn,
-        nameEn: teacherData.nameEn || teacherData.nameBn,
-        role: assignedRole,
-        roleTitleBn: `${teacherData.designationBn} (${getPortalRoleLabelBn(assignedRole)})`,
-        portalNameBn: getPortalNameForRoleBn(assignedRole),
-        email: teacherData.email || `${cleanUsername}@anandapathshala.edu.bd`,
-        phone: normalizeIdentifier(teacherData.phone || '01914057511'),
-        username: cleanUsername,
-        passwordHint: cleanPassword,
-        avatarUrl: teacherData.photoUrl || editingTeacher.photoUrl,
-        assignedClass: teacherData.assignedClass,
-      });
-
-      setEditingTeacher(null);
-      setAchievementToast(`✅ "${teacherData.nameBn}"-এর প্রোফাইল ও লগইন অ্যাকাউন্ট আপডেট হয়েছে!`);
-    }
-    setTimeout(() => setAchievementToast(null), 4000);
-  };
-
-  const handleDeleteTeacher = (teacherId: string, name: string) => {
-    if (!isPrincipal) return;
-    const updated = teachersList.filter((t) => t.id !== teacherId);
-    persistTeachersList(updated);
-    removePortalAccountByEntityId(teacherId);
-    setEditingTeacher(null);
-    setAchievementToast(`🗑️ "${name}" তালিকা ও লগইন অ্যাকাউন্ট থেকে অপসারিত হয়েছেন।`);
     setTimeout(() => setAchievementToast(null), 4000);
   };
 
@@ -1472,19 +1358,8 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </p>
           </div>
 
-          {/* 4 Tabs */}
+          {/* 3 Tabs + Quick Master Staff Link */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setInstitutionTab('teachers')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                institutionTab === 'teachers'
-                  ? 'bg-slate-900 text-white font-black shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
-            >
-              👨‍🏫 শিক্ষক ও স্টাফ ({teachersList.length})
-            </button>
             <button
               type="button"
               onClick={() => setInstitutionTab('directors')}
@@ -1518,23 +1393,19 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             >
               🏆 অর্জন ও সম্মাননা ({achievements.length})
             </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab('staff')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 flex items-center gap-1.5 shadow-xs"
+              title="শিক্ষক ও কর্মীদের মূল তালিকায় যেতে ক্লিক করুন"
+            >
+              <span>👨‍🏫 শিক্ষক ও কর্মী মূল তালিকা ({teachersList.length})</span>
+              <ArrowRight className="w-3 h-3 text-amber-700" />
+            </button>
           </div>
         </div>
 
         {/* Active Tab Panel */}
-        {institutionTab === 'teachers' && (
-          <TeachersDirectorySection
-            teachersList={teachersList}
-            leadershipProfiles={leadershipProfiles}
-            schoolProfile={schoolProfile}
-            isPrincipal={isPrincipal}
-            onOpenEditProfileModal={openEditProfileModal}
-            onOpenAddNewTeacher={openAddNewTeacherModal}
-            onOpenAddNewSupportStaff={openAddNewSupportStaffModal}
-            onOpenEditTeacher={openEditTeacherModal}
-            onNavigateTab={onNavigateTab}
-          />
-        )}
 
         {institutionTab === 'directors' && (
           <BoardOfDirectorsSection
@@ -1612,21 +1483,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         leadershipProfiles={leadershipProfiles}
         onClose={() => setEditingLeaderKey(null)}
         onSave={handleSaveLeaderProfile}
-      />
-
-      {/* Edit Teacher Modal */}
-      <EditTeacherModal
-        isOpen={Boolean(editingTeacher || isAddingNewTeacher)}
-        isAddingNew={isAddingNewTeacher}
-        initialStaffCategory={teacherModalCategory}
-        teacher={editingTeacher}
-        teachersCount={teachersList.length}
-        onClose={() => {
-          setEditingTeacher(null);
-          setIsAddingNewTeacher(false);
-        }}
-        onSave={handleSaveTeacher}
-        onDelete={handleDeleteTeacher}
       />
 
       {/* Edit Director Modal */}
