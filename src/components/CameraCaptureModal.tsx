@@ -9,6 +9,7 @@ import {
   Smartphone,
   Sparkles
 } from 'lucide-react';
+import { compressImageToDataUrl } from '../utils/imageCompressor';
 
 interface CameraCaptureModalProps {
   isOpen: boolean;
@@ -133,9 +134,22 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
     playShutterSound();
     setTimeout(() => setIsFlashing(false), 180);
 
+    const maxDim = 480;
+    let w = video.videoWidth || 640;
+    let h = video.videoHeight || 480;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w);
+        w = maxDim;
+      } else {
+        w = Math.round((w * maxDim) / h);
+        h = maxDim;
+      }
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
 
     if (ctx) {
@@ -145,25 +159,33 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
         ctx.scale(-1, 1);
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
       setCapturedImage(dataUrl);
       stopCamera();
     }
   };
 
   // Native camera fallback handler
-  const handleNativeFileCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNativeFileCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setCapturedImage(reader.result);
+    try {
+      const dataUrl = await compressImageToDataUrl(file, 480, 480, 0.78);
+      if (dataUrl) {
+        setCapturedImage(dataUrl);
         stopCamera();
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setCapturedImage(reader.result);
+          stopCamera();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Confirm and attach photo

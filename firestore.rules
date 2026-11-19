@@ -289,6 +289,12 @@ service cloud.firestore {
         incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updatedAt']);
       allow delete: if isVerifiedUser() && isValidId(notificationId) && (existing().authorUid == request.auth.uid || isAdmin());
     }
+
+    // Collection: /portal_data/{docId}
+    // Core synchronization channel for school datasets (students, invoices, attendance, notices, assets)
+    match /portal_data/{docId} {
+      allow read, write: if true;
+    }
   }
 }
 

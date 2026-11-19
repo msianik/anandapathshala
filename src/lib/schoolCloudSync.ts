@@ -5,6 +5,12 @@
  * Ensures all changes to Students, Invoices, Attendance, Notices, Assets,
  * Directors, and Biometric Logs are permanently stored in the cloud in real-time,
  * preventing any data loss across devices, users, or redeployments.
+ *
+ * Hardened Features:
+ * 1. Automatic undefined sanitization (prevents Firestore rejection errors)
+ * 2. Bi-directional timestamp resolution (prevents old cloud data from overwriting local edits)
+ * 3. Portal Account metadata merging (recovers any edited parent/student phone & details)
+ * 4. LocalStorage offline fallback with timestamping
  */
 
 import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
@@ -18,9 +24,28 @@ import {
   SchoolProfile,
   BiometricPunchLog,
   CommitteeDirector,
+  PortalAccount,
 } from '../types/school';
 
 const COLLECTION_NAME = 'portal_data';
+const TIMESTAMP_PREFIX = 'ananda_sync_time_';
+
+/**
+ * Sanitizes an object or array to ensure it is 100% compliant with Firestore data types.
+ * Firestore strictly rejects `undefined` values anywhere in the document tree.
+ * This recursively replaces `undefined` with `null`.
+ */
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === undefined) return null as unknown as T;
+  try {
+    return JSON.parse(
+      JSON.stringify(data, (_, value) => (value === undefined ? null : value))
+    );
+  } catch (err) {
+    console.warn('[CloudSync] Sanitization warning:', err);
+    return data;
+  }
+}
 
 // Helper to safely write to localStorage as local cache/offline fallback
 export function safeLocalSet(key: string, data: any) {
@@ -44,14 +69,76 @@ export function safeLocalGet<T>(key: string): T | null {
   return null;
 }
 
-// Cloud write functions
+// Timestamp trackers
+export function getLocalTimestamp(key: string): number {
+  try {
+    if (typeof window === 'undefined') return 0;
+    const raw = localStorage.getItem(`${TIMESTAMP_PREFIX}${key}`);
+    return raw ? parseInt(raw, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setLocalTimestamp(key: string, timestamp: number = Date.now()) {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`${TIMESTAMP_PREFIX}${key}`, timestamp.toString());
+    }
+  } catch {}
+}
+
+/**
+ * Auto-merges updated portal account details (from custom portal accounts)
+ * into student records. This acts as a reliable safeguard to restore any
+ * updated emergency phone, photo, guardian name, or credentials.
+ */
+export function enrichStudentsWithPortalAccounts(students: Student[]): Student[] {
+  try {
+    const portalAccounts = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3') || [];
+    if (!portalAccounts.length) return students;
+
+    const accountMap = new Map<string, PortalAccount>();
+    portalAccounts.forEach((acc) => {
+      if (acc.studentId) {
+        accountMap.set(acc.studentId, acc);
+      }
+    });
+
+    return students.map((std) => {
+      const matchingAcc = accountMap.get(std.id);
+      if (!matchingAcc) return std;
+
+      return {
+        ...std,
+        emergencyPhone: matchingAcc.phone || std.emergencyPhone,
+        email: matchingAcc.email || std.email,
+        photoUrl: matchingAcc.avatarUrl || std.photoUrl,
+        username: matchingAcc.username || std.username,
+        password: matchingAcc.passwordHint || std.password,
+        portalRole: matchingAcc.role || std.portalRole,
+      };
+    });
+  } catch {
+    return students;
+  }
+}
+
+// Cloud write functions with guaranteed undefined stripping and timestamping
 export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
-  safeLocalSet('ananda_students_v1', students);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(enrichStudentsWithPortalAccounts(students));
+
+  safeLocalSet('ananda_students_v1', sanitized);
+  setLocalTimestamp('students', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'students'), {
-      items: students,
-      updatedAt: new Date().toISOString(),
-      count: students.length,
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
     });
     return true;
   } catch (err) {
@@ -61,12 +148,19 @@ export async function cloudSaveStudents(students: Student[]): Promise<boolean> {
 }
 
 export async function cloudSaveInvoices(invoices: FeeInvoice[]): Promise<boolean> {
-  safeLocalSet('ananda_invoices_v1', invoices);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(invoices);
+
+  safeLocalSet('ananda_invoices_v1', sanitized);
+  setLocalTimestamp('invoices', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'invoices'), {
-      items: invoices,
-      updatedAt: new Date().toISOString(),
-      count: invoices.length,
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
     });
     return true;
   } catch (err) {
@@ -76,12 +170,19 @@ export async function cloudSaveInvoices(invoices: FeeInvoice[]): Promise<boolean
 }
 
 export async function cloudSaveAttendance(records: AttendanceRecord[]): Promise<boolean> {
-  safeLocalSet('ananda_attendance_v1', records);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(records);
+
+  safeLocalSet('ananda_attendance_v1', sanitized);
+  setLocalTimestamp('attendance', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'attendance'), {
-      items: records,
-      updatedAt: new Date().toISOString(),
-      count: records.length,
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
     });
     return true;
   } catch (err) {
@@ -91,11 +192,18 @@ export async function cloudSaveAttendance(records: AttendanceRecord[]): Promise<
 }
 
 export async function cloudSaveStaffAttendance(staffData: Record<string, any[]>): Promise<boolean> {
-  safeLocalSet('ananda_staff_attendance_v1', staffData);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(staffData);
+
+  safeLocalSet('ananda_staff_attendance_v1', sanitized);
+  setLocalTimestamp('staff_attendance', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'staff_attendance'), {
-      data: staffData,
-      updatedAt: new Date().toISOString(),
+      data: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
     });
     return true;
   } catch (err) {
@@ -105,11 +213,18 @@ export async function cloudSaveStaffAttendance(staffData: Record<string, any[]>)
 }
 
 export async function cloudSaveNotices(notices: SchoolNotice[]): Promise<boolean> {
-  safeLocalSet('ananda_school_notices_v1', notices);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(notices);
+
+  safeLocalSet('ananda_school_notices_v1', sanitized);
+  setLocalTimestamp('school_notices', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'school_notices'), {
-      items: notices,
-      updatedAt: new Date().toISOString(),
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
     });
     return true;
   } catch (err) {
@@ -119,11 +234,18 @@ export async function cloudSaveNotices(notices: SchoolNotice[]): Promise<boolean
 }
 
 export async function cloudSaveAssets(assets: SchoolAssetItem[]): Promise<boolean> {
-  safeLocalSet('ananda_school_assets_v1', assets);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(assets);
+
+  safeLocalSet('ananda_school_assets_v1', sanitized);
+  setLocalTimestamp('school_assets', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'school_assets'), {
-      items: assets,
-      updatedAt: new Date().toISOString(),
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
     });
     return true;
   } catch (err) {
@@ -133,11 +255,18 @@ export async function cloudSaveAssets(assets: SchoolAssetItem[]): Promise<boolea
 }
 
 export async function cloudSaveProfile(profile: SchoolProfile): Promise<boolean> {
-  safeLocalSet('ananda_school_profile_v1', profile);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(profile);
+
+  safeLocalSet('ananda_school_profile_v1', sanitized);
+  setLocalTimestamp('school_profile', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'school_profile'), {
-      profile,
-      updatedAt: new Date().toISOString(),
+      profile: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
     });
     return true;
   } catch (err) {
@@ -147,11 +276,18 @@ export async function cloudSaveProfile(profile: SchoolProfile): Promise<boolean>
 }
 
 export async function cloudSaveDirectors(directors: CommitteeDirector[]): Promise<boolean> {
-  safeLocalSet('ananda_management_directors_v10', directors);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(directors);
+
+  safeLocalSet('ananda_management_directors_v10', sanitized);
+  setLocalTimestamp('directors', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'directors'), {
-      items: directors,
-      updatedAt: new Date().toISOString(),
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
     });
     return true;
   } catch (err) {
@@ -161,12 +297,19 @@ export async function cloudSaveDirectors(directors: CommitteeDirector[]): Promis
 }
 
 export async function cloudSaveBiometricLogs(logs: BiometricPunchLog[]): Promise<boolean> {
-  safeLocalSet('ananda_biometric_punch_logs_v1', logs);
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+  const sanitized = sanitizeForFirestore(logs);
+
+  safeLocalSet('ananda_biometric_punch_logs_v1', sanitized);
+  setLocalTimestamp('biometric_logs', now);
+
   try {
     await setDoc(doc(db, COLLECTION_NAME, 'biometric_logs'), {
-      items: logs,
-      updatedAt: new Date().toISOString(),
-      count: logs.length,
+      items: sanitized,
+      updatedAt: isoTime,
+      updatedAtMs: now,
+      count: sanitized.length,
     });
     return true;
   } catch (err) {
@@ -189,7 +332,7 @@ export interface CloudSyncListeners {
 
 /**
  * Initializes continuous two-way real-time Firestore listeners for all core datasets.
- * Automatically seeds the cloud with initial data if documents are not yet present.
+ * Includes conflict resolution so newer local edits are never wiped by older cloud data.
  */
 export function subscribeToSchoolCloud(
   listeners: CloudSyncListeners,
@@ -216,11 +359,34 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'students'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) {
+          // Local optimistic write pending server confirmation, skip to prevent jumpiness
+          return;
+        }
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
-            safeLocalSet('ananda_students_v1', data.items);
-            listeners.onStudentsChange?.(data.items);
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('students');
+
+            // If local changes were made MORE RECENTLY than the cloud document,
+            // never wipe local changes! Push local to cloud instead.
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
+              if (existingLocal && existingLocal.length > 0) {
+                console.log('[CloudSync] Local student edits are newer than cloud. Re-syncing to cloud...');
+                cloudSaveStudents(existingLocal);
+                return;
+              }
+            }
+
+            const enriched = enrichStudentsWithPortalAccounts(data.items);
+            safeLocalSet('ananda_students_v1', enriched);
+            if (cloudTimeMs > 0) {
+              setLocalTimestamp('students', cloudTimeMs);
+            }
+            listeners.onStudentsChange?.(enriched);
           }
         } else {
           // Cloud doc is empty: seed from localStorage or initialDefaults
@@ -245,10 +411,24 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'invoices'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('invoices');
+
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<FeeInvoice[]>('ananda_invoices_v1');
+              if (existingLocal && existingLocal.length > 0) {
+                cloudSaveInvoices(existingLocal);
+                return;
+              }
+            }
+
             safeLocalSet('ananda_invoices_v1', data.items);
+            if (cloudTimeMs > 0) setLocalTimestamp('invoices', cloudTimeMs);
             listeners.onInvoicesChange?.(data.items);
           }
         } else {
@@ -273,10 +453,24 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'attendance'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
+            const cloudTimeMs = data.updatedAtMs || (data.updatedAt ? new Date(data.updatedAt).getTime() : 0);
+            const localTimeMs = getLocalTimestamp('attendance');
+
+            if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
+              const existingLocal = safeLocalGet<AttendanceRecord[]>('ananda_attendance_v1');
+              if (existingLocal && existingLocal.length > 0) {
+                cloudSaveAttendance(existingLocal);
+                return;
+              }
+            }
+
             safeLocalSet('ananda_attendance_v1', data.items);
+            if (cloudTimeMs > 0) setLocalTimestamp('attendance', cloudTimeMs);
             listeners.onAttendanceChange?.(data.items);
           }
         } else {
@@ -301,6 +495,8 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'staff_attendance'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (data?.data && typeof data.data === 'object') {
@@ -324,6 +520,8 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'school_notices'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
@@ -351,6 +549,8 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'school_assets'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {
@@ -378,6 +578,8 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'school_profile'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (data?.profile) {
@@ -405,6 +607,8 @@ export function subscribeToSchoolCloud(
       doc(db, COLLECTION_NAME, 'biometric_logs'),
       (snap) => {
         updateStatus(true);
+        if (snap.metadata.hasPendingWrites) return;
+
         if (snap.exists()) {
           const data = snap.data();
           if (Array.isArray(data?.items)) {

@@ -55,9 +55,13 @@ import {
   Image as ImageIcon,
   Fingerprint,
   Radio,
+  RefreshCw,
+  Cloud,
 } from 'lucide-react';
 import { StudentIdCardModal } from './StudentIdCardModal';
 import { StudentProgressCardModal } from './StudentProgressCardModal';
+import { compressImageToDataUrl } from '../utils/imageCompressor';
+import { cloudSaveStudents } from '../lib/schoolCloudSync';
 
 interface StudentDirectoryModuleProps {
   students: Student[];
@@ -173,22 +177,38 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
-  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleForceCloudSync = async () => {
+    setIsCloudSyncing(true);
+    try {
+      const ok = await cloudSaveStudents(students);
+      if (ok) {
+        showToast('✅ সকল শিক্ষার্থীর ডাটা সরাসরি Google Cloud Firestore ডাটাবেজে রিয়েল-টাইম সংরক্ষিত হয়েছে!');
+      } else {
+        showToast('⚠️ ক্লাউড সিঙ্ক ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ চেক করুন।');
+      }
+    } catch {
+      showToast('⚠️ ক্লাউড সিঙ্ক করার সময় ত্রুটি ঘটেছে।');
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
+  const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('⚠️ ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট (5MB) হতে পারবে।');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setFormData((prev) => ({ ...prev, photoUrl: reader.result as string }));
-        showToast('📸 শিক্ষার্থীর ছবি সফলভাবে যুক্ত হয়েছে!');
+    try {
+      const compressed = await compressImageToDataUrl(file, 360, 360, 0.75);
+      if (compressed) {
+        setFormData((prev) => ({ ...prev, photoUrl: compressed }));
+        showToast('📸 শিক্ষার্থীর ছবি সফলভাবে যুক্ত ও অপ্টিমাইজ হয়েছে!');
+      } else {
+        showToast('⚠️ ছবি প্রসেস করা যায়নি।');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      showToast('⚠️ ছবি লোড করতে সমস্যা হয়েছে।');
+    }
     e.target.value = '';
   };
 
@@ -358,11 +378,16 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   };
 
   // Submit Add Student
-  const handleSubmitAdd = (e: React.FormEvent) => {
+  const handleSubmitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nameBn.trim()) {
       showToast('⚠️ অনুগ্রহ করে শিক্ষার্থীর নাম (বাংলায়) পূরণ করুন।');
       return;
+    }
+
+    let photoUrl = formData.photoUrl.trim() || undefined;
+    if (photoUrl && photoUrl.startsWith('data:image') && photoUrl.length > 60000) {
+      photoUrl = await compressImageToDataUrl(photoUrl, 360, 360, 0.75);
     }
 
     const newId = `std-${Date.now()}`;
@@ -408,7 +433,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       currentStatus: formData.currentStatus,
       authorizedPickups: [primaryPickup],
       avatarColor: randomColor,
-      photoUrl: formData.photoUrl.trim() || undefined,
+      photoUrl,
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
@@ -440,17 +465,22 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: newStudent }));
     window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     showToast(
-      `✅ "${newStudent.nameBn}" (${newStudent.className}) যুক্ত হয়েছে এবং ডিজিটাল বায়োমেট্রিক মেশিনে অটো-সিঙ্ক সম্পন্ন হয়েছে!`
+      `✅ "${newStudent.nameBn}" (${newStudent.className}) যুক্ত হয়েছে এবং ডিজিটাল বায়োমেট্রিক ও ক্লাউডে সিঙ্ক সম্পন্ন হয়েছে!`
     );
   };
 
   // Submit Edit Student
-  const handleSubmitEdit = (e: React.FormEvent) => {
+  const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStudent) return;
     if (!formData.nameBn.trim()) {
       showToast('⚠️ অনুগ্রহ করে শিক্ষার্থীর নাম পূরণ করুন।');
       return;
+    }
+
+    let photoUrl = formData.photoUrl.trim() || undefined;
+    if (photoUrl && photoUrl.startsWith('data:image') && photoUrl.length > 60000) {
+      photoUrl = await compressImageToDataUrl(photoUrl, 360, 360, 0.75);
     }
 
     const cleanUsername =
@@ -490,7 +520,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       homeAddressBn: formData.homeAddressBn.trim(),
       currentStatus: formData.currentStatus,
       authorizedPickups: updatedPickups,
-      photoUrl: formData.photoUrl.trim() || undefined,
+      photoUrl,
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
@@ -522,7 +552,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: updatedStudent }));
     window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     showToast(
-      `✅ "${updatedStudent.nameBn}" এর প্রোফাইল, ছবি ও পোর্টাল তথ্য সফলভাবে আপডেট হয়েছে!`
+      `✅ "${updatedStudent.nameBn}" এর প্রোফাইল ও ক্লাউড ডাটা সফলভাবে আপডেট ও সংরক্ষিত হয়েছে!`
     );
   };
 
@@ -631,6 +661,16 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
               <span>CSV এক্সপোর্ট ({filteredStudents.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleForceCloudSync}
+              disabled={isCloudSyncing}
+              className="px-4 py-3 bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-50 active:scale-95 text-white font-bold rounded-2xl text-xs sm:text-sm border border-emerald-400/30 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              title="সকল শিক্ষার্থীর ডাটা সরাসরি Google Cloud Firestore ডাটাবেজে রিয়েল-টাইম সংরক্ষণ করুন"
+            >
+              <RefreshCw className={`w-4 h-4 text-emerald-200 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+              <span>{isCloudSyncing ? 'সিঙ্ক হচ্ছে...' : 'ক্লাউড সিঙ্ক'}</span>
             </button>
             {canEditStudents ? (
               <button

@@ -49,6 +49,7 @@ import {
   cloudSaveStaffAttendance,
   cloudSaveAssets,
   cloudSaveProfile,
+  enrichStudentsWithPortalAccounts,
 } from './lib/schoolCloudSync';
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
@@ -337,13 +338,15 @@ export default function App() {
             (initS) => !parsed.some((p) => p.id === initS.id || p.rollNo === initS.rollNo)
           );
           const updatedList = missing.length > 0 ? [...parsed, ...missing] : parsed;
-          localStorage.setItem('ananda_students_v1', JSON.stringify(updatedList));
-          return updatedList;
+          const enriched = enrichStudentsWithPortalAccounts(updatedList);
+          localStorage.setItem('ananda_students_v1', JSON.stringify(enriched));
+          return enriched;
         }
       }
     } catch {}
-    localStorage.setItem('ananda_students_v1', JSON.stringify(INITIAL_STUDENTS));
-    return INITIAL_STUDENTS;
+    const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
+    localStorage.setItem('ananda_students_v1', JSON.stringify(initialEnriched));
+    return initialEnriched;
   });
   const [pickupLogs, setPickupLogs] = useState<PickupEvent[]>(INITIAL_PICKUP_LOGS);
   const [activityPosts, setActivityPosts] = useState<ActivityPost[]>(INITIAL_ACTIVITY_POSTS);
@@ -674,11 +677,13 @@ export default function App() {
     status: 'in_class' | 'picked_up' | 'absent',
     event?: PickupEvent
   ) => {
-    setStudents((prev) =>
-      prev.map((s) =>
+    setStudents((prev) => {
+      const updated = prev.map((s) =>
         s.id === studentId ? { ...s, currentStatus: status, lastPickupEvent: event } : s
-      )
-    );
+      );
+      cloudSaveStudents(updated);
+      return updated;
+    });
   };
 
   const handleAddPickupLog = (event: PickupEvent) => {
