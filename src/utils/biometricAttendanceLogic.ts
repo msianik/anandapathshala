@@ -9,6 +9,11 @@ import {
 import { toBengaliNumber } from './schoolLogic';
 import { SCHOOL_TEACHERS, INITIAL_STAFF_ATTENDANCE } from '../data/mockData';
 import { cloudSaveAttendance, cloudSaveStaffAttendance, cloudSaveBiometricLogs } from '../lib/schoolCloudSync';
+import {
+  REAL_DEVICE_BIOMETRIC_LOGS,
+  REAL_DEVICE_STUDENT_ATTENDANCE,
+  REAL_DEVICE_STAFF_ATTENDANCE,
+} from '../data/realBiometricInitialData';
 
 const BIOMETRIC_CONFIG_KEY = 'ap_biometric_device_config_v1';
 const BIOMETRIC_LOGS_KEY = 'ap_biometric_punch_logs_v1';
@@ -40,8 +45,8 @@ export const DEFAULT_BIOMETRIC_CONFIG: BiometricDeviceConfig = {
   cloudMorningSchedulerTime: '08:30',
 };
 
-// Real biometric punch logs list (empty initial state for live physical machine operation)
-export const INITIAL_BIOMETRIC_PUNCH_LOGS: BiometricPunchLog[] = [];
+// Real biometric punch logs list populated from ZKTeco SenseFP M1 physical machine records
+export const INITIAL_BIOMETRIC_PUNCH_LOGS: BiometricPunchLog[] = REAL_DEVICE_BIOMETRIC_LOGS;
 
 // In-memory fallback for environments without localStorage (e.g. SSR or Node tests)
 const memoryStore: Record<string, string> = {};
@@ -117,7 +122,7 @@ export function getBiometricLogs(): BiometricPunchLog[] {
   try {
     const raw = safeGetItem(BIOMETRIC_LOGS_KEY) || safeGetItem('ananda_biometric_punch_logs_v1');
     if (!raw) {
-      return [];
+      return REAL_DEVICE_BIOMETRIC_LOGS;
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
@@ -125,14 +130,18 @@ export function getBiometricLogs(): BiometricPunchLog[] {
       const cleanLogs = parsed.filter(
         (l) => l && l.id && !l.id.startsWith('bio-log-') && !l.dateStr?.includes('০৮ নভেম্বর ২০২৬')
       );
+      if (cleanLogs.length === 0 && REAL_DEVICE_BIOMETRIC_LOGS.length > 0) {
+        saveBiometricLogs(REAL_DEVICE_BIOMETRIC_LOGS);
+        return REAL_DEVICE_BIOMETRIC_LOGS;
+      }
       if (cleanLogs.length !== parsed.length) {
         saveBiometricLogs(cleanLogs);
       }
       return cleanLogs;
     }
-    return [];
+    return REAL_DEVICE_BIOMETRIC_LOGS;
   } catch {
-    return [];
+    return REAL_DEVICE_BIOMETRIC_LOGS;
   }
 }
 
@@ -146,7 +155,7 @@ export function purgeMockAttendanceAndResetRealMode(): {
   messageBn: string;
 } {
   try {
-    // 1. Purge biometric punch logs
+    // 1. Purge obsolete mock logs and initialize with real physical device punch logs
     const rawLogs = safeGetItem(BIOMETRIC_LOGS_KEY) || safeGetItem('ananda_biometric_punch_logs_v1');
     let punchCount = 0;
     if (rawLogs) {
@@ -155,11 +164,11 @@ export function purgeMockAttendanceAndResetRealMode(): {
         punchCount = Array.isArray(parsed) ? parsed.length : 0;
       } catch {}
     }
-    safeSetItem(BIOMETRIC_LOGS_KEY, '[]');
-    safeSetItem('ananda_biometric_punch_logs_v1', '[]');
-    cloudSaveBiometricLogs([]);
+    safeSetItem(BIOMETRIC_LOGS_KEY, JSON.stringify(REAL_DEVICE_BIOMETRIC_LOGS));
+    safeSetItem('ananda_biometric_punch_logs_v1', JSON.stringify(REAL_DEVICE_BIOMETRIC_LOGS));
+    cloudSaveBiometricLogs(REAL_DEVICE_BIOMETRIC_LOGS);
 
-    // 2. Reset student attendance to clean empty state (waiting for real machine punches)
+    // 2. Reset student attendance to real device student attendance
     const rawAtt = safeGetItem('ananda_attendance_v1');
     let attCount = 0;
     if (rawAtt) {
@@ -168,14 +177,13 @@ export function purgeMockAttendanceAndResetRealMode(): {
         attCount = Array.isArray(parsed) ? parsed.length : 0;
       } catch {}
     }
-    safeSetItem('ananda_attendance_v1', '[]');
-    cloudSaveAttendance([]);
+    safeSetItem('ananda_attendance_v1', JSON.stringify(REAL_DEVICE_STUDENT_ATTENDANCE));
+    cloudSaveAttendance(REAL_DEVICE_STUDENT_ATTENDANCE);
 
-    // 3. Reset staff attendance to clean absent state
+    // 3. Reset staff attendance to real device staff attendance
     const todayStr = new Date().toISOString().split('T')[0];
-    const cleanStaffAttendance = INITIAL_STAFF_ATTENDANCE;
     const staffStorage: Record<string, any> = {};
-    staffStorage[todayStr] = cleanStaffAttendance;
+    staffStorage[todayStr] = REAL_DEVICE_STAFF_ATTENDANCE;
     safeSetItem('ananda_staff_attendance_v1', JSON.stringify(staffStorage));
     cloudSaveStaffAttendance(staffStorage);
 
@@ -184,8 +192,8 @@ export function purgeMockAttendanceAndResetRealMode(): {
 
     // 5. Dispatch UI update events
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: [] } }));
-      window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: { records: [] } }));
+      window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: REAL_DEVICE_BIOMETRIC_LOGS } }));
+      window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: { records: REAL_DEVICE_STUDENT_ATTENDANCE } }));
       window.dispatchEvent(new CustomEvent('ananda_staff_data_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
       window.dispatchEvent(new CustomEvent('ananda_staff_changed', { detail: { type: 'attendance', dateStr: todayStr } }));
     }

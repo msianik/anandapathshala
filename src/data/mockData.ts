@@ -17,6 +17,7 @@ import {
   SchoolAssetItem,
 } from '../types/school';
 import { ZLINK_SYNCED_TEACHERS, ZLINK_SYNCED_STUDENTS } from './zlinkRosterData';
+import { REAL_DEVICE_STUDENT_ATTENDANCE, REAL_DEVICE_STAFF_ATTENDANCE } from './realBiometricInitialData';
 
 export const SCHOOL_PROFILE = {
   nameBn: 'আনন্দ পাঠশালা',
@@ -841,7 +842,7 @@ export const INITIAL_INVOICES: FeeInvoice[] = [
   },
 ];
 
-export const INITIAL_ATTENDANCE: AttendanceRecord[] = [];
+export const INITIAL_ATTENDANCE: AttendanceRecord[] = REAL_DEVICE_STUDENT_ATTENDANCE;
 
 export const INITIAL_ADMISSIONS: AdmissionApplication[] = [
   {
@@ -1356,30 +1357,7 @@ export const INITIAL_SCHOOL_NOTICES: SchoolNotice[] = [
   },
 ];
 
-export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = ZLINK_SYNCED_TEACHERS.map((teacher, index) => {
-  return {
-    id: `stf-att-${index + 1}`,
-    teacherId: teacher.id,
-    teacherNameBn: teacher.nameBn,
-    teacherNameEn: teacher.nameEn,
-    designationBn: teacher.designationBn,
-    departmentBn: teacher.departmentBn,
-    photoUrl: teacher.photoUrl,
-    phone: teacher.phone,
-    date: new Date().toISOString().split('T')[0],
-    dateBn: new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
-    checkInTime: undefined,
-    checkInTimestamp: undefined,
-    checkOutTime: undefined,
-    checkOutTimestamp: undefined,
-    status: 'absent' as const,
-    checkInMethod: 'biometric' as const,
-    remarksBn: 'এখনও ডিজিটাল পাঞ্চ করেননি (অপেক্ষমাণ)',
-    isLate: false,
-    lateMinutes: undefined,
-    biometricSynced: false,
-  };
-});
+export const INITIAL_STAFF_ATTENDANCE: StaffAttendanceRecord[] = REAL_DEVICE_STAFF_ATTENDANCE;
 
 export const INITIAL_SCHOOL_ASSETS: SchoolAssetItem[] = [
   {

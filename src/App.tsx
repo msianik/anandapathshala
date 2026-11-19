@@ -41,7 +41,15 @@ import {
   getPermissionForDirector,
   ALL_PORTAL_MODULE_IDS,
 } from './utils/schoolLogic';
-import { syncStudentToBiometricDevice, purgeMockAttendanceAndResetRealMode } from './utils/biometricAttendanceLogic';
+import {
+  syncStudentToBiometricDevice,
+  purgeMockAttendanceAndResetRealMode,
+  parseBiometricMachineFile,
+  getBiometricLogs,
+  saveBiometricLogs,
+  syncBiometricAttendanceData,
+} from './utils/biometricAttendanceLogic';
+import { REAL_DEVICE_STUDENT_ATTENDANCE } from './data/realBiometricInitialData';
 import {
   subscribeToSchoolCloud,
   cloudSaveStudents,
@@ -414,7 +422,12 @@ export default function App() {
           setInvoices(cloudInvoices);
         },
         onAttendanceChange: (cloudAttendance) => {
-          setAttendanceRecords(cloudAttendance);
+          if (Array.isArray(cloudAttendance) && cloudAttendance.length > 0) {
+            setAttendanceRecords(cloudAttendance);
+          } else {
+            setAttendanceRecords(REAL_DEVICE_STUDENT_ATTENDANCE);
+            cloudSaveAttendance(REAL_DEVICE_STUDENT_ATTENDANCE);
+          }
         },
         onNoticesChange: (cloudNotices) => {
           setNotices(cloudNotices);
@@ -469,7 +482,7 @@ export default function App() {
         if (hasMockAtt || hasMockBio) {
           console.log('[RealAttendanceMode] Purging obsolete mock attendance data...');
           purgeMockAttendanceAndResetRealMode();
-          setAttendanceRecords([]);
+          setAttendanceRecords(REAL_DEVICE_STUDENT_ATTENDANCE);
         } else {
           localStorage.setItem(modeKey, 'true');
         }
@@ -617,28 +630,82 @@ export default function App() {
 
     const runPeriodicAttendanceSync = async () => {
       try {
-        console.log('[CloudSync] Automatic real attendance cloud sync running...');
+        console.log('[CloudSync] Automatic real biometric attendance sync running...');
+
+        // 1. Fetch latest physical machine biometric logs from endpoint / json
+        try {
+          const resp = await fetch(`/attendance_synced_logs.json?t=${Date.now()}`);
+          if (resp.ok) {
+            const fileText = await resp.text();
+            if (fileText && fileText.trim().length > 0) {
+              const parsed = parseBiometricMachineFile(fileText, students);
+              if (parsed && parsed.newLogs && parsed.newLogs.length > 0) {
+                const currentLogs = getBiometricLogs();
+                const existingIds = new Set(currentLogs.map((l) => `${l.enrollId}_${l.timestamp}`));
+                const incomingNew = parsed.newLogs.filter(
+                  (l) => !existingIds.has(`${l.enrollId}_${l.timestamp}`)
+                );
+                if (incomingNew.length > 0) {
+                  const mergedLogs = [...incomingNew, ...currentLogs];
+                  saveBiometricLogs(mergedLogs);
+                  await cloudSaveBiometricLogs(mergedLogs);
+
+                  // Recalculate attendance
+                  const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
+                  let staffList: any[] = [];
+                  if (rawStaffAtt) {
+                    try {
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const staffObj = JSON.parse(rawStaffAtt);
+                      staffList = staffObj[todayStr] || [];
+                    } catch {}
+                  }
+                  const syncResult = syncBiometricAttendanceData({
+                    students,
+                    staffList,
+                    existingAttendance:
+                      attendanceRecords.length > 0 ? attendanceRecords : REAL_DEVICE_STUDENT_ATTENDANCE,
+                    existingStaffAttendance: staffList,
+                  });
+                  if (syncResult.updatedAttendance && syncResult.updatedAttendance.length > 0) {
+                    setAttendanceRecords(syncResult.updatedAttendance);
+                    localStorage.setItem('ananda_attendance_v1', JSON.stringify(syncResult.updatedAttendance));
+                    await cloudSaveAttendance(syncResult.updatedAttendance);
+                  }
+                }
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.log('[CloudSync] Physical machine log file check:', fetchErr);
+        }
+
+        // 2. Ensure current student attendance is saved to Cloud Firestore
         const rawAtt = localStorage.getItem('ananda_attendance_v1');
         if (rawAtt) {
           const parsed = JSON.parse(rawAtt);
           if (Array.isArray(parsed) && parsed.length > 0) {
             await cloudSaveAttendance(parsed);
+          } else {
+            await cloudSaveAttendance(REAL_DEVICE_STUDENT_ATTENDANCE);
           }
+        } else {
+          await cloudSaveAttendance(REAL_DEVICE_STUDENT_ATTENDANCE);
         }
+
+        // 3. Ensure staff attendance is saved to Cloud Firestore
         const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
         if (rawStaffAtt) {
           const parsedStaff = JSON.parse(rawStaffAtt);
           await cloudSaveStaffAttendance(parsedStaff);
         }
-        const rawBio =
-          localStorage.getItem('ap_biometric_punch_logs_v1') ||
-          localStorage.getItem('ananda_biometric_punch_logs_v1');
-        if (rawBio) {
-          const parsedBio = JSON.parse(rawBio);
-          if (Array.isArray(parsedBio) && parsedBio.length > 0) {
-            await cloudSaveBiometricLogs(parsedBio);
-          }
+
+        // 4. Ensure biometric logs are saved to Cloud Firestore
+        const currentBioLogs = getBiometricLogs();
+        if (currentBioLogs.length > 0) {
+          await cloudSaveBiometricLogs(currentBioLogs);
         }
+
         setCloudSyncInfo({
           isConnected: true,
           lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (অটো ক্লাউড সিঙ্ক)`,
