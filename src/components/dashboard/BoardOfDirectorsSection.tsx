@@ -70,16 +70,6 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
             আনন্দ পাঠশালার ট্রাস্টি ও পরিচালনা পর্ষদ সদস্যবৃন্দ
           </p>
-
-          {/* Quick Metrics Strip */}
-          <div className="flex items-center gap-2 pt-1 flex-wrap text-[11px]">
-            <span className="px-2.5 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold">
-              সদস্য: {directorsList.length} জন
-            </span>
-            <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
-              বাণী: {directorsList.filter((d) => d.messageBn).length} টি
-            </span>
-          </div>
         </div>
 
         {/* Action Buttons Toolbar */}
@@ -265,18 +255,20 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                 </div>
               </div>
 
-              {/* Message from the Director */}
-              <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3 space-y-1 relative">
-                <div className="flex items-center justify-between text-[10.5px] font-black text-amber-950 border-b border-amber-200/60 pb-1">
-                  <span className="flex items-center gap-1">
-                    <Quote className="w-3.5 h-3.5 text-amber-700" />
-                    <span>পরিচালকের বাণী:</span>
-                  </span>
+              {/* Message from the Director (Only for non-chairman directors, since Chairman's message is already spotlighted prominently above) */}
+              {!dir.isChairman && dir.messageBn && (
+                <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3 space-y-1 relative">
+                  <div className="flex items-center justify-between text-[10.5px] font-black text-amber-950 border-b border-amber-200/60 pb-1">
+                    <span className="flex items-center gap-1">
+                      <Quote className="w-3.5 h-3.5 text-amber-700" />
+                      <span>পরিচালকের বাণী:</span>
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-sans line-clamp-3 italic">
+                    “{dir.messageBn}”
+                  </p>
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed font-sans line-clamp-3 italic">
-                  “{dir.messageBn || 'বাণী যুক্ত করা হয়নি।'}”
-                </p>
-              </div>
+              )}
             </div>
 
             {/* Admin Card Action Buttons */}
