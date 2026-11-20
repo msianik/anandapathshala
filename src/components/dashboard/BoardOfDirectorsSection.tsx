@@ -146,11 +146,14 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
       })()}
 
       {/* Grid of Other Directors in Board Management View (Excludes Chairman as he is featured above) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {directorsList.filter((dir) => !dir.isChairman).map((dir) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {directorsList
+          .filter((dir) => !dir.isChairman)
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .map((dir) => (
           <div
             key={dir.id}
-            className="p-5 rounded-2xl border-2 border-amber-200/90 bg-gradient-to-b from-amber-50/30 via-white to-white flex flex-col justify-between space-y-4 hover:border-amber-400 hover:shadow-md transition-all shadow-2xs relative group"
+            className="p-4 sm:p-5 rounded-2xl border-2 border-amber-200/90 bg-gradient-to-b from-amber-50/30 via-white to-white flex flex-col justify-between space-y-4 hover:border-amber-400 hover:shadow-md transition-all shadow-2xs relative group"
           >
             <div className="space-y-3.5">
               {/* Header Badges: Role, Portal Account Role & Login ID */}
