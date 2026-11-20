@@ -437,6 +437,90 @@ export function normalizeIdentifier(input: string): string {
 /**
  * Returns the live list of all PortalAccounts across Directors, Principal, Teachers, Support Staff, and Students/Parents.
  */
+/**
+ * Sanitizes any directors list so that it strictly contains ONLY the 5 official individuals:
+ * 1. আল নোমান (Chairman / President, dir-4)
+ * 2. আলী আদনান (Founder & Director, dir-1)
+ * 3. সাম্মী আক্তার (Director, dir-2)
+ * 4. মোস্তফা আল মামুন (Director & Secretary, dir-3, Admin)
+ * 5. এম এস আই অনিক (Super Admin & IT Head, dir-5)
+ *
+ * Removes any rogue directors (e.g. duplicate "মো. মামুন", stray IDs, etc.)
+ */
+export function sanitizeDirectorsList(rawList?: any[]): CommitteeDirector[] {
+  const officialMap = new Map<string, CommitteeDirector>();
+  for (const dir of MANAGEMENT_COMMITTEE) {
+    officialMap.set(dir.id, { ...dir });
+  }
+
+  if (Array.isArray(rawList) && rawList.length > 0) {
+    for (const item of rawList) {
+      if (!item) continue;
+      let targetId: string | null = null;
+      if (item.id === 'dir-4' || item.username === 'noman') targetId = 'dir-4';
+      else if (item.id === 'dir-1' || item.username === 'adnan') targetId = 'dir-1';
+      else if (item.id === 'dir-2' || item.username === 'summy') targetId = 'dir-2';
+      else if (
+        item.id === 'dir-3' ||
+        item.username === 'mamun' ||
+        item.username === 'superadmin' ||
+        (item.nameBn && (item.nameBn.includes('মামুন') || item.nameBn.includes('মোস্তফা')))
+      ) {
+        targetId = 'dir-3';
+      } else if (
+        item.id === 'dir-5' ||
+        item.username === 'anik' ||
+        item.portalRole === 'super_admin' ||
+        (item.nameBn && item.nameBn.includes('অনিক'))
+      ) {
+        targetId = 'dir-5';
+      }
+
+      if (targetId && officialMap.has(targetId)) {
+        const defaultDir = officialMap.get(targetId)!;
+        officialMap.set(targetId, {
+          ...defaultDir,
+          ...item,
+          id: targetId,
+          roleBn: defaultDir.roleBn,
+          portalRole: defaultDir.portalRole,
+          nameBn: defaultDir.nameBn,
+          nameEn: defaultDir.nameEn,
+          username: defaultDir.username,
+        });
+      }
+    }
+  }
+
+  // Always return the exact 5 official directors in strictly defined order
+  const sanitized = [
+    officialMap.get('dir-4')!, // আল নোমান (Chairman)
+    officialMap.get('dir-1')!, // আলী আদনান (Founder & Director)
+    officialMap.get('dir-2')!, // সাম্মী আক্তার (Director)
+    officialMap.get('dir-3')!, // মোস্তফা আল মামুন (Director & Secretary, Admin)
+    officialMap.get('dir-5')!, // এম এস আই অনিক (Super Admin & IT Head)
+  ];
+
+  // Self-heal localStorage in browser if corrupted or containing extra directors
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('ananda_management_directors_v10');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          !Array.isArray(parsed) ||
+          parsed.length !== 5 ||
+          parsed.some((p) => !['dir-4', 'dir-1', 'dir-2', 'dir-3', 'dir-5'].includes(p?.id))
+        ) {
+          localStorage.setItem('ananda_management_directors_v10', JSON.stringify(sanitized));
+        }
+      }
+    } catch {}
+  }
+
+  return sanitized;
+}
+
 export function getAllPortalAccounts(): PortalAccount[] {
   const accountMap = new Map<string, PortalAccount>();
 
@@ -445,38 +529,60 @@ export function getAllPortalAccounts(): PortalAccount[] {
     accountMap.set(acc.id, { ...acc });
   }
 
-  // 2. Load Directors from localStorage or MANAGEMENT_COMMITTEE
-  let directors: CommitteeDirector[] = MANAGEMENT_COMMITTEE;
+  // 2. Load Directors from localStorage or MANAGEMENT_COMMITTEE (sanitized to 5 official directors)
+  let rawDirectors: CommitteeDirector[] = MANAGEMENT_COMMITTEE;
   if (typeof window !== 'undefined') {
     try {
       const rawDirs = localStorage.getItem('ananda_management_directors_v10');
       if (rawDirs) {
         const parsed = JSON.parse(rawDirs);
-        if (Array.isArray(parsed) && parsed.length > 0) directors = parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) rawDirectors = parsed;
       }
     } catch {}
   }
+  const directors = sanitizeDirectorsList(rawDirectors);
 
   for (const dir of directors) {
     const isDir5 = dir.id === 'dir-5' || dir.username === 'anik' || dir.portalRole === 'super_admin';
     const isDir3 = dir.id === 'dir-3' || dir.username === 'mamun' || dir.username === 'superadmin';
+    const isDir4 = dir.id === 'dir-4' || dir.username === 'noman';
+    const isDir1 = dir.id === 'dir-1' || dir.username === 'adnan';
+    const isDir2 = dir.id === 'dir-2' || dir.username === 'summy';
+
     const role: PortalAccountRole = isDir5
       ? 'super_admin'
       : isDir3
       ? 'admin'
-      : (dir.portalRole as PortalAccountRole) || 'director';
-    const cleanPhone = normalizeIdentifier(dir.phone || (isDir5 ? '01914057511' : '01788990011'));
-    const username =
-      dir.username?.trim() ||
-      (isDir5
-        ? 'anik'
-        : isDir3
-        ? 'mamun'
-        : dir.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || `dir_${dir.id}`);
+      : 'director';
 
-    // Find if there's an existing seeded account for this directorId
-    const existingEntry = Array.from(accountMap.values()).find((a) => a.directorId === dir.id);
-    const accId = existingEntry?.id || (isDir5 ? 'acc-super-admin' : isDir3 ? 'acc-admin-mamun' : `acc-dir-${dir.id}`);
+    const cleanPhone = normalizeIdentifier(
+      dir.phone || (isDir5 ? '01914057511' : isDir3 ? '01788990011' : '01711223344')
+    );
+    const username = isDir5
+      ? 'anik'
+      : isDir3
+      ? 'mamun'
+      : isDir4
+      ? 'noman'
+      : isDir1
+      ? 'adnan'
+      : isDir2
+      ? 'summy'
+      : dir.username;
+
+    const accId = isDir5
+      ? 'acc-super-admin'
+      : isDir3
+      ? 'acc-admin-mamun'
+      : isDir4
+      ? 'acc-dir-noman'
+      : isDir1
+      ? 'acc-dir-adnan'
+      : isDir2
+      ? 'acc-dir-summy'
+      : `acc-dir-${dir.id}`;
+
+    const existingEntry = accountMap.get(accId);
 
     accountMap.set(accId, {
       id: accId,
@@ -512,8 +618,21 @@ export function getAllPortalAccounts(): PortalAccount[] {
   }
 
   for (const tch of teachers) {
-    // Skip Mostofa Al Mamun if already registered as Super Admin
-    if (tch.username === 'superadmin' || tch.portalRole === 'super_admin') continue;
+    // Skip if already registered as Director / Admin / Super Admin (Mostofa Al Mamun or Principal or MSI Anik)
+    if (
+      tch.username === 'superadmin' ||
+      tch.portalRole === 'super_admin' ||
+      tch.username === 'mamun' ||
+      tch.id === 'tch-admin' ||
+      (tch.nameBn && tch.nameBn.includes('মামুন')) ||
+      tch.id === 'tch-principal' ||
+      tch.username === 'principal' ||
+      (tch.nameBn && tch.nameBn.includes('শাফী আব্দুল্লাহ')) ||
+      tch.username === 'anik' ||
+      (tch.nameBn && tch.nameBn.includes('অনিক'))
+    ) {
+      continue;
+    }
 
     const role: PortalAccountRole =
       tch.portalRole ||
@@ -607,8 +726,32 @@ export function getAllPortalAccounts(): PortalAccount[] {
       if (rawCustom) {
         const customList: PortalAccount[] = JSON.parse(rawCustom);
         if (Array.isArray(customList)) {
+          let hasDirtyCustom = false;
+          const cleanedCustom: PortalAccount[] = [];
           for (const customAcc of customList) {
+            // Discard any rogue/duplicate director, admin, or principal custom accounts
+            const isRogueMamun =
+              (customAcc.nameBn?.includes('মামুন') || customAcc.username === 'mamun') &&
+              customAcc.id !== 'acc-admin-mamun';
+            const isRoguePrincipal =
+              (customAcc.nameBn?.includes('শাফী') || customAcc.username === 'principal') &&
+              customAcc.id !== 'acc-principal';
+            const isRogueAnik =
+              (customAcc.nameBn?.includes('অনিক') || customAcc.username === 'anik') &&
+              customAcc.id !== 'acc-super-admin';
+            const isInvalidDirector =
+              customAcc.directorId &&
+              !['dir-4', 'dir-1', 'dir-2', 'dir-3', 'dir-5'].includes(customAcc.directorId);
+
+            if (isRogueMamun || isRoguePrincipal || isRogueAnik || isInvalidDirector) {
+              hasDirtyCustom = true;
+              continue;
+            }
+            cleanedCustom.push(customAcc);
             accountMap.set(customAcc.id, customAcc);
+          }
+          if (hasDirtyCustom) {
+            localStorage.setItem(PORTAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(cleanedCustom));
           }
         }
       }
@@ -619,15 +762,77 @@ export function getAllPortalAccounts(): PortalAccount[] {
     }
   }
 
-  // 6. Filter out any explicitly deleted accounts
+  // 6. Guarantee official roles & deduplicate
+  // Explicitly purge ANY duplicate accounts for Mostofa Al Mamun, Shafee Abdullah, and MSI Anik
+  for (const [key, acc] of Array.from(accountMap.entries())) {
+    if (key !== 'acc-admin-mamun') {
+      if (
+        acc.username === 'mamun' ||
+        acc.directorId === 'dir-3' ||
+        (acc.nameBn && (acc.nameBn.includes('মামুন') || acc.nameBn.includes('মোস্তফা আল মামুন')))
+      ) {
+        accountMap.delete(key);
+      }
+    }
+    if (key !== 'acc-principal') {
+      if (acc.username === 'principal' || (acc.nameBn && acc.nameBn.includes('শাফী আব্দুল্লাহ'))) {
+        accountMap.delete(key);
+      }
+    }
+    if (key !== 'acc-super-admin') {
+      if (acc.username === 'anik' || acc.directorId === 'dir-5' || (acc.nameBn && acc.nameBn.includes('অনিক'))) {
+        accountMap.delete(key);
+      }
+    }
+  }
+
+  const mamunAcc = accountMap.get('acc-admin-mamun');
+  if (mamunAcc) {
+    mamunAcc.role = 'admin';
+    mamunAcc.nameBn = 'মোস্তফা আল মামুন';
+    mamunAcc.nameEn = 'Mostofa Al Mamun';
+    mamunAcc.username = 'mamun';
+    mamunAcc.directorId = 'dir-3';
+    mamunAcc.roleTitleBn = 'অ্যাডমিন · পরিচালক ও সদস্য সচিব (Director & Secretary)';
+  }
+
+  const principalAcc = accountMap.get('acc-principal');
+  if (principalAcc) {
+    principalAcc.role = 'admin';
+    principalAcc.nameBn = 'শাফী আব্দুল্লাহ';
+    principalAcc.username = 'principal';
+    principalAcc.directorId = undefined; // Strictly Principal & Admin
+    principalAcc.roleTitleBn = 'অ্যাডমিন ও প্রিন্সিপাল (Principal & Admin)';
+  }
+
+  const anikAcc = accountMap.get('acc-super-admin');
+  if (anikAcc) {
+    anikAcc.role = 'super_admin';
+    anikAcc.nameBn = 'এম এস আই অনিক';
+    anikAcc.username = 'anik';
+    anikAcc.directorId = 'dir-5';
+    anikAcc.roleTitleBn = 'সুপার অ্যাডমিন · সম্মানিত পরিচালক ও আইটি হেড';
+  }
+
+  // 7. Filter out any explicitly deleted accounts
   const deletedIds = getDeletedPortalAccountIds();
+  const seenUsernames = new Set<string>();
   const result: PortalAccount[] = [];
+
   for (const acc of accountMap.values()) {
     // Super admin can never be deleted
-    if (acc.role === 'super_admin' || acc.username === 'anik' || acc.username === 'superadmin' || acc.id === 'acc-super-admin' || acc.id === 'acc-superadmin') {
-      result.push(acc);
+    if (
+      acc.role === 'super_admin' ||
+      acc.username === 'anik' ||
+      acc.id === 'acc-super-admin'
+    ) {
+      if (!seenUsernames.has(acc.username)) {
+        seenUsernames.add(acc.username);
+        result.push(acc);
+      }
       continue;
     }
+
     if (deletedIds.includes(acc.id) || deletedIds.includes(acc.username)) {
       continue;
     }
@@ -637,10 +842,17 @@ export function getAllPortalAccounts(): PortalAccount[] {
     if (acc.studentId && deletedIds.includes(acc.studentId)) {
       continue;
     }
+
+    // Deduplicate by username
+    if (seenUsernames.has(acc.username)) {
+      continue;
+    }
+    seenUsernames.add(acc.username);
     result.push(acc);
   }
 
   return result;
+}
 }
 
 let memoryCustomAccounts: PortalAccount[] = [];

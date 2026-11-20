@@ -30,6 +30,7 @@ import {
   getPortalRoleLabelBn,
   getPortalNameForRoleBn,
   normalizeIdentifier,
+  sanitizeDirectorsList,
 } from '../utils/schoolLogic';
 import {
   getStoredStaffMembers,
@@ -498,27 +499,28 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     }
   };
 
-  // Directors Management State
+  // Directors Management State (Guaranteed exactly the 5 official board members)
   const [directorsList, setDirectorsList] = useState<CommitteeDirector[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('ananda_management_directors_v10');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return sanitizeDirectorsList(parsed);
         }
       } catch {}
     }
-    return MANAGEMENT_COMMITTEE;
+    return sanitizeDirectorsList(MANAGEMENT_COMMITTEE);
   });
 
   const persistDirectorsList = (updated: CommitteeDirector[]) => {
-    setDirectorsList(updated);
+    const sanitized = sanitizeDirectorsList(updated);
+    setDirectorsList(sanitized);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('ananda_management_directors_v10', JSON.stringify(updated));
+        localStorage.setItem('ananda_management_directors_v10', JSON.stringify(sanitized));
         window.dispatchEvent(
-          new CustomEvent('ananda-directors-updated', { detail: { directors: updated } })
+          new CustomEvent('ananda-directors-updated', { detail: { directors: sanitized } })
         );
       } catch {}
     }
@@ -528,7 +530,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     const handleSyncDirectors = (e: Event) => {
       const customEv = e as CustomEvent<{ directors?: CommitteeDirector[] }>;
       if (customEv.detail?.directors) {
-        setDirectorsList(customEv.detail.directors);
+        setDirectorsList(sanitizeDirectorsList(customEv.detail.directors));
       }
     };
     window.addEventListener('ananda-directors-updated', handleSyncDirectors);

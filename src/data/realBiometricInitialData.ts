@@ -16220,7 +16220,7 @@ export const REAL_DEVICE_STAFF_ATTENDANCE: StaffAttendanceRecord[] = [
   {
     "id": "stf-att-19",
     "teacherId": "tch-admin",
-    "teacherNameBn": "গোলাম মোস্তফা মামুন",
+    "teacherNameBn": "মোস্তফা আল মামুন",
     "teacherNameEn": "Golam Mostofa Mamun",
     "designationBn": "প্রশাসনিক কর্মকর্তা ও অ্যাডমিন (Admin)",
     "departmentBn": "প্রশাসন, ভর্তি ও শিক্ষার্থী সেবা দপ্তর",

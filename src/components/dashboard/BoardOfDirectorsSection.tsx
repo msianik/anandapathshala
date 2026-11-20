@@ -179,7 +179,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                     রোল:{' '}
                     {getPortalRoleLabelBn(
                       dir.portalRole ||
-                        (dir.id === 'dir-3' ? 'super_admin' : 'director')
+                        (dir.id === 'dir-5' ? 'super_admin' : dir.id === 'dir-3' ? 'admin' : 'director')
                     )}
                   </span>
                   {dir.username && (

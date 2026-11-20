@@ -56,6 +56,7 @@ import {
   getPortalRoleLabelBn,
   getSchoolClassNameBn,
   normalizeIdentifier,
+  sanitizeDirectorsList,
 } from '../../utils/schoolLogic';
 import {
   INITIAL_STUDENTS,
@@ -131,15 +132,15 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   }, [propTeachers]);
 
   const availableDirectors = useMemo<CommitteeDirector[]>(() => {
-    if (propDirectors && propDirectors.length > 0) return propDirectors;
+    if (propDirectors && propDirectors.length > 0) return sanitizeDirectorsList(propDirectors);
     try {
       const raw = localStorage.getItem('ananda_management_directors_v10');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeDirectorsList(parsed);
       }
     } catch {}
-    return MANAGEMENT_COMMITTEE;
+    return sanitizeDirectorsList(MANAGEMENT_COMMITTEE);
   }, [propDirectors]);
 
   // Expandable dropdown state (defaults to false so the overview dashboard stays compact)
@@ -332,8 +333,26 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   // Filter accounts
   const filteredAccounts = accounts.filter((acc) => {
     // Role filter
-    if (activeTab === 'director' && acc.role !== 'director' && acc.role !== 'super_admin' && acc.role !== 'admin') return false;
-    if (activeTab === 'principal' && acc.role !== 'principal' && acc.role !== 'admin') return false;
+    if (activeTab === 'director') {
+      const isBoardDirector =
+        acc.id === 'acc-super-admin' ||
+        acc.id === 'acc-admin-mamun' ||
+        acc.id === 'acc-dir-noman' ||
+        acc.id === 'acc-dir-adnan' ||
+        acc.id === 'acc-dir-summy' ||
+        (acc.directorId && ['dir-4', 'dir-1', 'dir-2', 'dir-3', 'dir-5'].includes(acc.directorId)) ||
+        ['anik', 'mamun', 'noman', 'adnan', 'summy'].includes(acc.username);
+
+      // Principal (Shafee Abdullah) is strictly principal; not board director
+      if (!isBoardDirector || acc.id === 'acc-principal' || acc.username === 'principal') {
+        return false;
+      }
+    }
+    if (activeTab === 'principal') {
+      if (acc.id !== 'acc-principal' && acc.username !== 'principal' && acc.role !== 'principal') {
+        return false;
+      }
+    }
     if (activeTab === 'teacher' && acc.role !== 'teacher') return false;
     if (activeTab === 'staff' && acc.role !== 'accountant' && acc.role !== 'gate_security') return false;
     if (activeTab === 'parent' && acc.role !== 'parent') return false;
@@ -368,8 +387,21 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   // Role Counts
   const counts = {
     all: accounts.length,
-    director: accounts.filter((a) => a.role === 'director' || a.role === 'super_admin').length,
-    principal: accounts.filter((a) => a.role === 'principal').length,
+    director: accounts.filter((a) => {
+      if (a.id === 'acc-principal' || a.username === 'principal') return false;
+      return (
+        a.id === 'acc-super-admin' ||
+        a.id === 'acc-admin-mamun' ||
+        a.id === 'acc-dir-noman' ||
+        a.id === 'acc-dir-adnan' ||
+        a.id === 'acc-dir-summy' ||
+        (a.directorId && ['dir-4', 'dir-1', 'dir-2', 'dir-3', 'dir-5'].includes(a.directorId)) ||
+        ['anik', 'mamun', 'noman', 'adnan', 'summy'].includes(a.username)
+      );
+    }).length,
+    principal: accounts.filter(
+      (a) => a.id === 'acc-principal' || a.username === 'principal' || a.role === 'principal'
+    ).length,
     teacher: accounts.filter((a) => a.role === 'teacher').length,
     staff: accounts.filter((a) => a.role === 'accountant' || a.role === 'gate_security').length,
     parent: accounts.filter((a) => a.role === 'parent').length,

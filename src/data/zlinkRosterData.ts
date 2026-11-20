@@ -315,8 +315,8 @@ export const ZLINK_SYNCED_TEACHERS: TeacherMember[] = [
   },
   {
     id: 'tch-admin',
-    nameBn: 'গোলাম মোস্তফা মামুন',
-    nameEn: 'Golam Mostofa Mamun',
+    nameBn: 'মোস্তফা আল মামুন',
+    nameEn: 'Mostofa Al Mamun',
     designationBn: 'প্রশাসনিক কর্মকর্তা ও অ্যাডমিন (Admin)',
     designationEn: 'Admin Officer',
     photoUrl: '/assets/biddalay/mostofa_mamun.jpg',

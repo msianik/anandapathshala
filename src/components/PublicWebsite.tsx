@@ -18,7 +18,7 @@ import {
   BEST_STUDENTS_BIDDALAY,
   INITIAL_SCHOOL_NOTICES,
 } from '../data/mockData';
-import { ALL_SCHOOL_CLASSES } from '../utils/schoolLogic';
+import { ALL_SCHOOL_CLASSES, sanitizeDirectorsList } from '../utils/schoolLogic';
 import {
   Sparkles,
   ShieldCheck,
@@ -193,11 +193,11 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
         const stored = localStorage.getItem('ananda_management_directors_v10');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return sanitizeDirectorsList(parsed);
         }
       } catch {}
     }
-    return MANAGEMENT_COMMITTEE;
+    return sanitizeDirectorsList(MANAGEMENT_COMMITTEE);
   });
 
   const [viewingDirector, setViewingDirector] = useState<CommitteeDirector | null>(null);
@@ -216,7 +216,7 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
         } catch {}
       }
       if (nextList && Array.isArray(nextList) && nextList.length > 0) {
-        setDirectorsList(nextList);
+        setDirectorsList(sanitizeDirectorsList(nextList));
       }
     };
     window.addEventListener('ananda-directors-updated', handleSyncDirectors);
