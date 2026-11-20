@@ -6,7 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   bundledWebRuntime: false,
   server: {
-    // Allows loading local bundled build with fallback to live HTTPS origin
+    // Automatically points the app to the live Vercel portal so all data and features stay updated in real-time
+    url: 'https://anandapathshala.vercel.app/?app=android',
+    cleartext: true,
     androidScheme: 'https',
     iosScheme: 'https'
   },
