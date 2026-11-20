@@ -386,16 +386,19 @@ export default function App() {
   // Application Data States (Single Source of Truth for Students)
   const [students, setStudents] = useState<Student[]>(() => {
     try {
-      const stored = localStorage.getItem('ananda_students_v1');
+      const stored = localStorage.getItem('ananda_students_v2');
       if (stored) {
         const parsed: Student[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fatherNameBn !== 'অভিভাবক') {
           return parsed;
         }
       }
     } catch {}
     const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
-    localStorage.setItem('ananda_students_v1', JSON.stringify(initialEnriched));
+    try {
+      localStorage.setItem('ananda_students_v2', JSON.stringify(initialEnriched));
+      localStorage.setItem('ananda_students_v1', JSON.stringify(initialEnriched));
+    } catch {}
     return initialEnriched;
   });
 
@@ -403,7 +406,7 @@ export default function App() {
   useEffect(() => {
     const handleStudentsUpdated = () => {
       try {
-        const stored = localStorage.getItem('ananda_students_v1');
+        const stored = localStorage.getItem('ananda_students_v2') || localStorage.getItem('ananda_students_v1');
         if (stored) {
           const parsed: Student[] = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
