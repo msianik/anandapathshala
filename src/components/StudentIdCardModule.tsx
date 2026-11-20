@@ -34,6 +34,8 @@ import {
   Scissors,
   FileText,
 } from 'lucide-react';
+import { OfficialStudentIdCardFront } from './OfficialStudentIdCardFront';
+import { downloadStudentIdCardImage } from '../utils/studentIdCardImageGenerator';
 
 export interface StudentIdCardModuleProps {
   students: Student[];
@@ -69,6 +71,7 @@ export const StudentIdCardModule: React.FC<StudentIdCardModuleProps> = ({
   const [singleQrDataUrl, setSingleQrDataUrl] = useState<string>('');
   const [batchQrMap, setBatchQrMap] = useState<Record<string, string>>({});
   const [isGeneratingBatchQr, setIsGeneratingBatchQr] = useState<boolean>(false);
+  const [isDownloadingCard, setIsDownloadingCard] = useState<boolean>(false);
 
   // Filter students based on Class and Search Query
   const filteredStudents = useMemo(() => {
@@ -268,6 +271,28 @@ export const StudentIdCardModule: React.FC<StudentIdCardModuleProps> = ({
 
           {/* Quick Print & Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {currentStudent && (
+              <button
+                type="button"
+                disabled={isDownloadingCard}
+                onClick={async () => {
+                  try {
+                    setIsDownloadingCard(true);
+                    await downloadStudentIdCardImage(currentStudent);
+                  } catch (e) {
+                    console.error('Download card image failed:', e);
+                  } finally {
+                    setIsDownloadingCard(false);
+                  }
+                }}
+                className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                title="অফিসিয়াল ডিজিটাল আইডি কার্ড ছবি ডাউনলোড করুন (JPG)"
+              >
+                <Download className="w-4 h-4 text-white" />
+                <span>{isDownloadingCard ? 'ডাউনলোড হচ্ছে...' : 'কার্ড ইমেজ ডাউনলোড (JPG)'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handlePrint}
@@ -498,127 +523,9 @@ export const StudentIdCardModule: React.FC<StudentIdCardModuleProps> = ({
         <div className="space-y-6">
           {/* Card Presentation Stage */}
           <div className="flex flex-col lg:flex-row items-center justify-center gap-8 py-4 print:py-0 print:gap-6">
-            {/* ---------------- FRONT SIDE ---------------- */}
+            {/* ---------------- FRONT SIDE (Official Design matching reference) ---------------- */}
             {(cardSideView === 'both' || cardSideView === 'front') && (
-              <div
-                className="student-id-card-front print-avoid-break break-inside-avoid w-[330px] sm:w-[350px] h-[530px] rounded-3xl bg-white shadow-xl border-2 border-emerald-700/30 overflow-hidden flex flex-col justify-between relative print:shadow-none print:border-2 print:border-slate-800"
-              >
-                {/* Lanyard Hole Visual Guide (Hidden on print) */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-2.5 rounded-full bg-slate-200 border border-slate-300 print:hidden z-20"></div>
-
-                {/* Card Top Branding Header */}
-                <div className="bg-gradient-to-br from-emerald-800 via-teal-800 to-emerald-950 text-white p-4 pt-5 text-center relative overflow-hidden shrink-0 border-b-4 border-amber-400">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10 pointer-events-none"></div>
-                  <div className="absolute -left-6 -bottom-6 w-20 h-20 rounded-full bg-amber-400/10 pointer-events-none"></div>
-
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <div className="w-8 h-8 rounded-xl bg-white text-emerald-800 flex items-center justify-center font-black shadow-xs">
-                      <Building2 className="w-5 h-5 text-emerald-700" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="font-black text-sm tracking-tight text-white leading-tight">
-                        আনন্দ পাঠশালা কিন্ডারগার্টেন
-                      </h4>
-                      <span className="text-[9px] text-amber-300 block font-medium">
-                        কোর্টপাড়া, কুষ্টিয়া-৭০০০ · স্থাপিত ২০২৩
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="inline-block bg-amber-400 text-slate-950 text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider shadow-2xs mt-1">
-                    স্টুডেন্ট আইডি কার্ড · ২০২৬
-                  </div>
-                </div>
-
-                {/* Card Body with Photo & Core Info */}
-                <div className="p-4 flex-1 flex flex-col items-center justify-between text-center">
-                  {/* Avatar / Photo */}
-                  <div className="relative mt-1">
-                    {currentStudent.photoUrl ? (
-                      <img
-                        src={currentStudent.photoUrl}
-                        alt={currentStudent.nameBn}
-                        referrerPolicy="no-referrer"
-                        className="w-24 h-24 rounded-2xl object-cover shadow-md border-3 border-emerald-600"
-                      />
-                    ) : (
-                      <div
-                        className={`w-24 h-24 rounded-2xl flex items-center justify-center font-black text-3xl shadow-md border-3 border-emerald-600 ${currentStudent.avatarColor}`}
-                      >
-                        {toBengaliNumber(currentStudent.rollNo)}
-                      </div>
-                    )}
-                    <div className="absolute -bottom-2 -right-2 bg-emerald-800 text-white text-[10px] font-black px-2 py-0.5 rounded-lg border border-white shadow-xs">
-                      রোল: {toBengaliNumber(currentStudent.rollNo)}
-                    </div>
-                  </div>
-
-                  {/* Name & Class Badges */}
-                  <div className="space-y-1 mt-2">
-                    <h3 className="text-lg font-black text-slate-900 leading-tight">
-                      {currentStudent.nameBn}
-                    </h3>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      {currentStudent.nameEn}
-                    </p>
-
-                    <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-900 border border-emerald-300 px-3 py-1 rounded-xl text-xs font-black">
-                      <span>শ্রেণি: {getSchoolClassNameBn(currentStudent.className)}</span>
-                      <span className="text-emerald-400">|</span>
-                      <span>শাখা: {currentStudent.section}</span>
-                    </div>
-                  </div>
-
-                  {/* Details Table */}
-                  <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-2.5 text-left text-xs space-y-1.5 mt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-semibold">স্টুডেন্ট আইডি:</span>
-                      <span className="font-mono font-black text-emerald-900 bg-emerald-100/70 px-2 py-0.5 rounded border border-emerald-300 text-[11px]">
-                        {currentStudent.id}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-semibold">অভিভাবক:</span>
-                      <span className="font-bold text-slate-800 truncate max-w-[170px]">
-                        {guardianDisplayName} ({guardianRelation})
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                        <Phone className="w-2.5 h-2.5 text-emerald-600" />
-                        যোগাযোগ ফোন:
-                      </span>
-                      <span className="font-mono font-black text-emerald-800">
-                        {currentStudent.emergencyPhone}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-semibold">রক্তের গ্রুপ:</span>
-                      <span className="font-mono font-bold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                        {currentStudent.bloodGroup || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Hologram & Security Mark */}
-                  <div className="w-full flex items-center justify-between pt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                    <div className="flex items-center gap-1 text-emerald-700 font-bold">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>ভেরিফায়েড শিক্ষার্থী</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-mono font-bold text-slate-600">
-                        ID: {currentStudent.id} · {currentStudent.className.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer Stripe */}
-                <div className="bg-emerald-800 text-white text-[9px] py-1 text-center font-medium">
-                  আনন্দময় শৈশব · আলোকিত ভবিষ্যৎ
-                </div>
-              </div>
+              <OfficialStudentIdCardFront student={currentStudent} />
             )}
 
             {/* ---------------- BACK SIDE (Dynamic QR Code) ---------------- */}
@@ -943,7 +850,15 @@ export const StudentIdCardModule: React.FC<StudentIdCardModuleProps> = ({
 
                   {/* Footer */}
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-500">
-                    <span>কোর্টপাড়া, কুষ্টিয়া</span>
+                    <button
+                      type="button"
+                      onClick={() => downloadStudentIdCardImage(std)}
+                      className="px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-300 print:hidden cursor-pointer flex items-center gap-1"
+                      title="এই শিক্ষার্থীর অফিসিয়াল আইডি কার্ড ছবি ডাউনলোড করুন (JPG)"
+                    >
+                      <Download className="w-2.5 h-2.5" />
+                      <span>ইমেজ JPG</span>
+                    </button>
                     <span className="font-mono font-bold text-emerald-800">
                       ID: {std.id}
                     </span>
