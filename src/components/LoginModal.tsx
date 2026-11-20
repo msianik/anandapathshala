@@ -256,12 +256,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         )}
 
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-3.5 sm:gap-4">
             <img
               src={logoUrl}
               alt="আনন্দ পাঠশালা লোগো"
               referrerPolicy="no-referrer"
-              className="w-13 h-13 rounded-2xl object-cover bg-white p-1 border-2 border-amber-300 shadow-md shrink-0"
+              className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover bg-white p-1 border-2 border-amber-300 shadow-md shrink-0"
             />
             <div>
               <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-amber-200">
@@ -271,8 +271,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <h2 className="text-lg sm:text-xl font-black tracking-tight mt-1">
                 আনন্দ পাঠশালা
               </h2>
-              <p className="text-xs text-emerald-100/90 mt-0.5">
-                সেন্ট্রাল ম্যানেজমেন্ট ও একাডেমিক পোর্টাল লগইন
+              <p className="text-xs text-emerald-100 font-medium mt-0.5">
+                পোর্টাল লগইন
               </p>
             </div>
           </div>
@@ -589,11 +589,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </div>
               )}
 
-              {/* Username / Email / Phone Input */}
+              {/* Username / Identifier Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>ইউজার নেম / ইমেইল / মোবাইল নম্বর:</span>
+                  <span>ইউজার আইডি:</span>
                 </label>
                 <div className="relative">
                   <input
@@ -605,7 +605,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       setIdentifier(e.target.value);
                       setErrorBn(null);
                     }}
-                    placeholder="যেমন: anik বা mamun বা principal বা মোবাইল নম্বর"
+                    placeholder="ইউজারনেম বা মোবাইল নম্বর"
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium text-slate-900 transition-all placeholder:text-slate-400 disabled:opacity-60"
                   />
                 </div>
@@ -668,12 +668,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </>
                 )}
               </button>
-
-              <div className="text-center pt-2">
-                <p className="text-[11px] text-slate-400">
-                  সুপার অ্যাডমিন, পরিচালক, শিক্ষক, অভিভাবক ও স্টাফদের জন্য কেন্দ্রীয় লগইন
-                </p>
-              </div>
             </form>
           )}
         </div>
@@ -686,10 +680,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {modalContent}
         <div className="mt-4 text-center">
           <p className="text-emerald-400/80 text-xs font-semibold tracking-wide">
-            আনন্দ পাঠশালা (কুষ্টিয়া) • মোবাইল পোর্টাল
-          </p>
-          <p className="text-slate-400 text-[11px] mt-0.5">
-            স্মার্ট মোবাইল অ্যাপ সংস্করণ (সিকিউর সেশন)
+            আনন্দ পাঠশালা • স্মার্ট পোর্টাল
           </p>
         </div>
       </div>

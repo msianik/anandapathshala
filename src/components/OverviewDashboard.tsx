@@ -932,7 +932,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                {schoolProfile.nameBn} — স্মার্ট পোর্টাল
+                {schoolProfile.nameBn}
               </h2>
 
               <p className="text-amber-200 font-semibold text-xs sm:text-sm">
@@ -1154,14 +1154,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-bold text-white">
-                  তাৎক্ষণিক শিক্ষক নোটিফিকেশন (Firebase Cloud Messaging - FCM)
+                  জরুরি নোটিফিকেশন (FCM)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white">
                   {fcmNotifications.filter((n) => !n.read).length} অপঠিত
                 </span>
               </div>
               <p className="text-xs text-emerald-200/90">
-                নতুন ভর্তি আবেদন এবং গেট থেকে জরুরি পিক-আপ রিকোয়েস্টের রিয়েল-টাইম পুশ অ্যালার্ট
+                ভর্তি আবেদন ও জরুরি পিক-আপ অ্যালার্ট
               </p>
             </div>
           </div>
@@ -1174,7 +1174,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
               >
                 <Megaphone className="w-3.5 h-3.5 text-slate-950" />
-                <span>সবাইকে নতুন নোটিফিকেশন পাঠান</span>
+                <span>+ নতুন নোটিফিকেশন</span>
               </button>
             )}
             <button
@@ -1183,7 +1183,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <BellRing className="w-3.5 h-3.5" />
-              <span>নোটিফিকেশন সেন্টার ও টেস্ট ট্রিগার খুলুন</span>
+              <span>নোটিফিকেশন সেন্টার</span>
             </button>
           </div>
         </div>
@@ -1262,14 +1262,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black text-white">
-                  সর্বশেষ নোটিশ ও প্রাতিষ্ঠানিক সার্কুলার
+                  সর্বশেষ নোটিশ
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950">
                   {notices.length}টি নোটিশ
                 </span>
               </div>
               <p className="text-xs text-emerald-200/80">
-                ছুটি, পরীক্ষা, ভর্তি মেলা ও জরুরি পুশ ব্রডকাস্ট আপডেট
+                স্কুলের সাম্প্রতিক নোটিশ ও সার্কুলার
               </p>
             </div>
           </div>

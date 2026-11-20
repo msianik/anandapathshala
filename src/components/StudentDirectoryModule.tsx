@@ -615,13 +615,13 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-amber-200">
               <Users className="w-3.5 h-3.5" />
-              <span>শ্রেণিভিত্তিক শিক্ষার্থী রোস্টার ও ডাটাবেজ</span>
+              <span>শিক্ষার্থী ডাটাবেজ</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-              ছাত্র-ছাত্রীর পূর্ণাঙ্গ তালিকা ও শ্রেণি ব্যবস্থাপনা
+              শিক্ষার্থী তালিকা ও প্রোফাইল
             </h2>
             <p className="text-xs sm:text-sm text-teal-100 max-w-2xl leading-relaxed">
-              ক্লাসের নাম সিলেক্ট করে প্রতি শ্রেণির শিক্ষার্থীদের তালিকা দেখুন, নতুন ভর্তি হওয়া শিক্ষার্থীর তথ্য যুক্ত করুন এবং রিয়েল-টাইমে ডাটা আপডেট করুন।
+              শ্রেণিভিত্তিক শিক্ষার্থীদের তথ্য, প্রোফাইল ও অভিভাবক যোগাযোগ
             </p>
           </div>
 
@@ -679,7 +679,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 className="px-5 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>+ নতুন শিক্ষার্থী যোগ করুন</span>
+                <span>+ নতুন শিক্ষার্থী</span>
               </button>
             ) : currentRole === 'director' ? (
               <div className="px-4 py-2.5 bg-white/20 text-white border border-white/30 rounded-2xl text-xs font-black flex items-center gap-1.5 shadow-xs">

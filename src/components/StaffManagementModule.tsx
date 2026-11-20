@@ -836,30 +836,30 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-emerald-200 mb-2 border border-white/10">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>আনন্দ পাঠশালা ফ্যাকাল্টি ও প্রশাসন</span>
+              <span>স্টাফ প্রশাসন</span>
             </div>
             <h1 className="text-2xl lg:text-3xl font-black tracking-tight">
-              শিক্ষক ও স্টাফ ম্যানেজমেন্ট পোর্টাল
+              শিক্ষক ও স্টাফ ডিরেক্টরি
             </h1>
-            <p className="text-emerald-100 text-sm mt-1 max-w-xl">
-              শিক্ষক-কর্মচারীদের ডিজিটাল ডিরেক্টরি, রিয়েল-টাইম উপস্থিতি এবং ডিজিটাল ছুটির আবেদন ও অনুমোদন সিস্টেম।
+            <p className="text-emerald-100 text-xs sm:text-sm mt-1 max-w-xl">
+              শিক্ষক ও কর্মচারীদের উপস্থিতি, প্রোফাইল ও ছুটি ব্যবস্থাপনা
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setIsApplyLeaveOpen(true)}
-              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
+              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md hover:shadow-lg cursor-pointer"
             >
               <FileText className="w-4 h-4" />
-              <span>ছুটির আবেদন করুন</span>
+              <span>ছুটির আবেদন</span>
             </button>
             <button
               onClick={() => setIsAddStaffOpen(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md hover:shadow-lg border border-emerald-400/30"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md hover:shadow-lg border border-emerald-400/30 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>নতুন স্টাফ যোগ করুন</span>
+              <span>+ নতুন স্টাফ</span>
             </button>
             <button
               onClick={handleForceCloudSync}

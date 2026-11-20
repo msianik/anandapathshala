@@ -192,18 +192,18 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     : 'bg-gradient-to-r from-slate-800 to-emerald-800';
 
   const portalLabelBn = isSuperAdmin
-    ? '👑 সুপার অ্যাডমিন পোর্টাল (পরিচালক এম এস আই অনিক)'
+    ? '👑 সুপার অ্যাডমিন'
     : isAdmin
-    ? '🛡️ অ্যাডমিন পোর্টাল'
+    ? '🛡️ অ্যাডমিন'
     : isDirector
-    ? '🏛️ পরিচালনা পর্ষদ পোর্টাল (সবকিছু ভিউ)'
+    ? '🏛️ পরিচালনা পর্ষদ'
     : isPrincipal
-    ? '🎓 প্রিন্সিপাল ও অ্যাডমিন পোর্টাল'
+    ? '🎓 প্রিন্সিপাল'
     : isTeacher
-    ? '👩‍🏫 শিক্ষক ক্লাসরুম পোর্টাল'
+    ? '👩‍🏫 শিক্ষক পোর্টাল'
     : isParent
-    ? '👨‍👧 অভিভাবক ও সন্তান পোর্টাল'
-    : '🛡️ গেট সিকিউরিটি পোর্টাল';
+    ? '👨‍👧 অভিভাবক পোর্টাল'
+    : '🛡️ গেট সিকিউরিটি';
 
   // 6 Core Clean Pillars
   const pillars: NavPillar[] = getGroupedNavPillars(currentRole, loggedInAccount?.directorId);
@@ -387,14 +387,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               </a>
               <span className="text-[9px] sm:text-[10px] text-emerald-800 font-bold block tracking-wider uppercase whitespace-nowrap leading-none mt-0.5">
                 {isSuperAdmin
-                  ? 'সুপার অ্যাডমিন · কুষ্টিয়া'
+                  ? 'সুপার অ্যাডমিন'
                   : isDirector
-                  ? 'পরিচালক পোর্টাল · কুষ্টিয়া'
+                  ? 'পরিচালক পোর্টাল'
                   : isPrincipal
-                  ? 'অ্যাডমিন পোর্টাল · কুষ্টিয়া'
+                  ? 'অ্যাডমিন পোর্টাল'
                   : isTeacher
-                  ? 'শিক্ষক পোর্টাল · কুষ্টিয়া'
-                  : 'অভিভাবক পোর্টাল · কুষ্টিয়া'}
+                  ? 'শিক্ষক পোর্টাল'
+                  : 'অভিভাবক পোর্টাল'}
               </span>
             </div>
           </div>

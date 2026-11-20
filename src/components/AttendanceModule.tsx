@@ -573,15 +573,13 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
       <div className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="bg-teal-400/30 text-teal-100 px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
-              দৈনিক ডিজিটাল রোল কল
+            <span className="bg-teal-400/30 text-teal-100 px-2.5 py-0.5 rounded text-xs font-semibold tracking-wider">
+              দৈনিক উপস্থিতি
             </span>
-            <span className="text-white/60 text-xs">·</span>
-            <span className="text-white/90 text-xs font-medium">স্মার্ট অ্যাটেনডেন্স ও অভিভাবক এলার্ট</span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">দৈনিক ক্লাসরুম হাজিরা ও বাল্ক এসএমএস</h2>
-          <p className="text-teal-100/90 text-sm max-w-2xl mt-1">
-            এক ক্লিকে উপস্থিতি নিশ্চিত করুন। কোনো শিশু অনুপস্থিত থাকলে তাৎক্ষণিকভাবে অভিভাবকের ফোনে সতর্কবার্তা এসএমএস চলে যাবে।
+          <h2 className="text-2xl font-bold tracking-tight">ক্লাসরুম হাজিরা</h2>
+          <p className="text-teal-100/90 text-xs sm:text-sm max-w-2xl mt-1">
+            শিক্ষার্থীদের উপস্থিতি ও অনুপস্থিতির এলার্ট পরিচালনা
           </p>
         </div>
 

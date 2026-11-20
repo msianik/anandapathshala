@@ -478,7 +478,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                  <span>ডিজিটাল ফিঙ্গারপ্রিন্ট ও ZLink ক্লাউড হাজিরা সংযোগ</span>
+                  <span>বায়োমেট্রিক হাজিরা সংযোগ</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300">
                   {deviceConfig.nameBn} · ক্লাউড: <span className="text-sky-300 font-mono">zlink.minervaiot.com</span>
@@ -487,7 +487,7 @@ export const BiometricAttendanceWidget: React.FC<BiometricAttendanceWidgetProps>
             </div>
 
             <p className="text-xs text-indigo-200/90 max-w-2xl">
-              মেশিনের সেন্সরে শিক্ষার্থী বা স্টাফদের ফিঙ্গারপ্রিন্ট ছোঁয়ামাত্র তা সাথে সাথে zlink.minervaiot.com ক্লাউডে আপলোড হয় এবং আনন্দ পাঠশালা পোর্টাল স্বয়ংক্রিয়ভাবে ক্লাউড থেকে প্রবেশ (কখন ঢুকছে) ও প্রস্থান (কখন বের হচ্ছে) সময় সিঙ্ক করে নেয়।
+              মেশিনের ফিঙ্গারপ্রিন্ট পাঞ্চ লগ স্বয়ংক্রিয়ভাবে ক্লাউড থেকে প্রবেশ ও প্রস্থান সময়ে সিঙ্ক হয়।
             </p>
           </div>
 
