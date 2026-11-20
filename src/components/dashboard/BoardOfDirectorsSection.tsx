@@ -149,7 +149,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                       className="inline-flex items-center gap-1 text-xs font-bold text-amber-900 bg-white hover:bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl transition cursor-pointer shadow-2xs"
                     >
                       <Edit3 className="w-3.5 h-3.5 text-amber-700" />
-                      <span>এডিট বাণী</span>
+                      <span>এডিট</span>
                     </button>
                   )}
                 </div>
@@ -169,9 +169,9 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
         );
       })()}
 
-      {/* Grid of Directors in Board Management View */}
+      {/* Grid of Other Directors in Board Management View (Excludes Chairman as he is featured above) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {directorsList.map((dir) => (
+        {directorsList.filter((dir) => !dir.isChairman).map((dir) => (
           <div
             key={dir.id}
             className="p-5 rounded-2xl border-2 border-amber-200/90 bg-gradient-to-b from-amber-50/30 via-white to-white flex flex-col justify-between space-y-4 hover:border-amber-400 hover:shadow-md transition-all shadow-2xs relative group"
