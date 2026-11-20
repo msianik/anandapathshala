@@ -853,7 +853,6 @@ export function getAllPortalAccounts(): PortalAccount[] {
 
   return result;
 }
-}
 
 let memoryCustomAccounts: PortalAccount[] = [];
 let memoryDeletedAccountIds: string[] = [];
