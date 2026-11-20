@@ -185,14 +185,25 @@ export function enrichStudentsWithPortalAccounts(students: Student[]): Student[]
     });
 
     return students.map((std) => {
+      const studentNum = std.id.replace('std-zk-', '');
+      const defaultStudentPhoto = studentNum && studentNum !== std.id ? `/assets/students/${studentNum}.jpg` : undefined;
       const matchingAcc = accountMap.get(std.id);
-      if (!matchingAcc) return std;
+      const effectivePhoto = (matchingAcc?.avatarUrl && !matchingAcc.avatarUrl.includes('student_hasin.jpg'))
+        ? matchingAcc.avatarUrl
+        : ((std.photoUrl && !std.photoUrl.includes('student_hasin.jpg')) ? std.photoUrl : defaultStudentPhoto);
+
+      if (!matchingAcc) {
+        return {
+          ...std,
+          photoUrl: effectivePhoto || std.photoUrl,
+        };
+      }
 
       return {
         ...std,
         emergencyPhone: matchingAcc.phone || std.emergencyPhone,
         email: matchingAcc.email || std.email,
-        photoUrl: matchingAcc.avatarUrl || std.photoUrl,
+        photoUrl: effectivePhoto || std.photoUrl,
         username: matchingAcc.username || std.username,
         password: matchingAcc.passwordHint || std.password,
         portalRole: matchingAcc.role || std.portalRole,

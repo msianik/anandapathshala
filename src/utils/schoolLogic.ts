@@ -702,6 +702,12 @@ export function getAllPortalAccounts(): PortalAccount[] {
         : Array.from(accountMap.values()).find((a) => a.studentId === std.id);
 
     const accId = existingEntry?.id || `acc-std-${std.id}`;
+    const studentNum = std.id.replace('std-zk-', '');
+    const fallbackPhoto = studentNum && studentNum !== std.id ? `/assets/students/${studentNum}.jpg` : '/assets/biddalay/student_hasin.jpg';
+    const effectivePhoto = (std.photoUrl && !std.photoUrl.includes('student_hasin.jpg'))
+      ? std.photoUrl
+      : (fallbackPhoto || existingEntry?.avatarUrl || '/assets/biddalay/student_hasin.jpg');
+
     accountMap.set(accId, {
       id: accId,
       nameBn: std.nameBn,
@@ -713,7 +719,7 @@ export function getAllPortalAccounts(): PortalAccount[] {
       phone: cleanPhone,
       username,
       passwordHint: std.password || existingEntry?.passwordHint || '123456',
-      avatarUrl: std.photoUrl || existingEntry?.avatarUrl || '/assets/biddalay/student_hasin.jpg',
+      avatarUrl: effectivePhoto,
       studentId: std.id,
       assignedClass: std.className,
     });
@@ -814,10 +820,15 @@ export function getAllPortalAccounts(): PortalAccount[] {
     anikAcc.roleTitleBn = 'সুপার অ্যাডমিন · সম্মানিত পরিচালক ও আইটি হেড';
   }
 
-  // Strictly enforce student naming and roleTitle for all student accounts
+  // Strictly enforce student naming, roleTitle, and profile picture for all student accounts
   for (const acc of accountMap.values()) {
     if (acc.studentId || acc.role === 'parent') {
       const matchedStd = students.find((s) => s.id === acc.studentId);
+      const studentNum = (acc.studentId || '').replace('std-zk-', '');
+      const studentPhoto = (matchedStd?.photoUrl && !matchedStd.photoUrl.includes('student_hasin.jpg'))
+        ? matchedStd.photoUrl
+        : (studentNum && studentNum !== 'std-1' && studentNum !== 'parent' ? `/assets/students/${studentNum}.jpg` : undefined);
+
       if (matchedStd) {
         acc.nameBn = matchedStd.nameBn;
         if (!acc.nameEn && matchedStd.nameEn) {
@@ -827,6 +838,9 @@ export function getAllPortalAccounts(): PortalAccount[] {
         acc.nameBn = acc.nameBn.replace(/^.*?\(|\)$/g, '').trim() || acc.nameBn;
       }
       acc.roleTitleBn = 'student';
+      if (studentPhoto) {
+        acc.avatarUrl = studentPhoto;
+      }
     }
   }
 
