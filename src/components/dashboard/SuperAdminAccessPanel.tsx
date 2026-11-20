@@ -554,13 +554,19 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
       return;
     }
 
-    const success = updatePortalUserAccount(editingAccount);
-    if (success) {
-      setAccounts(getAllPortalAccounts());
-      setEditingAccount(null);
-      showToast(`✅ ${editingAccount.nameBn}-এর অ্যাকাউন্ট সফলভাবে আপডেট করা হয়েছে!`);
-    } else {
-      showToast('❌ আপডেট করা সম্ভব হয়নি।');
+    const accountToSave = { ...editingAccount };
+    setEditingAccount(null);
+
+    try {
+      const success = updatePortalUserAccount(accountToSave);
+      if (success) {
+        setAccounts(getAllPortalAccounts());
+        showToast(`✅ ${accountToSave.nameBn}-এর অ্যাকাউন্ট সফলভাবে আপডেট করা হয়েছে!`);
+      } else {
+        showToast('❌ আপডেট করা সম্ভব হয়নি।');
+      }
+    } catch {
+      showToast('❌ আপডেটে সমস্যা হয়েছে।');
     }
   };
 

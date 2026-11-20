@@ -1040,9 +1040,17 @@ export function deletePortalUserAccount(accountId: string): boolean {
 
     // 4. Dispatch updates
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: getAllPortalAccounts() } }));
-      window.dispatchEvent(new CustomEvent('ananda-directors-updated'));
-      window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
+      setTimeout(() => {
+        try {
+          window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: getAllPortalAccounts() } }));
+          if (account.directorId) {
+            window.dispatchEvent(new CustomEvent('ananda-directors-updated'));
+          }
+          if (account.role === 'teacher' || account.id.startsWith('acc-tch-')) {
+            window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
+          }
+        } catch {}
+      }, 50);
     }
     return true;
   } catch (err) {
@@ -1101,9 +1109,17 @@ export function updatePortalUserAccount(account: PortalAccount, canFullEdit?: bo
     }
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: getAllPortalAccounts() } }));
-      window.dispatchEvent(new CustomEvent('ananda-directors-updated'));
-      window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
+      setTimeout(() => {
+        try {
+          window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: getAllPortalAccounts() } }));
+          if (account.directorId) {
+            window.dispatchEvent(new CustomEvent('ananda-directors-updated'));
+          }
+          if (account.role === 'teacher' || account.id.startsWith('acc-tch-')) {
+            window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
+          }
+        } catch {}
+      }, 50);
     }
     return true;
   } catch {

@@ -1201,6 +1201,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<Student[]>('ananda_students_v1');
+              setLocalTimestamp('students', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSaveStudents(existingLocal);
                 return;
@@ -1247,6 +1248,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<TeacherMember[]>('ananda_teachers_list_v1');
+              setLocalTimestamp('teachers', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSaveTeachers(existingLocal);
                 return;
@@ -1296,6 +1298,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<PortalAccount[]>('ananda_portal_accounts_v3');
+              setLocalTimestamp('portal_accounts', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSavePortalAccounts(existingLocal);
                 return;
@@ -1341,6 +1344,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<FeeInvoice[]>('ananda_invoices_v1');
+              setLocalTimestamp('invoices', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSaveInvoices(existingLocal);
                 return;
@@ -1386,6 +1390,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<AttendanceRecord[]>('ananda_attendance_v1');
+              setLocalTimestamp('attendance', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSaveAttendance(existingLocal);
                 return;
@@ -1581,6 +1586,7 @@ export function subscribeToSchoolCloud(
 
             if (localTimeMs > cloudTimeMs && localTimeMs - cloudTimeMs > 2000) {
               const existingLocal = safeLocalGet<ClassRoutinePeriod[]>('ananda_school_class_routines_v2');
+              setLocalTimestamp('routines', cloudTimeMs);
               if (existingLocal && existingLocal.length > 0) {
                 cloudSaveRoutines(existingLocal);
                 return;
