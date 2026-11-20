@@ -63,36 +63,27 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
           <h3 className="text-lg sm:text-2xl font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
             <Users className="w-6 h-6 text-amber-600" />
             <span>
-              প্রতিষ্ঠান পরিচালনা পর্ষদ ও পরিচালকদের বাণী প্রশাসন ({directorsList.length} জন)
+              পরিচালনা পর্ষদ ({directorsList.length} জন)
             </span>
           </h3>
 
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-            আনন্দ পাঠশালার মূল নীতিনির্ধারণ, ট্রাস্টি ও পরিচালনা পর্ষদ সদস্যদের নাম, প্রাতিষ্ঠানিক পদবি (Designation), পর্ষদীয় ভূমিকা (Role in Board) এবং পরিচালকদের অনুপ্রেরণামূলক বাণী (Message from the Director) ব্যবস্থাপনা করুন।
+            আনন্দ পাঠশালার ট্রাস্টি ও পরিচালনা পর্ষদ সদস্যবৃন্দ
           </p>
 
           {/* Quick Metrics Strip */}
           <div className="flex items-center gap-2 pt-1 flex-wrap text-[11px]">
             <span className="px-2.5 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold">
-              👥 মোট পর্ষদ সদস্য: {directorsList.length} জন
+              সদস্য: {directorsList.length} জন
             </span>
             <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">
-              💬 সক্রিয় বাণী: {directorsList.filter((d) => d.messageBn).length} টি
+              বাণী: {directorsList.filter((d) => d.messageBn).length} টি
             </span>
           </div>
         </div>
 
         {/* Action Buttons Toolbar */}
         <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <a
-            href="#teachers-directory-section"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition cursor-pointer"
-            title="উপরে শিক্ষক পর্ষদ তালিকায় ফিরুন"
-          >
-            <GraduationCap className="w-3.5 h-3.5 text-emerald-700" />
-            <span>শিক্ষক পর্ষদ ⬆</span>
-          </a>
-
           {isPrincipal && (
             <>
               <button
@@ -101,7 +92,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 px-4 py-2 rounded-xl shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ নতুন পরিচালক যোগ করুন</span>
+                <span>+ নতুন পরিচালক</span>
               </button>
               <button
                 type="button"
@@ -113,15 +104,6 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
               </button>
             </>
           )}
-
-          <button
-            type="button"
-            onClick={() => onNavigateTab('public')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 px-3.5 py-2 rounded-xl border border-amber-300 transition cursor-pointer shadow-2xs"
-          >
-            <span>ওয়েবসাইটে লাইভ দেখুন</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
@@ -167,7 +149,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                   <div className="flex items-center gap-2">
                     <MessageSquareQuote className="w-5 h-5 text-amber-600 shrink-0" />
                     <h4 className="text-sm sm:text-base font-black text-amber-950">
-                      সভাপতি বা চেয়ারম্যানের অফিসিয়াল বাণী ও দিকনির্দেশনা ({chairman.nameBn})
+                      চেয়ারম্যানের বাণী ({chairman.nameBn})
                     </h4>
                   </div>
                   {isPrincipal && (
@@ -177,7 +159,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                       className="inline-flex items-center gap-1 text-xs font-bold text-amber-900 bg-white hover:bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl transition cursor-pointer shadow-2xs"
                     >
                       <Edit3 className="w-3.5 h-3.5 text-amber-700" />
-                      <span>চেয়ারম্যানের বাণী এডিট করুন</span>
+                      <span>এডিট বাণী</span>
                     </button>
                   )}
                 </div>
@@ -284,19 +266,15 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
               </div>
 
               {/* Message from the Director */}
-              <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3.5 space-y-1.5 relative">
+              <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-3 space-y-1 relative">
                 <div className="flex items-center justify-between text-[10.5px] font-black text-amber-950 border-b border-amber-200/60 pb-1">
                   <span className="flex items-center gap-1">
                     <Quote className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Message from the Director (বাণী):</span>
-                  </span>
-                  <span className="text-[9.5px] text-amber-700 font-semibold">
-                    পাবলিক হাইলাইট
+                    <span>পরিচালকের বাণী:</span>
                   </span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed font-sans line-clamp-3 italic">
-                  “{dir.messageBn ||
-                    'কোনো বাণী যুক্ত করা হয়নি। এডিট করে বাণী যুক্ত করুন।'}”
+                  “{dir.messageBn || 'বাণী যুক্ত করা হয়নি।'}”
                 </p>
               </div>
             </div>
@@ -325,7 +303,7 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
                     title={`পরিচালক ${dir.nameBn} এর তথ্য ও বাণী সম্পাদনা করুন`}
                   >
                     <Edit3 className="w-3.5 h-3.5 text-amber-800" />
-                    <span>এডিট ও বাণী</span>
+                    <span>এডিট</span>
                   </button>
                   <button
                     type="button"

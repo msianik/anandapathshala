@@ -1346,15 +1346,15 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         </div>
       </div>
 
-      {/* 2. Institutional Hub: Tabbed Switcher (Teachers, Directors, Gallery, Achievements) */}
+      {/* 2. Institutional Hub: Tabbed Switcher (Directors, Gallery, Achievements) */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-              <span>🏛️ প্রতিষ্ঠান পরিচিতি ও পরিচালনা পর্ষদ</span>
+              <span>🏛️ পরিচালনা পর্ষদ ও ক্যাম্পাস</span>
             </h3>
             <p className="text-[11px] sm:text-xs text-slate-500">
-              শিক্ষক ও স্টাফ, পরিচালনা পর্ষদ, ক্যাম্পাস ফটো গ্যালারি ও সম্মাননা
+              পর্ষদ সদস্য, ক্যাম্পাস গ্যালারি ও সম্মাননা
             </p>
           </div>
 
@@ -1380,7 +1380,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              📸 ক্যাম্পাস গ্যালারি ({fbGallery.length})
+              📸 ফটো গ্যালারি ({fbGallery.length})
             </button>
             <button
               type="button"
@@ -1391,7 +1391,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              🏆 অর্জন ও সম্মাননা ({achievements.length})
+              🏆 অর্জন ({achievements.length})
             </button>
             <button
               type="button"
@@ -1399,7 +1399,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               className="px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 flex items-center gap-1.5 shadow-xs"
               title="শিক্ষক ও কর্মীদের মূল তালিকায় যেতে ক্লিক করুন"
             >
-              <span>👨‍🏫 শিক্ষক ও কর্মী মূল তালিকা ({teachersList.length})</span>
+              <span>👨‍🏫 শিক্ষক ও কর্মী ({teachersList.length})</span>
               <ArrowRight className="w-3 h-3 text-amber-700" />
             </button>
           </div>
