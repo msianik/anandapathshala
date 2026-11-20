@@ -71,30 +71,6 @@ export const BoardOfDirectorsSection: React.FC<BoardOfDirectorsSectionProps> = (
             আনন্দ পাঠশালার ট্রাস্টি ও পরিচালনা পর্ষদ সদস্যবৃন্দ
           </p>
         </div>
-
-        {/* Action Buttons Toolbar */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {isPrincipal && (
-            <>
-              <button
-                type="button"
-                onClick={onAddNewDirector}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 px-4 py-2 rounded-xl shadow-xs transition cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ নতুন পরিচালক</span>
-              </button>
-              <button
-                type="button"
-                onClick={onResetDirectorsToDefault}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-2 rounded-xl transition cursor-pointer"
-                title="ডিফল্ট পরিচালনা পর্ষদ তালিকায় রিসেট করুন"
-              >
-                <span>রিসেট ডিফল্ট</span>
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Featured Chairman Official Message & Guidance Spotlight */}
