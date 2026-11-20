@@ -334,6 +334,17 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const filteredAccounts = accounts.filter((acc) => {
     // Role filter
     if (activeTab === 'director') {
+      // Shafee Abdullah is strictly Principal, NOT a board director!
+      if (
+        acc.id === 'acc-principal' ||
+        acc.username === 'principal' ||
+        acc.nameBn?.includes('শাফী') ||
+        acc.nameBn?.includes('আব্দুল্লাহ')
+      ) {
+        return false;
+      }
+
+      // Strictly the 5 Board Directors (including Mostofa Al Mamun as Director & Secretary)
       const isBoardDirector =
         acc.id === 'acc-super-admin' ||
         acc.id === 'acc-admin-mamun' ||
@@ -343,13 +354,29 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         (acc.directorId && ['dir-4', 'dir-1', 'dir-2', 'dir-3', 'dir-5'].includes(acc.directorId)) ||
         ['anik', 'mamun', 'noman', 'adnan', 'summy'].includes(acc.username);
 
-      // Principal (Shafee Abdullah) is strictly principal; not board director
-      if (!isBoardDirector || acc.id === 'acc-principal' || acc.username === 'principal') {
+      if (!isBoardDirector) {
         return false;
       }
     }
     if (activeTab === 'principal') {
-      if (acc.id !== 'acc-principal' && acc.username !== 'principal' && acc.role !== 'principal') {
+      // Mostofa Al Mamun is strictly a Board Director, NOT Principal!
+      if (
+        acc.id === 'acc-admin-mamun' ||
+        acc.username === 'mamun' ||
+        acc.directorId === 'dir-3' ||
+        acc.nameBn?.includes('মামুন')
+      ) {
+        return false;
+      }
+
+      // Strictly Principal Shafee Abdullah
+      const isPrincipalAccount =
+        acc.id === 'acc-principal' ||
+        acc.username === 'principal' ||
+        acc.role === 'principal' ||
+        acc.nameBn?.includes('শাফী আব্দুল্লাহ');
+
+      if (!isPrincipalAccount) {
         return false;
       }
     }
@@ -388,7 +415,15 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const counts = {
     all: accounts.length,
     director: accounts.filter((a) => {
-      if (a.id === 'acc-principal' || a.username === 'principal') return false;
+      // Exclude Principal
+      if (
+        a.id === 'acc-principal' ||
+        a.username === 'principal' ||
+        a.nameBn?.includes('শাফী') ||
+        a.nameBn?.includes('আব্দুল্লাহ')
+      ) {
+        return false;
+      }
       return (
         a.id === 'acc-super-admin' ||
         a.id === 'acc-admin-mamun' ||
@@ -399,9 +434,23 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         ['anik', 'mamun', 'noman', 'adnan', 'summy'].includes(a.username)
       );
     }).length,
-    principal: accounts.filter(
-      (a) => a.id === 'acc-principal' || a.username === 'principal' || a.role === 'principal'
-    ).length,
+    principal: accounts.filter((a) => {
+      // Exclude Mamun / Directors
+      if (
+        a.id === 'acc-admin-mamun' ||
+        a.username === 'mamun' ||
+        a.directorId === 'dir-3' ||
+        a.nameBn?.includes('মামুন')
+      ) {
+        return false;
+      }
+      return (
+        a.id === 'acc-principal' ||
+        a.username === 'principal' ||
+        a.role === 'principal' ||
+        a.nameBn?.includes('শাফী আব্দুল্লাহ')
+      );
+    }).length,
     teacher: accounts.filter((a) => a.role === 'teacher').length,
     staff: accounts.filter((a) => a.role === 'accountant' || a.role === 'gate_security').length,
     parent: accounts.filter((a) => a.role === 'parent').length,
