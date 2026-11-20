@@ -157,11 +157,11 @@ export const PORTAL_ACCOUNTS: PortalAccount[] = [
   },
   {
     id: 'acc-parent',
-    nameBn: 'সুব্রত রায়',
-    nameEn: 'Subrata Roy',
+    nameBn: 'আদিত্য রায়',
+    nameEn: 'Aditya Roy',
     role: 'parent',
-    roleTitleBn: 'অভিভাবক (আদিত্য রায় — নার্সারি)',
-    portalNameBn: 'অভিভাবক ও সন্তান ড্যাশবোর্ড পোর্টাল',
+    roleTitleBn: 'student',
+    portalNameBn: 'শিক্ষার্থী ও অভিভাবক পোর্টাল',
     email: 'parent@anandapathshala.edu.bd',
     phone: '01711223399',
     username: 'parent',
@@ -704,10 +704,10 @@ export function getAllPortalAccounts(): PortalAccount[] {
     const accId = existingEntry?.id || `acc-std-${std.id}`;
     accountMap.set(accId, {
       id: accId,
-      nameBn: `${guardianNameBn} (${std.nameBn})`,
-      nameEn: std.nameEn,
+      nameBn: std.nameBn,
+      nameEn: std.nameEn || std.nameBn,
       role,
-      roleTitleBn: `${getPortalRoleLabelBn(role)} — শিক্ষার্থী: ${std.nameBn} (${std.className}, রোল: ${std.rollNo})`,
+      roleTitleBn: 'student',
       portalNameBn: getPortalNameForRoleBn(role),
       email: std.email || existingEntry?.email || `${username}@anandapathshala.edu.bd`,
       phone: cleanPhone,
@@ -812,6 +812,22 @@ export function getAllPortalAccounts(): PortalAccount[] {
     anikAcc.username = 'anik';
     anikAcc.directorId = 'dir-5';
     anikAcc.roleTitleBn = 'সুপার অ্যাডমিন · সম্মানিত পরিচালক ও আইটি হেড';
+  }
+
+  // Strictly enforce student naming and roleTitle for all student accounts
+  for (const acc of accountMap.values()) {
+    if (acc.studentId || acc.role === 'parent') {
+      const matchedStd = students.find((s) => s.id === acc.studentId);
+      if (matchedStd) {
+        acc.nameBn = matchedStd.nameBn;
+        if (!acc.nameEn && matchedStd.nameEn) {
+          acc.nameEn = matchedStd.nameEn;
+        }
+      } else if (acc.nameBn && acc.nameBn.includes('পিতা')) {
+        acc.nameBn = acc.nameBn.replace(/^.*?\(|\)$/g, '').trim() || acc.nameBn;
+      }
+      acc.roleTitleBn = 'student';
+    }
   }
 
   // 7. Filter out any explicitly deleted accounts

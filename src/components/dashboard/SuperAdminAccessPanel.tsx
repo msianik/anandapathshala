@@ -216,15 +216,14 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     } else if (newRole === 'parent') {
       const std = availableStudents.find((s) => s.id === profileId);
       if (std) {
-        const guardianName = std.guardianNameBn || `${std.nameBn}-এর অভিভাবক`;
         const guardianPhone = std.emergencyPhone || std.guardianPhone || '';
-        setNewNameBn(guardianName);
-        setNewNameEn(std.guardianNameEn || std.nameEn || '');
+        setNewNameBn(std.nameBn);
+        setNewNameEn(std.nameEn || '');
         setNewPhone(guardianPhone);
         setNewEmail('');
-        setNewRoleTitleBn(`${std.nameBn}-এর প্রধান অভিভাবক`);
+        setNewRoleTitleBn('student');
         setNewAvatarUrl(std.photoUrl || '');
-        const cleanUser = `parent_std${std.rollNo || std.id.replace(/[^0-9]/g, '')}`;
+        const cleanUser = `std${std.rollNo || std.id.replace(/[^0-9]/g, '')}`;
         setNewUsername(cleanUser);
         setNewPassword('123456');
         setNewAssignedClass(std.className);
@@ -232,7 +231,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         setLinkedProfileNote(
           `✓ শিক্ষার্থী "${std.nameBn}" (রোল ${toBengaliNumber(std.rollNo)}, শ্রেণি: ${getSchoolClassNameBn(
             std.className
-          )})-এর সাথে অভিভাবক অ্যাকাউন্ট লিঙ্ক করা হয়েছে!`
+          )})-এর সাথে শিক্ষার্থী আইডি লিঙ্ক করা হয়েছে!`
         );
       }
     } else if (newRole === 'accountant' || newRole === 'gate_security') {
@@ -476,7 +475,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         ? 'গেট সিকিউরিটি ও কেয়ারটেকার'
         : defaultRole === 'principal'
         ? 'প্রিন্সিপাল ও একাডেমিক প্রধান'
-        : 'অভিভাবক'
+        : 'student'
     );
     setNewAssignedClass('');
     setNewCanFullEdit(defaultRole === 'director');
@@ -849,7 +848,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>অভিভাবকবৃন্দ ({counts.parent})</span>
+            <span>শিক্ষার্থীবৃন্দ ({counts.parent})</span>
           </button>
         </div>
 
@@ -1184,7 +1183,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     { role: 'principal' as const, label: '🎓 প্রিন্সিপাল' },
                     { role: 'accountant' as const, label: '💼 হিসাবরক্ষক' },
                     { role: 'gate_security' as const, label: '🛡️ সিকিউরিটি' },
-                    { role: 'parent' as const, label: '👨‍👩‍👧 অভিভাবক' },
+                    { role: 'parent' as const, label: '🎓 শিক্ষার্থী' },
                   ].map((r) => (
                     <button
                       key={r.role}
@@ -1206,7 +1205,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                             ? 'গেট সিকিউরিটি ও কেয়ারটেকার'
                             : r.role === 'principal'
                             ? 'প্রিন্সিপাল ও একাডেমিক প্রধান'
-                            : 'অভিভাবক'
+                            : 'student'
                         );
                       }}
                       className={`py-1.5 px-2 rounded-xl text-xs font-bold transition border text-center cursor-pointer ${
@@ -1237,7 +1236,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                   {newRole === 'teacher' || newRole === 'principal'
                     ? 'নিয়োগকৃত শিক্ষক/প্রিন্সিপাল তালিকা থেকে সিলেক্ট করলে নাম, মোবাইল, ছবি ও ইউজার আইডি স্বয়ংক্রিয়ভাবে পূরণ হয়ে যাবে।'
                     : newRole === 'parent'
-                    ? 'অনুমোদিত শিক্ষার্থী তালিকা থেকে সিলেক্ট করলে শিক্ষার্থীর নাম, রোল ও অভিভাবকের তথ্য স্বয়ংক্রিয়ভাবে লিঙ্ক হবে।'
+                    ? 'অনুমোদিত শিক্ষার্থী তালিকা থেকে সিলেক্ট করলে শিক্ষার্থীর নাম, রোল ও আইডির তথ্য স্বয়ংক্রিয়ভাবে লিঙ্ক হবে।'
                     : newRole === 'accountant' || newRole === 'gate_security'
                     ? 'নিয়োগকৃত স্টাফ তালিকা থেকে সিলেক্ট করে লিঙ্ক করুন।'
                     : 'পরিচালনা পর্ষদের পরিচালক তালিকা থেকে সিলেক্ট করুন।'}
@@ -1254,7 +1253,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                       : newRole === 'principal'
                       ? 'প্রিন্সিপাল প্রোফাইল নির্বাচন করুন'
                       : newRole === 'parent'
-                      ? 'অনুমোদিত শিক্ষার্থী ও অভিভাবক নির্বাচন করুন'
+                      ? 'অনুমোদিত শিক্ষার্থী নির্বাচন করুন'
                       : newRole === 'director'
                       ? 'পরিচালনা পর্ষদের সম্মানিত পরিচালক নির্বাচন করুন'
                       : 'স্টাফ প্রোফাইল নির্বাচন করুন'} --
