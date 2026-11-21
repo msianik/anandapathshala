@@ -952,11 +952,6 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
             ক্লাস ভিত্তিক রুটিন ও দৈনিক পাঠ পরিকল্পনা (Daily Lesson Plans)
           </h2>
-          <p className="text-xs sm:text-sm text-teal-100 max-w-2xl leading-relaxed">
-            {canEditLessonPlan
-              ? 'প্রতিটি নির্ধারিত ক্লাসের জন্য সংক্ষিপ্ত দৈনিক পাঠ পরিকল্পনা সারসংক্ষেপ (Lesson Plan Summary), শিখনফল ও বাসার অনুশীলন যুক্ত করুন — যা অভিভাবকগণ তাদের পোর্টালে সরাসরি দেখতে পারবেন।'
-              : 'আপনার সন্তানের প্রতিটি ক্লাসে আজ কী পড়ানো হবে, শিখনফল কী এবং বাসায় কী অনুশীলন করাতে হবে তার বিস্তারিত দৈনিক পাঠ পরিকল্পনা একনজরে দেখুন।'}
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
