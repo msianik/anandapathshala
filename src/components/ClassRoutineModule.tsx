@@ -2005,25 +2005,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                   </select>
                 </div>
 
-                {/* Resource Booking Filter Dropdown */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-slate-500 text-xs font-medium flex items-center gap-1">
-                    <Package className="w-3.5 h-3.5 text-indigo-600" />
-                    রিসোর্স:
-                  </span>
-                  <select
-                    value={resourceFilter}
-                    onChange={(e) => setResourceFilter(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  >
-                    <option value="all">সকল সম্পদ / রিসোর্স</option>
-                    {SCHOOL_RESOURCES.map((res) => (
-                      <option key={res.id} value={res.id}>
-                        {res.icon} {res.nameBn}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
               </div>
             </div>
 
