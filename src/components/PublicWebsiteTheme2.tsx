@@ -135,104 +135,74 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   };
 
   /**
-   * INTERACTIVE POP-OUT ELEMENT CONFIGURATIONS:
-   * Pixel-perfect isolated transparent cutout layers.
-   * - ZERO lines, ZERO boxes, ZERO dots in the painting!
-   * - In idle state: subtle warm golden aura around the object silhouette.
-   * - On hover: ONLY this specific object grows smoothly (scale) with radiant golden backlight
-   *   WITHOUT scaling the background image behind it!
+   * SIMPLE INTERACTIVE HOTSPOTS:
+   * Pure painting with ZERO image transforms or effects.
+   * Hovering over any object reveals ONLY its menu name floating above.
+   * Clicking opens the corresponding modal.
    */
-  const interactiveElements = [
+  const hotspots = [
     {
       id: 'calendar',
-      nameBn: 'ক্যালেন্ডার',
-      tooltip: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা — ক্লিক করুন',
+      nameBn: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা',
       modalId: 'calendar' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/calendar.png',
-      leftPercent: 4.1424,
-      topPercent: 15.6250,
-      widthPercent: 10.8285,
-      heightPercent: 34.8958,
-      transformOrigin: 'top center',
-      hoverScale: 1.07,
+      leftPercent: 4.14,
+      topPercent: 15.6,
+      widthPercent: 10.8,
+      heightPercent: 35.0,
     },
     {
       id: 'blackboard',
-      nameBn: 'ব্ল্যাকবোর্ড',
-      tooltip: '📋 ক্লাসরুম চক-বোর্ড — আজকের পাঠ ও নোটিশ — ক্লিক করুন',
+      nameBn: '📋 ক্লাসরুম চক-বোর্ড (আজকের পাঠ ও নোটিশ)',
       modalId: 'blackboard' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/blackboard.png',
-      leftPercent: 15.1163,
-      topPercent: 36.1979,
-      widthPercent: 15.5523,
-      heightPercent: 50.3906,
-      transformOrigin: 'bottom center',
-      hoverScale: 1.06,
+      leftPercent: 15.1,
+      topPercent: 36.0,
+      widthPercent: 15.5,
+      heightPercent: 50.4,
     },
     {
       id: 'mastermashai',
-      nameBn: 'মাস্টার মশাই',
-      tooltip: '👨‍🏫 মাস্টার মশাই — অধ্যক্ষ ও পরিচালনা পর্ষদ — ক্লিক করুন',
+      nameBn: '👨‍🏫 মাস্টার মশাই (অধ্যক্ষ ও পরিচালনা পর্ষদ)',
       modalId: 'mastermashai' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/mastermashai.png',
-      leftPercent: 26.8895,
-      topPercent: 25.6510,
-      widthPercent: 11.6279,
-      heightPercent: 56.1198,
-      transformOrigin: 'bottom center',
-      hoverScale: 1.08,
+      leftPercent: 26.9,
+      topPercent: 25.6,
+      widthPercent: 11.6,
+      heightPercent: 56.1,
     },
     {
       id: 'students',
-      nameBn: 'শিক্ষার্থীবৃন্দ',
-      tooltip: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও ৩ ঘণ্টার শিফট — ক্লিক করুন',
+      nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও ৩ ঘণ্টার শিফট)',
       modalId: 'students' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/students.png',
-      leftPercent: 35.6105,
-      topPercent: 55.9896,
-      widthPercent: 48.3285,
-      heightPercent: 42.3177,
-      transformOrigin: 'bottom center',
-      hoverScale: 1.05,
+      leftPercent: 35.6,
+      topPercent: 55.9,
+      widthPercent: 48.3,
+      heightPercent: 42.3,
     },
     {
       id: 'cottage',
-      nameBn: 'শিক্ষক কুটির',
-      tooltip: '🏡 শিক্ষক কুটির — শিক্ষকমণ্ডলী ও স্টাফ — ক্লিক করুন',
+      nameBn: '🏡 শিক্ষক কুটির (শিক্ষকমণ্ডলী ও স্টাফ)',
       modalId: 'cottage' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/cottage.png',
-      leftPercent: 56.6860,
-      topPercent: 17.5781,
-      widthPercent: 36.7006,
-      heightPercent: 50.1302,
-      transformOrigin: 'center center',
-      hoverScale: 1.05,
+      leftPercent: 56.7,
+      topPercent: 17.5,
+      widthPercent: 36.7,
+      heightPercent: 50.1,
     },
     {
       id: 'flowers_left',
-      nameBn: 'ফুলের বাগান',
-      tooltip: '🌸 গাঁদা ফুলের বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
+      nameBn: '🌸 ফুলের বাগান (মঙ্গলবারের কালচারাল ডে)',
       modalId: 'cultural' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/flowers_left.png',
-      leftPercent: 0.0000,
-      topPercent: 67.0573,
-      widthPercent: 23.2558,
-      heightPercent: 32.9427,
-      transformOrigin: 'bottom left',
-      hoverScale: 1.06,
+      leftPercent: 0.0,
+      topPercent: 67.0,
+      widthPercent: 23.3,
+      heightPercent: 33.0,
     },
     {
       id: 'flowers_right',
-      nameBn: 'গোলাপ বাগান',
-      tooltip: '🌸 গোলাপ বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
+      nameBn: '🌸 গোলাপ বাগান (মঙ্গলবারের কালচারাল ডে)',
       modalId: 'cultural' as InteractiveModalType,
-      cutoutSrc: '/assets/theme2/cutouts/flowers_right.png',
-      leftPercent: 84.3023,
-      topPercent: 72.9167,
-      widthPercent: 15.6977,
-      heightPercent: 27.0833,
-      transformOrigin: 'bottom right',
-      hoverScale: 1.06,
+      leftPercent: 84.3,
+      topPercent: 72.9,
+      widthPercent: 15.7,
+      heightPercent: 27.1,
     },
   ];
 
@@ -241,21 +211,6 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       aria-label="আনন্দ পাঠশালা ইন্টারঅ্যাক্টিভ ক্যানভাস"
       className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950"
     >
-      {/* CSS For Smooth Pop-Out Grow & Radiant Golden Aura (Zero Lines, Zero Boxes, Zero Dots!) */}
-      <style>{`
-        @keyframes goldenSilhouetteAura {
-          0%, 100% {
-            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.45));
-          }
-          50% {
-            filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.75)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.35));
-          }
-        }
-        .golden-aura-idle {
-          animation: goldenSilhouetteAura 3s ease-in-out infinite;
-        }
-      `}</style>
-
       {/* ========================================================================= */}
       {/* 1. TOP MINIMALIST FLOATING NAVIGATION BAR                                 */}
       {/* ========================================================================= */}
@@ -314,61 +269,44 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       <section className="relative w-full flex-1 flex items-center justify-center p-0 sm:p-2 lg:p-4 bg-slate-950 overflow-hidden">
         {/* Aspect Ratio 16:9 Container (1376x768 Base Coordinate Space) */}
         <div className="relative w-full max-w-[1536px] aspect-16/9 max-h-[82vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border-2 border-slate-800 bg-slate-900 select-none">
-          {/* 1. Base Pristine Landscape - Rock Solid Background (Never Scales or Moves!) */}
+          {/* Pristine Clean Base Painting (No transforms, completely natural) */}
           <img
             src="/assets/theme2/anandakanon_diorama.jpg"
             alt="আনন্দ কানন উন্মুক্ত পাঠশালা — কুষ্টিয়া"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            className="w-full h-full object-cover pointer-events-none"
           />
 
-          {/* 2. Interactive Object Cutout Layers (Pixel-Exact Positioned Over Base Image) */}
-          {interactiveElements.map((el) => {
-            const isHovered = hoveredHotspot === el.id;
+          {/* Simple Interactive Hotspots (Only menu title floats on hover, no image movement!) */}
+          {hotspots.map((spot) => {
+            const isHovered = hoveredHotspot === spot.id;
             return (
               <div
-                key={el.id}
-                onClick={() => handleOpenSpot(el.modalId as InteractiveModalType)}
-                onMouseEnter={() => setHoveredHotspot(el.id)}
+                key={spot.id}
+                onClick={() => handleOpenSpot(spot.modalId)}
+                onMouseEnter={() => setHoveredHotspot(spot.id)}
                 onMouseLeave={() => setHoveredHotspot(null)}
                 style={{
                   position: 'absolute',
-                  left: `${el.leftPercent}%`,
-                  top: `${el.topPercent}%`,
-                  width: `${el.widthPercent}%`,
-                  height: `${el.heightPercent}%`,
-                  zIndex: isHovered ? 40 : 20,
+                  left: `${spot.leftPercent}%`,
+                  top: `${spot.topPercent}%`,
+                  width: `${spot.widthPercent}%`,
+                  height: `${spot.heightPercent}%`,
                 }}
-                className="cursor-pointer group"
+                className="cursor-pointer z-20 group"
                 role="button"
                 tabIndex={0}
-                aria-label={el.nameBn}
+                aria-label={spot.nameBn}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleOpenSpot(el.modalId as InteractiveModalType);
+                    handleOpenSpot(spot.modalId);
                   }
                 }}
               >
-                {/* The Cutout Image with Golden Silhouette Glow and Smooth Scale */}
-                <img
-                  src={el.cutoutSrc}
-                  alt={el.nameBn}
-                  className={`w-full h-full object-contain pointer-events-auto transition-all duration-300 ease-out ${
-                    !isHovered ? 'golden-aura-idle' : ''
-                  }`}
-                  style={{
-                    transformOrigin: el.transformOrigin || 'center center',
-                    transform: isHovered ? `scale(${el.hoverScale || 1.07})` : 'scale(1)',
-                    filter: isHovered
-                      ? 'drop-shadow(0 0 26px rgba(251, 191, 36, 0.95)) drop-shadow(0 14px 28px rgba(0, 0, 0, 0.75)) brightness(1.12)'
-                      : undefined,
-                  }}
-                />
-
-                {/* Sleek Tooltip appearing above the hovered object */}
+                {/* Floating Menu Name Badge appearing directly on hover */}
                 {isHovered && (
-                  <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-full bg-slate-950/95 border border-amber-400 text-amber-200 text-xs font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
-                    {el.tooltip}
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-4 py-2 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                    {spot.nameBn}
                   </div>
                 )}
               </div>
