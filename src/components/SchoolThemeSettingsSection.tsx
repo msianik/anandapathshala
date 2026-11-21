@@ -9,6 +9,13 @@ import {
   SchoolThemePreset,
 } from '../utils/themeManager';
 import {
+  PublicWebsiteThemeId,
+  PUBLIC_WEBSITE_THEMES,
+  getStoredPublicWebsiteTheme,
+  setStoredPublicWebsiteTheme,
+  PUBLIC_THEME_CHANGE_EVENT,
+} from '../utils/publicWebsiteTheme';
+import {
   Palette,
   Check,
   Sparkles,
@@ -21,6 +28,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Info,
+  Layout,
 } from 'lucide-react';
 
 interface SchoolThemeSettingsSectionProps {
@@ -36,6 +44,10 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
   const [customHex, setCustomHex] = useState<string>(() => getStoredThemeColor());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [publicTheme, setPublicTheme] = useState<PublicWebsiteThemeId>(() =>
+    getStoredPublicWebsiteTheme()
+  );
+
   useEffect(() => {
     const handleSync = (e: any) => {
       const newColor = e.detail?.color || getStoredThemeColor();
@@ -45,6 +57,26 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
     window.addEventListener('school-theme-updated', handleSync);
     return () => window.removeEventListener('school-theme-updated', handleSync);
   }, []);
+
+  useEffect(() => {
+    const handlePublicThemeSync = (e: any) => {
+      const newTheme = e.detail?.theme || getStoredPublicWebsiteTheme();
+      setPublicTheme(newTheme);
+    };
+    window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
+    return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
+  }, []);
+
+  const handleSelectPublicTheme = (themeId: PublicWebsiteThemeId) => {
+    setPublicTheme(themeId);
+    setStoredPublicWebsiteTheme(themeId);
+    setToastMessage(
+      themeId === 'theme1'
+        ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+        : '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+    );
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const handleSelectPreset = (preset: SchoolThemePreset) => {
     const res = applySchoolTheme(preset.primaryColor);
@@ -138,6 +170,144 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
           <RefreshCw className="w-3.5 h-3.5" />
           <span>ডিফল্ট থিম</span>
         </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 1. PUBLIC WEBSITE THEME SELECTION (Theme 1 vs Theme 2)                    */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-3xl p-5 sm:p-7 border-2 border-amber-400/80 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md">
+              <Layout className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                  সুপার অ্যাডমিন থিম কন্ট্রোল
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  লাইভ ওয়েবসাইট আর্কিটেকচার
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                পাবলিক ওয়েবসাইট লেআউট থিম নির্বাচন (Public Website Themes)
+              </h3>
+            </div>
+          </div>
+
+          <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-amber-300 flex items-center gap-1.5 self-start sm:self-auto">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>সক্রিয়: {publicTheme === 'theme1' ? 'থিম ১ (ক্লাসিক)' : 'থিম ২ (মডার্ন স্মার্ট)'}</span>
+          </div>
+        </div>
+
+        {/* 2 Theme Cards Side-by-Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {PUBLIC_WEBSITE_THEMES.map((t) => {
+            const isSelected = publicTheme === t.id;
+            return (
+              <div
+                key={t.id}
+                onClick={() => handleSelectPublicTheme(t.id)}
+                className={`relative rounded-2xl p-5 transition-all duration-300 cursor-pointer border-2 flex flex-col justify-between space-y-4 ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-slate-800 via-slate-850 to-slate-900 border-amber-400 shadow-xl ring-2 ring-amber-400/40'
+                    : 'bg-slate-850/80 hover:bg-slate-800/90 border-slate-700 hover:border-slate-500 shadow-xs'
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {t.badgeBn}
+                    </span>
+
+                    {isSelected && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        <span>বর্তমানে লাইভ সক্রিয়</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-black text-white flex items-center gap-2">
+                      <span>{t.nameBn}</span>
+                    </h4>
+                    <p className="text-xs text-amber-300 font-medium mt-0.5">
+                      {t.taglineBn}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {t.descriptionBn}
+                  </p>
+
+                  <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] text-slate-400 font-mono">
+                    {t.id === 'theme1' ? (
+                      <>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          ✓ ফুল-উইডথ ক্যারোজেল
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          ✓ ট্রেডিশনাল কার্ড গ্রিড
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                          ✓ বিস্তারিত স্ট্যাটস বার
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800/80 text-sky-300">
+                          ✓ স্প্লিট-হিরো ও ভাসমান ব্যাজ
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-teal-950/80 border border-teal-800/80 text-teal-300">
+                          ✓ ৩ ঘণ্টার ইন্টারঅ্যাক্টিভ শিফট
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800/80 text-rose-300">
+                          ✓ মঙ্গলবারের কালচারাল ডে হাইলাইটস
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectPublicTheme(t.id);
+                    }}
+                    className={`w-full py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
+                      isSelected
+                        ? 'bg-amber-400 hover:bg-amber-500 text-slate-950 font-black'
+                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <>
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>এই থিমটি সক্রিয় রয়েছে</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>এই থিমে পরিবর্তন করুন</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Active Theme Status Indicator */}

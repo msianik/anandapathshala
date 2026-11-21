@@ -64,6 +64,14 @@ import {
 } from './lib/schoolCloudSync';
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
+import { PublicWebsiteTheme2 } from './components/PublicWebsiteTheme2';
+import { SuperAdminThemeToolbar } from './components/SuperAdminThemeToolbar';
+import {
+  PublicWebsiteThemeId,
+  getStoredPublicWebsiteTheme,
+  setStoredPublicWebsiteTheme,
+  PUBLIC_THEME_CHANGE_EVENT,
+} from './utils/publicWebsiteTheme';
 
 const OverviewDashboard = lazy(() => import('./components/OverviewDashboard').then(m => ({ default: m.OverviewDashboard })));
 const TeacherPortalDashboard = lazy(() => import('./components/RolePortals').then(m => ({ default: m.TeacherPortalDashboard })));
@@ -242,6 +250,20 @@ export default function App() {
   });
   const [isMobileModalOpen, setIsMobileModalOpen] = useState<boolean>(false);
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
+
+  // Public Website Active Theme ('theme1' | 'theme2')
+  const [publicTheme, setPublicTheme] = useState<PublicWebsiteThemeId>(() =>
+    getStoredPublicWebsiteTheme()
+  );
+
+  useEffect(() => {
+    const handlePublicThemeSync = (e: any) => {
+      const newTheme = e.detail?.theme || getStoredPublicWebsiteTheme();
+      setPublicTheme(newTheme);
+    };
+    window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
+    return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
+  }, []);
 
   // Dedicated App Mode detector (iOS App, Standalone PWA, /login, or ?app=ios)
   // When active, the Public Website is completely hidden and the app functions purely as a Portal
@@ -1284,27 +1306,71 @@ export default function App() {
           />
         ) : isShowingPublicWebsite ? (
           /* Standalone Public Website (Open to Everyone by Default) */
-          <PublicWebsite
-            onEnterPortal={(tab) => {
-              if (!loggedInAccount) {
-                setIsLoginModalOpen(true);
-              } else {
-                setCurrentRole(loggedInAccount.role);
-                setCurrentTab(tab || 'overview');
-              }
-            }}
-            onOpenLoginModal={() => setIsLoginModalOpen(true)}
-            onOpenMobileModal={() => setIsMobileModalOpen(true)}
-            isMobilePreview={isMobilePreview}
-            onAddAdmission={handleAddAdmission}
-            logoUrl={logoUrl}
-            fbGallery={fbGallery}
-            isLoggedIn={Boolean(loggedInAccount)}
-            onAddMultipleGalleryPhotos={handleAddMultipleGalleryPhotos}
-            onDeleteGalleryPhoto={handleDeleteGalleryPhoto}
-            schoolProfile={schoolProfile}
-            leadershipProfiles={leadershipProfiles}
-          />
+          <>
+            {/* Super Admin / Director Floating Theme Selector on Public Website */}
+            {loggedInAccount &&
+              (loggedInAccount.role === 'super_admin' || loggedInAccount.role === 'director') && (
+                <SuperAdminThemeToolbar
+                  currentTheme={publicTheme}
+                  onThemeSelect={(t) => {
+                    setPublicTheme(t);
+                    setStoredPublicWebsiteTheme(t);
+                  }}
+                  onGoToDashboard={() => {
+                    setCurrentRole(loggedInAccount.role);
+                    setCurrentTab('overview');
+                  }}
+                />
+              )}
+
+            {publicTheme === 'theme2' ? (
+              <PublicWebsiteTheme2
+                onEnterPortal={(tab) => {
+                  if (!loggedInAccount) {
+                    setIsLoginModalOpen(true);
+                  } else {
+                    setCurrentRole(loggedInAccount.role);
+                    setCurrentTab(tab || 'overview');
+                  }
+                }}
+                onOpenLoginModal={() => setIsLoginModalOpen(true)}
+                onOpenMobileModal={() => setIsMobileModalOpen(true)}
+                isMobilePreview={isMobilePreview}
+                onAddAdmission={handleAddAdmission}
+                logoUrl={logoUrl}
+                fbGallery={fbGallery}
+                isLoggedIn={Boolean(loggedInAccount)}
+                onAddMultipleGalleryPhotos={handleAddMultipleGalleryPhotos}
+                onDeleteGalleryPhoto={handleDeleteGalleryPhoto}
+                schoolProfile={schoolProfile}
+                leadershipProfiles={leadershipProfiles}
+                notices={notices}
+              />
+            ) : (
+              <PublicWebsite
+                onEnterPortal={(tab) => {
+                  if (!loggedInAccount) {
+                    setIsLoginModalOpen(true);
+                  } else {
+                    setCurrentRole(loggedInAccount.role);
+                    setCurrentTab(tab || 'overview');
+                  }
+                }}
+                onOpenLoginModal={() => setIsLoginModalOpen(true)}
+                onOpenMobileModal={() => setIsMobileModalOpen(true)}
+                isMobilePreview={isMobilePreview}
+                onAddAdmission={handleAddAdmission}
+                logoUrl={logoUrl}
+                fbGallery={fbGallery}
+                isLoggedIn={Boolean(loggedInAccount)}
+                onAddMultipleGalleryPhotos={handleAddMultipleGalleryPhotos}
+                onDeleteGalleryPhoto={handleDeleteGalleryPhoto}
+                schoolProfile={schoolProfile}
+                leadershipProfiles={leadershipProfiles}
+                notices={notices}
+              />
+            )}
+          </>
         ) : (
           /* Authenticated Role-Specific Portal (Principal/Admin, Teacher, or Parent) */
           <>

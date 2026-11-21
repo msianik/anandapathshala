@@ -43,6 +43,13 @@ import {
   getStoredThemeColor,
 } from '../utils/themeManager';
 import {
+  PublicWebsiteThemeId,
+  PUBLIC_WEBSITE_THEMES,
+  getStoredPublicWebsiteTheme,
+  setStoredPublicWebsiteTheme,
+  PUBLIC_THEME_CHANGE_EVENT,
+} from '../utils/publicWebsiteTheme';
+import {
   getStoredDirectChatMessages,
   getUnreadMessagesCount,
   DIRECT_CHAT_STORAGE_EVENT,
@@ -117,6 +124,9 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [activeThemeColor, setActiveThemeColor] = useState<string>(() => getStoredThemeColor());
+  const [publicTheme, setPublicTheme] = useState<PublicWebsiteThemeId>(() =>
+    getStoredPublicWebsiteTheme()
+  );
   const [activeDropdownPillarId, setActiveDropdownPillarId] = useState<string | null>(null);
   const navContainerRef = useRef<HTMLDivElement>(null);
 
@@ -144,6 +154,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     };
     window.addEventListener('school-theme-updated', handleThemeSync);
     return () => window.removeEventListener('school-theme-updated', handleThemeSync);
+  }, []);
+
+  useEffect(() => {
+    const handlePublicThemeSync = (e: any) => {
+      setPublicTheme(e.detail?.theme || getStoredPublicWebsiteTheme());
+    };
+    window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
+    return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
   }, []);
 
   const [directChatUnreadCount, setDirectChatUnreadCount] = useState<number>(() => {
@@ -748,47 +766,100 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
       {/* Theme Picker Modal */}
       {isThemeMenuOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 border border-purple-200 shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 border border-purple-200 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Palette className="w-4 h-4 text-purple-700" />
-                <h3 className="font-bold text-sm text-slate-900">স্কুল থিম কালার</h3>
+                <h3 className="font-bold text-sm text-slate-900">থিম ও কালার সেটিংস</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsThemeMenuOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {PRESET_SCHOOL_THEMES.map((theme) => {
-                const isSelected = activeThemeColor === theme.color;
-                return (
-                  <button
-                    key={theme.color}
-                    type="button"
-                    onClick={() => {
-                      applySchoolTheme(theme.color);
-                      setActiveThemeColor(theme.color);
-                      setIsThemeMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                      isSelected
-                        ? 'border-purple-600 bg-purple-50 text-purple-950 shadow-xs'
-                        : 'border-slate-200 hover:border-purple-300'
-                    }`}
-                  >
-                    <span
-                      className="w-4 h-4 rounded-full shrink-0 border border-black/20"
-                      style={{ backgroundColor: theme.color }}
-                    />
-                    <span className="truncate">{theme.nameBn}</span>
-                  </button>
-                );
-              })}
+            {/* Public Website Theme Selector */}
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                <span>🌐 পাবলিক ওয়েবসাইট থিম:</span>
+                <span className="text-[11px] text-amber-600 font-extrabold">
+                  {publicTheme === 'theme1' ? 'থিম ১ (ক্লাসিক)' : 'থিম ২ (মডার্ন)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPublicTheme('theme1');
+                    setStoredPublicWebsiteTheme('theme1');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                    publicTheme === 'theme1'
+                      ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                  }`}
+                >
+                  <div>
+                    <p className="font-black">থিম ১: ক্লাসিক</p>
+                    <p className="text-[10px] text-slate-500">ট্রেডিশনাল ক্যাম্পাস</p>
+                  </div>
+                  {publicTheme === 'theme1' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPublicTheme('theme2');
+                    setStoredPublicWebsiteTheme('theme2');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                    publicTheme === 'theme2'
+                      ? 'border-sky-500 bg-sky-50 text-slate-950 shadow-xs ring-1 ring-sky-400'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                  }`}
+                >
+                  <div>
+                    <p className="font-black">থিম ২: মডার্ন</p>
+                    <p className="text-[10px] text-slate-500">স্মার্ট প্রি-স্কুল</p>
+                  </div>
+                  {publicTheme === 'theme2' && <Check className="w-4 h-4 text-sky-600 stroke-[3]" />}
+                </button>
+              </div>
+            </div>
+
+            {/* School Brand Preset Colors */}
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-700">🎨 মূল ব্র্যান্ড কালার প্যালেট:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PRESET_SCHOOL_THEMES.map((theme) => {
+                  const isSelected = activeThemeColor === theme.color;
+                  return (
+                    <button
+                      key={theme.color}
+                      type="button"
+                      onClick={() => {
+                        applySchoolTheme(theme.color);
+                        setActiveThemeColor(theme.color);
+                        setIsThemeMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                        isSelected
+                          ? 'border-purple-600 bg-purple-50 text-purple-950 shadow-xs'
+                          : 'border-slate-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/20"
+                        style={{ backgroundColor: theme.color }}
+                      />
+                      <span className="truncate text-[11px]">{theme.nameBn}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

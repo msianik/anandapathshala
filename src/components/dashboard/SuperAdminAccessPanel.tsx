@@ -32,7 +32,14 @@ import {
   Camera,
   Upload,
   Link2,
+  Palette,
 } from 'lucide-react';
+import {
+  PublicWebsiteThemeId,
+  getStoredPublicWebsiteTheme,
+  setStoredPublicWebsiteTheme,
+  PUBLIC_THEME_CHANGE_EVENT,
+} from '../../utils/publicWebsiteTheme';
 import {
   DirectorAccessPermission,
   PortalAccount,
@@ -112,6 +119,29 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [panelToast, setPanelToast] = useState<string | null>(null);
+
+  const [publicTheme, setPublicTheme] = useState<PublicWebsiteThemeId>(() =>
+    getStoredPublicWebsiteTheme()
+  );
+
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      const newTheme = e.detail?.theme || getStoredPublicWebsiteTheme();
+      setPublicTheme(newTheme);
+    };
+    window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handleSync);
+    return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handleSync);
+  }, []);
+
+  const handleToggleTheme = (themeId: PublicWebsiteThemeId) => {
+    setPublicTheme(themeId);
+    setStoredPublicWebsiteTheme(themeId);
+    showToast(
+      themeId === 'theme1'
+        ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে কার্যকর হয়েছে!'
+        : '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে কার্যকর হয়েছে!'
+    );
+  };
 
   // Available live profiles for quick linking
   const availableStudents = useMemo<Student[]>(() => {
@@ -767,6 +797,36 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 <Unlock className="w-3.5 h-3.5 text-teal-700" />
                 <span>সকলকে সক্রিয়</span>
               </button>
+
+              {/* Public Website Theme Toggle */}
+              <div className="flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl border border-amber-400/70 shadow-xs">
+                <Palette className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[11px] font-bold text-slate-300">ওয়েবসাইট থিম:</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleTheme('theme1')}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    publicTheme === 'theme1'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="থিম ১: ক্লাসিক কিন্ডারগার্টেন"
+                >
+                  থিম ১
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleTheme('theme2')}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    publicTheme === 'theme2'
+                      ? 'bg-sky-400 text-slate-950 font-black shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="থিম ২: মডার্ন স্মার্ট প্রি-স্কুল"
+                >
+                  থিম ২
+                </button>
+              </div>
             </div>
           </div>
 
