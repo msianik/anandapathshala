@@ -202,7 +202,7 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
               <span>🎭🎨 ছোট্ট সোনামণিদের সৃজনশীল মুহূর্তের ছবি</span>
             </h2>
             <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-medium">
-              প্রতি মঙ্গলবার কালচারাল ডে-এর রঙিন আয়োজন, ছড়া আবৃত্তি, মাটির কাজ, পাপেট শো এবং বিশেষ উৎসবের আনন্দঘন স্মৃতিগুলো এখানে সংরক্ষিত।
+              রঙিন আয়োজন, ছড়া আবৃত্তি, মাটির কাজ, পাপেট শো এবং বিশেষ উৎসবের আনন্দঘন স্মৃতিগুলো এখানে সংরক্ষিত।
             </p>
           </div>
 
