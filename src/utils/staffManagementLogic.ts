@@ -87,7 +87,22 @@ export function getStoredStaffMembers(): TeacherMember[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map((m: TeacherMember) => {
+          if (m.id === 'tch-7' || (m.nameBn && m.nameBn.includes('শাফী আব্দুল্লাহ'))) {
+            return {
+              ...m,
+              designationBn: m.designationBn?.includes('শিক্ষক') ? m.designationBn : 'প্রিন্সিপাল ও শিক্ষক (Principal & Teacher)',
+              photoUrl: '/assets/biddalay/shafee_abdullah.jpg',
+              phone: m.phone || '01914057512',
+              username: m.username || 'principal',
+              portalRole: 'admin',
+              assignedClass: m.assignedClass || 'Class-1',
+              staffCategory: 'teacher',
+              isHeadTeacher: true,
+            };
+          }
+          return m;
+        });
       }
     }
   } catch {}

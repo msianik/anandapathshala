@@ -906,19 +906,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             <Building2 className="w-3.5 h-3.5" />
             <span>পরিচালনা পর্ষদ ({counts.director})</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('principal')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'principal'
-                ? 'bg-teal-700 text-white font-black shadow-xs'
-                : 'hover:bg-white text-slate-700'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>প্রিন্সিপাল ({counts.principal})</span>
-          </button>
         </div>
 
         {/* Status Filters */}
