@@ -40,9 +40,11 @@ import {
   mergeNotificationsIdempotent,
   getPermissionForDirector,
   ALL_PORTAL_MODULE_IDS,
+  deletePortalUserAccountByStudentId,
 } from './utils/schoolLogic';
 import {
   syncStudentToBiometricDevice,
+  removeStudentFromBiometricDevice,
   purgeMockAttendanceAndResetRealMode,
   parseBiometricMachineFile,
   getBiometricLogs,
@@ -1137,10 +1139,17 @@ export default function App() {
     syncStudentToBiometricDevice(enrichedStudent);
 
     setStudents((prev) => {
-      const updated = [enrichedStudent, ...prev];
+      const updated = [enrichedStudent, ...prev.filter((s) => s.id !== enrichedStudent.id)];
       cloudSaveStudents(updated);
+      try {
+        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
+        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
+      } catch {}
       return updated;
     });
+
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: enrichedStudent }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
@@ -1155,16 +1164,37 @@ export default function App() {
     setStudents((prev) => {
       const updated = prev.map((s) => (s.id === enrichedStudent.id ? enrichedStudent : s));
       cloudSaveStudents(updated);
+      try {
+        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
+        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
+      } catch {}
       return updated;
     });
+
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: enrichedStudent }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleDeleteStudent = (studentId: string) => {
+    // 1. Remove from biometric fingerprint device
+    removeStudentFromBiometricDevice(studentId);
+
+    // 2. Remove associated portal account
+    deletePortalUserAccountByStudentId(studentId);
+
+    // 3. Remove from students state, localStorage & cloud
     setStudents((prev) => {
       const updated = prev.filter((s) => s.id !== studentId);
       cloudSaveStudents(updated);
+      try {
+        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
+        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
+      } catch {}
       return updated;
     });
+
+    window.dispatchEvent(new CustomEvent('ananda-students-updated'));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleAddAdmission = (newApp: AdmissionApplication) => {

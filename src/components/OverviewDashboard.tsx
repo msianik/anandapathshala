@@ -1056,6 +1056,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         onSetAllAccess={handleSetAllDirectorsAccess}
         logoUrl={logoUrl}
         onSelectRole={onSelectRole}
+        onNavigateTab={onNavigateTab}
       />
 
       {/* Media Manager Drawer */}

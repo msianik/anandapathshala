@@ -333,6 +333,42 @@ export function syncStudentToBiometricDevice(student: Student): void {
 }
 
 /**
+ * Remove a student from the Biometric attendance machine & ZLink cloud registry
+ */
+export function removeStudentFromBiometricDevice(studentId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    let deviceUsers: any[] = [];
+    const rawUsers = safeGetItem('ap_biometric_device_users_v1');
+    if (rawUsers) {
+      try {
+        deviceUsers = JSON.parse(rawUsers);
+      } catch {}
+    }
+    if (Array.isArray(deviceUsers)) {
+      const filtered = deviceUsers.filter(
+        (u) => u.personId !== studentId && u.enrollId !== studentId
+      );
+      safeSetItem('ap_biometric_device_users_v1', JSON.stringify(filtered));
+    }
+
+    // Update config lastSync
+    const currentConfig = getBiometricConfig();
+    currentConfig.lastSyncTimestamp = Date.now();
+    currentConfig.lastSyncTimeStr = 'এইমাত্র সম্পন্ন (শিক্ষার্থী অপসারিত)';
+    saveBiometricConfig(currentConfig);
+
+    window.dispatchEvent(
+      new CustomEvent('ananda_biometric_device_updated', {
+        detail: { removedPersonId: studentId },
+      })
+    );
+  } catch (err) {
+    console.error('Failed to remove student from biometric device:', err);
+  }
+}
+
+/**
  * Format a Date to Bangladeshi time string e.g. "সকাল ০৮:১০" বা "দুপুর ০১:২০"
  */
 export function formatBanglaTime(date: Date): string {

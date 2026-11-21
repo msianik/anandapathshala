@@ -1073,10 +1073,10 @@ export function deletePortalUserAccount(accountId: string): boolean {
       setTimeout(() => {
         try {
           window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated', { detail: { accounts: getAllPortalAccounts() } }));
-          if (account.directorId) {
+          if (target.directorId) {
             window.dispatchEvent(new CustomEvent('ananda-directors-updated'));
           }
-          if (account.role === 'teacher' || account.id.startsWith('acc-tch-')) {
+          if (target.role === 'teacher' || target.id.startsWith('acc-tch-')) {
             window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
           }
         } catch {}
@@ -1085,6 +1085,30 @@ export function deletePortalUserAccount(accountId: string): boolean {
     return true;
   } catch (err) {
     console.error('Error deleting account:', err);
+    return false;
+  }
+}
+
+export function deletePortalUserAccountByStudentId(studentId: string): boolean {
+  try {
+    const allAccounts = getAllPortalAccounts();
+    const target = allAccounts.find(
+      (a) => a.studentId === studentId || a.id === `acc-std-${studentId}`
+    );
+    if (target) {
+      return deletePortalUserAccount(target.id);
+    }
+    // Also explicitly add studentId to deleted storage
+    const deleted = getDeletedPortalAccountIds();
+    const toAdd = [studentId, `acc-std-${studentId}`];
+    const nextDeleted = Array.from(new Set([...deleted, ...toAdd]));
+    memoryDeletedAccountIds = nextDeleted;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DELETED_PORTAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(nextDeleted));
+      removePortalAccountByEntityId(`acc-std-${studentId}`);
+    }
+    return true;
+  } catch {
     return false;
   }
 }
