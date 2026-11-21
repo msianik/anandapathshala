@@ -151,16 +151,12 @@ export const SkillAssessmentModule: React.FC<SkillAssessmentModuleProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-3xl p-6 sm:p-7 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5">
+      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-lg border border-emerald-800/40 flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-white/20 text-amber-100">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{isParent ? 'অভিভাবক পোর্টাল • সামগ্রিক বিকাশ মূল্যায়ন' : 'কেজি ও প্লে স্কুলের বিশেষ মডিউল #৩'}</span>
-          </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             {isParent ? `${currentStudent.nameBn}-এর সামগ্রিক বিকাশ ও স্কিল কার্ড` : 'স্কিল ও বিহেভিওরাল প্রগ্রেস কার্ড (Growth Assessment)'}
           </h2>
-          <p className="text-amber-100/90 text-xs sm:text-sm max-w-2xl leading-relaxed">
+          <p className="text-teal-100/90 text-xs sm:text-sm max-w-2xl leading-relaxed">
             {isParent
               ? `শ্রেণি: ${currentStudent.className} | রোল: ${currentStudent.rollNo} | শাখা: ${currentStudent.section || 'ক'} • প্রচলিত পরীক্ষার বাইরে আচরণ, সামাজিক মেলামেশা, সৃজনশীলতা ও শারীরিক বৃদ্ধির অগ্রগতি।`
               : 'প্রচলিত লিখিত পরীক্ষার বাইরেও শিশুদের আচরণ, সামাজিক মেলামেশা, মোটর স্কিল, ছড়া আবৃত্তি ও সৃজনশীলতার পূর্ণাঙ্গ গ্রেডিং এবং আকর্ষণীয় রঙিন রিপোর্ট কার্ড জেনারেশন।'}
@@ -170,9 +166,9 @@ export const SkillAssessmentModule: React.FC<SkillAssessmentModuleProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setShowPrintModal(true)}
-            className="px-5 py-3 bg-white text-amber-900 hover:bg-amber-50 rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
+            className="px-5 py-3 bg-white text-emerald-900 hover:bg-emerald-50 rounded-2xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-amber-600" />
+            <Printer className="w-4 h-4 text-emerald-600" />
             <span>রঙিন রিপোর্ট কার্ড প্রিন্ট / প্রিভিউ</span>
           </button>
         </div>
