@@ -52,6 +52,7 @@ type InteractiveModalType =
   | 'cottage'
   | 'cultural'
   | 'admission'
+  | 'gate'
   | null;
 
 /**
@@ -142,257 +143,283 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
    */
   const hotspots = [
     {
+      id: 'gate',
+      nameBn: '🚪 আনন্দ পাঠশালা ফটক (বিদ্যালয় পরিচিতি)',
+      modalId: 'gate' as InteractiveModalType,
+      leftPercent: 71.0,
+      topPercent: 8.5,
+      widthPercent: 27.5,
+      heightPercent: 68.0,
+    },
+    {
       id: 'calendar',
       nameBn: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা',
       modalId: 'calendar' as InteractiveModalType,
-      leftPercent: 4.14,
-      topPercent: 15.6,
-      widthPercent: 10.8,
-      heightPercent: 35.0,
+      leftPercent: 7.5,
+      topPercent: 31.5,
+      widthPercent: 8.5,
+      heightPercent: 17.5,
     },
     {
       id: 'blackboard',
       nameBn: '📋 ক্লাসরুম চক-বোর্ড (আজকের পাঠ ও নোটিশ)',
       modalId: 'blackboard' as InteractiveModalType,
-      leftPercent: 15.1,
-      topPercent: 36.0,
-      widthPercent: 15.5,
-      heightPercent: 50.4,
+      leftPercent: 16.5,
+      topPercent: 38.5,
+      widthPercent: 14.5,
+      heightPercent: 35.0,
     },
     {
       id: 'mastermashai',
       nameBn: '👨‍🏫 মাস্টার মশাই (অধ্যক্ষ ও পরিচালনা পর্ষদ)',
       modalId: 'mastermashai' as InteractiveModalType,
-      leftPercent: 26.9,
-      topPercent: 25.6,
-      widthPercent: 11.6,
-      heightPercent: 56.1,
+      leftPercent: 27.5,
+      topPercent: 33.0,
+      widthPercent: 12.0,
+      heightPercent: 41.0,
     },
     {
-      id: 'students',
-      nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও ৩ ঘণ্টার শিফট)',
+      id: 'students_right',
+      nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও শিফট তথ্য)',
       modalId: 'students' as InteractiveModalType,
-      leftPercent: 35.6,
-      topPercent: 55.9,
-      widthPercent: 48.3,
-      heightPercent: 42.3,
+      leftPercent: 40.0,
+      topPercent: 54.0,
+      widthPercent: 33.0,
+      heightPercent: 43.0,
+    },
+    {
+      id: 'students_left',
+      nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও শিফট তথ্য)',
+      modalId: 'students' as InteractiveModalType,
+      leftPercent: 3.5,
+      topPercent: 62.0,
+      widthPercent: 33.0,
+      heightPercent: 36.0,
     },
     {
       id: 'cottage',
       nameBn: '🏡 শিক্ষক কুটির (শিক্ষকমণ্ডলী ও স্টাফ)',
       modalId: 'cottage' as InteractiveModalType,
-      leftPercent: 56.7,
-      topPercent: 17.5,
-      widthPercent: 36.7,
-      heightPercent: 50.1,
-    },
-    {
-      id: 'flowers_left',
-      nameBn: '🌸 ফুলের বাগান (মঙ্গলবারের কালচারাল ডে)',
-      modalId: 'cultural' as InteractiveModalType,
-      leftPercent: 0.0,
-      topPercent: 67.0,
-      widthPercent: 23.3,
-      heightPercent: 33.0,
+      leftPercent: 41.5,
+      topPercent: 20.5,
+      widthPercent: 26.5,
+      heightPercent: 34.0,
     },
     {
       id: 'flowers_right',
-      nameBn: '🌸 গোলাপ বাগান (মঙ্গলবারের কালচারাল ডে)',
+      nameBn: '🌸 ফুলের বাগান (মঙ্গলবারের কালচারাল ডে)',
       modalId: 'cultural' as InteractiveModalType,
-      leftPercent: 84.3,
-      topPercent: 72.9,
-      widthPercent: 15.7,
-      heightPercent: 27.1,
+      leftPercent: 76.0,
+      topPercent: 76.0,
+      widthPercent: 24.0,
+      heightPercent: 24.0,
     },
   ];
 
   return (
     <main
-      aria-label="আনন্দ পাঠশালা ইন্টারঅ্যাক্টিভ ক্যানভাস"
-      className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950"
+      aria-label="আনন্দ পাঠশালা উন্মুক্ত ক্যাম্পাস"
+      className="relative w-full h-screen min-h-screen overflow-hidden p-0 m-0 bg-slate-950 text-slate-100 font-sans selection:bg-amber-400 selection:text-slate-950"
     >
-      {/* ========================================================================= */}
-      {/* 1. TOP MINIMALIST FLOATING NAVIGATION BAR                                 */}
-      {/* ========================================================================= */}
-      <header className="relative z-30 px-3 sm:px-6 py-3 bg-linear-to-b from-slate-950 via-slate-950/80 to-slate-950/40 backdrop-blur-md border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Brand Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden bg-white/95 p-0.5 border-2 border-amber-400 shadow-md shrink-0">
-              <img
-                src={logoUrl || schoolProfile.logoUrl || '/assets/fb/logo.jpg'}
-                alt="আনন্দ পাঠশালা লোগো"
-                className="w-full h-full object-cover rounded-xl"
-              />
+      {/* 1. FULLSCREEN IMMERSIVE PAINTING (Zero Margin, Zero Padding - Stretches/Covers Entire Screen) */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden select-none">
+        <img
+          src="/assets/theme2/anandakanon_diorama.jpg"
+          alt="আনন্দ পাঠশালা — উন্মুক্ত ক্যাম্পাস, কুষ্টিয়া"
+          className="w-full h-full object-cover object-center pointer-events-none"
+        />
+
+        {/* Interactive Hotspots Over Objects (Reveals ONLY Menu Name on Hover) */}
+        {hotspots.map((spot) => {
+          const isHovered = hoveredHotspot === spot.id;
+          return (
+            <div
+              key={spot.id}
+              onClick={() => handleOpenSpot(spot.modalId)}
+              onMouseEnter={() => setHoveredHotspot(spot.id)}
+              onMouseLeave={() => setHoveredHotspot(null)}
+              style={{
+                position: 'absolute',
+                left: `${spot.leftPercent}%`,
+                top: `${spot.topPercent}%`,
+                width: `${spot.widthPercent}%`,
+                height: `${spot.heightPercent}%`,
+              }}
+              className="cursor-pointer z-20 group"
+              role="button"
+              tabIndex={0}
+              aria-label={spot.nameBn}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpenSpot(spot.modalId);
+                }
+              }}
+            >
+              {/* Floating Menu Name Badge appearing directly on hover */}
+              {isHovered && (
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-4 py-2 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                  {spot.nameBn}
+                </div>
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black text-white tracking-tight leading-tight">
-                  {schoolProfile.nameBn || 'আনন্দ পাঠশালা'}
-                </h1>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-400/30">
-                  কুষ্টিয়া
-                </span>
-              </div>
-              <p className="text-[11px] text-amber-300/80 font-medium hidden sm:block">
-                ছবিটির ক্যালেন্ডার, ব্ল্যাকবোর্ড, মাস্টার মশাই, শিক্ষার্থী, কুটির বা ফুলে মাউস নিয়ে ট্যাপ করুন
-              </p>
-            </div>
-          </div>
+          );
+        })}
+      </div>
 
-          {/* Action CTAs */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('admission')}
-              className="px-3.5 sm:px-4 py-2 rounded-xl bg-linear-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black shadow-lg transition transform hover:scale-105 flex items-center gap-1.5 cursor-pointer"
-            >
-              <GraduationCap className="w-4 h-4 text-slate-950" />
-              <span>ভর্তি আবেদন</span>
-            </button>
+      {/* 2. FLOATING TOP-RIGHT ACTION BUTTONS (Directly Floating Over Painting — No Dark Header Bar) */}
+      <div className="absolute top-3 sm:top-5 right-3 sm:right-6 z-40 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('admission')}
+          className="px-3.5 sm:px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-black shadow-xl backdrop-blur-md transition transform hover:scale-105 flex items-center gap-1.5 cursor-pointer border border-amber-300/60"
+        >
+          <GraduationCap className="w-4 h-4 text-slate-950" />
+          <span>ভর্তি আবেদন</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={onOpenLoginModal}
-              className="px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5 text-emerald-400" />
-              <span>লগইন</span>
-            </button>
-          </div>
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={onOpenLoginModal}
+          className="px-3 sm:px-4 py-2 rounded-xl bg-slate-950/75 hover:bg-slate-950 text-white text-xs sm:text-sm font-bold border border-white/20 backdrop-blur-md transition flex items-center gap-1.5 cursor-pointer shadow-xl"
+        >
+          <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+          <span>লগইন</span>
+        </button>
+      </div>
 
-      {/* ========================================================================= */}
-      {/* 2. THE MAIN 16:9 INTERACTIVE DIORAMA STAGE                                */}
-      {/* ========================================================================= */}
-      <section className="relative w-full flex-1 flex items-center justify-center p-0 sm:p-2 lg:p-4 bg-slate-950 overflow-hidden">
-        {/* Aspect Ratio 16:9 Container (1376x768 Base Coordinate Space) */}
-        <div className="relative w-full max-w-[1536px] aspect-16/9 max-h-[82vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border-2 border-slate-800 bg-slate-900 select-none">
-          {/* Pristine Clean Base Painting (No transforms, completely natural) */}
-          <img
-            src="/assets/theme2/anandakanon_diorama.jpg"
-            alt="আনন্দ কানন উন্মুক্ত পাঠশালা — কুষ্টিয়া"
-            className="w-full h-full object-cover pointer-events-none"
-          />
+      {/* 3. FLOATING BOTTOM QUICK DOCK (Directly Floating Over Painting For Easy Touch) */}
+      <footer className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] px-2.5 sm:px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-700/60 backdrop-blur-md shadow-2xl flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('gate')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>🚪 ফটক</span>
+        </button>
 
-          {/* Simple Interactive Hotspots (Only menu title floats on hover, no image movement!) */}
-          {hotspots.map((spot) => {
-            const isHovered = hoveredHotspot === spot.id;
-            return (
-              <div
-                key={spot.id}
-                onClick={() => handleOpenSpot(spot.modalId)}
-                onMouseEnter={() => setHoveredHotspot(spot.id)}
-                onMouseLeave={() => setHoveredHotspot(null)}
-                style={{
-                  position: 'absolute',
-                  left: `${spot.leftPercent}%`,
-                  top: `${spot.topPercent}%`,
-                  width: `${spot.widthPercent}%`,
-                  height: `${spot.heightPercent}%`,
-                }}
-                className="cursor-pointer z-20 group"
-                role="button"
-                tabIndex={0}
-                aria-label={spot.nameBn}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleOpenSpot(spot.modalId);
-                  }
-                }}
-              >
-                {/* Floating Menu Name Badge appearing directly on hover */}
-                {isHovered && (
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-4 py-2 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-                    {spot.nameBn}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('calendar')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>📅 ক্যালেন্ডার</span>
+        </button>
 
-      {/* ========================================================================= */}
-      {/* 3. BOTTOM SLICK TOUCH CONTROLLER BAR (For Easy Mobile & Desktop Tapping)  */}
-      {/* ========================================================================= */}
-      <footer className="relative z-30 px-3 sm:px-6 py-3 bg-linear-to-t from-slate-950 via-slate-950/95 to-slate-950/80 border-t border-slate-800 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Left: Interactive Quick Buttons (Alternative 1-tap targets) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
-            <span className="text-[11px] font-bold text-amber-300/80 hidden lg:inline mr-1">
-              সরাসরি দেখুন:
-            </span>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('blackboard')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>📋 চক-বোর্ড</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('calendar')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>📅 ক্যালেন্ডার</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('mastermashai')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>👨‍🏫 মাস্টার মশাই</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('blackboard')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>📋 ব্ল্যাকবোর্ড</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('students')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>🎒 শিক্ষার্থী</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('mastermashai')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>👨‍🏫 মাস্টার মশাই</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('cottage')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>🏡 শিক্ষক কুটির</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('students')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>🎒 শিক্ষার্থী ও শ্রেণী</span>
-            </button>
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('cultural')}
+          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+        >
+          <span>🌸 কালচারাল ডে</span>
+        </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('cottage')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>🏡 শিক্ষক কুটির</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOpenSpot('cultural')}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>🌸 কালচারাল ডে</span>
-            </button>
-          </div>
-
-          {/* Right: Phone & Location */}
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span className="hidden sm:inline">কুষ্টিয়া সদর</span>
-            <span className="hidden sm:inline">•</span>
-            <a
-              href={`tel:${schoolProfile.phone || '01712-000000'}`}
-              className="text-amber-300 hover:underline font-semibold flex items-center gap-1"
-            >
-              <Phone className="w-3 h-3" />
-              <span>{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
-            </a>
-          </div>
-        </div>
+        <a
+          href={`tel:${schoolProfile.phone || '01712-000000'}`}
+          className="hidden md:flex items-center gap-1 text-xs text-amber-300 hover:underline font-semibold ml-2 pl-2 border-l border-slate-700/80"
+        >
+          <Phone className="w-3 h-3" />
+          <span>{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
+        </a>
       </footer>
 
       {/* ========================================================================= */}
       {/* 4. MODALS (TRIGGERED ON CLICKING ANY ELEMENT)                              */}
       {/* ========================================================================= */}
+
+      {/* MODAL 0: ENTRANCE GATE (আনন্দ পাঠশালা ফটক ও বিদ্যালয় পরিচিতি) */}
+      {activeModal === 'gate' && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-gradient-to-br from-amber-50 via-white to-amber-100 text-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border-4 border-amber-600 space-y-5 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-900 text-white hover:bg-rose-600 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4 border-b border-amber-200 pb-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-200 text-amber-900 flex items-center justify-center text-4xl shadow-inner border border-amber-300 shrink-0">
+                🚪
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                  গ্রাম্য ফটক
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+                  আনন্দ পাঠশালা — কুষ্টিয়া, বাংলাদেশ
+                </h3>
+                <p className="text-xs text-slate-600 font-medium">
+                  {schoolProfile.tagline || 'শিশুর মানবিক ও আনন্দময় প্রাক-প্রাথমিক পাঠশালা'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-slate-700">
+              <p className="p-4 rounded-2xl bg-white border border-amber-200 shadow-xs">
+                {schoolProfile.about || 'আনন্দ পাঠশালা কুষ্টিয়ায় অবস্থিত একটি ঐতিহ্যবাহী, স্নেহশীল ও আনন্দময় প্রাক-প্রাথমিক শিক্ষা প্রতিষ্ঠান। এখানে শিশুরা খেলাধুলা, গান, কবিতা ও গল্পের ছলে পাঠ গ্রহণ করে থাকে।'}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                  <span className="block text-[11px] text-amber-900 font-bold">অবস্থান</span>
+                  <span className="font-black text-slate-900 text-sm">কুষ্টিয়া সদর</span>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                  <span className="block text-[11px] text-amber-900 font-bold">যোগাযোগ</span>
+                  <span className="font-black text-slate-900 text-sm">{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  handleOpenSpot('admission');
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-sm shadow-lg hover:from-amber-600 hover:to-amber-700 transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <GraduationCap className="w-4 h-4 text-slate-950" />
+                <span>অনলাইন ভর্তি আবেদন করুন</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL 1: HANGING ACADEMIC CALENDAR (ঝুলন্ত ক্যালেন্ডার) */}
       {activeModal === 'calendar' && (
