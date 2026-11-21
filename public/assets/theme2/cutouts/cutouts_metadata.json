@@ -1,0 +1,86 @@
+[
+  {
+    "id": "calendar",
+    "left": 57,
+    "top": 120,
+    "width": 149,
+    "height": 268,
+    "leftPercent": "4.1424",
+    "topPercent": "15.6250",
+    "widthPercent": "10.8285",
+    "heightPercent": "34.8958",
+    "cutoutSrc": "/assets/theme2/cutouts/calendar.png"
+  },
+  {
+    "id": "blackboard",
+    "left": 208,
+    "top": 278,
+    "width": 214,
+    "height": 387,
+    "leftPercent": "15.1163",
+    "topPercent": "36.1979",
+    "widthPercent": "15.5523",
+    "heightPercent": "50.3906",
+    "cutoutSrc": "/assets/theme2/cutouts/blackboard.png"
+  },
+  {
+    "id": "mastermashai",
+    "left": 370,
+    "top": 197,
+    "width": 160,
+    "height": 431,
+    "leftPercent": "26.8895",
+    "topPercent": "25.6510",
+    "widthPercent": "11.6279",
+    "heightPercent": "56.1198",
+    "cutoutSrc": "/assets/theme2/cutouts/mastermashai.png"
+  },
+  {
+    "id": "students",
+    "left": 490,
+    "top": 430,
+    "width": 665,
+    "height": 325,
+    "leftPercent": "35.6105",
+    "topPercent": "55.9896",
+    "widthPercent": "48.3285",
+    "heightPercent": "42.3177",
+    "cutoutSrc": "/assets/theme2/cutouts/students.png"
+  },
+  {
+    "id": "cottage",
+    "left": 780,
+    "top": 135,
+    "width": 505,
+    "height": 385,
+    "leftPercent": "56.6860",
+    "topPercent": "17.5781",
+    "widthPercent": "36.7006",
+    "heightPercent": "50.1302",
+    "cutoutSrc": "/assets/theme2/cutouts/cottage.png"
+  },
+  {
+    "id": "flowers_left",
+    "left": 0,
+    "top": 515,
+    "width": 320,
+    "height": 253,
+    "leftPercent": "0.0000",
+    "topPercent": "67.0573",
+    "widthPercent": "23.2558",
+    "heightPercent": "32.9427",
+    "cutoutSrc": "/assets/theme2/cutouts/flowers_left.png"
+  },
+  {
+    "id": "flowers_right",
+    "left": 1160,
+    "top": 560,
+    "width": 216,
+    "height": 208,
+    "leftPercent": "84.3023",
+    "topPercent": "72.9167",
+    "widthPercent": "15.6977",
+    "heightPercent": "27.0833",
+    "cutoutSrc": "/assets/theme2/cutouts/flowers_right.png"
+  }
+]

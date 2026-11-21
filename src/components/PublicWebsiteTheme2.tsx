@@ -136,82 +136,103 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
 
   /**
    * INTERACTIVE POP-OUT ELEMENT CONFIGURATIONS:
-   * - ZERO lines or boxes shown in normal state.
-   * - When hovered, the actual drawn object scales up ("একটু বড় হয়ে ভেসে উঠবে")
-   *   and gently shimmers ("ব্লিংক করবে").
+   * Pixel-perfect isolated transparent cutout layers.
+   * - ZERO lines, ZERO boxes, ZERO dots in the painting!
+   * - In idle state: subtle warm golden aura around the object silhouette.
+   * - On hover: ONLY this specific object grows smoothly (scale) with radiant golden backlight
+   *   WITHOUT scaling the background image behind it!
    */
-  const elements = [
+  const interactiveElements = [
     {
       id: 'calendar',
       nameBn: 'ক্যালেন্ডার',
       tooltip: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা — ক্লিক করুন',
-      points: '175,225 295,260 295,570 75,570 75,260',
-      clipId: 'clip-calendar',
-      origin: '185px 398px',
-      scale: 1.07,
-      tooltipPos: { x: 185, y: 205 },
+      modalId: 'calendar' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/calendar.png',
+      leftPercent: 4.1424,
+      topPercent: 15.6250,
+      widthPercent: 10.8285,
+      heightPercent: 34.8958,
+      transformOrigin: 'top center',
+      hoverScale: 1.07,
     },
     {
       id: 'blackboard',
       nameBn: 'ব্ল্যাকবোর্ড',
       tooltip: '📋 ক্লাসরুম চক-বোর্ড — আজকের পাঠ ও নোটিশ — ক্লিক করুন',
-      points: '440,390 590,425 605,730 580,920 540,920 515,730 415,735 390,945 355,945 305,735 295,435',
-      clipId: 'clip-blackboard',
-      origin: '450px 660px',
-      scale: 1.06,
-      tooltipPos: { x: 450, y: 360 },
+      modalId: 'blackboard' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/blackboard.png',
+      leftPercent: 15.1163,
+      topPercent: 36.1979,
+      widthPercent: 15.5523,
+      heightPercent: 50.3906,
+      transformOrigin: 'bottom center',
+      hoverScale: 1.06,
     },
     {
       id: 'mastermashai',
       nameBn: 'মাস্টার মশাই',
       tooltip: '👨‍🏫 মাস্টার মশাই — অধ্যক্ষ ও পরিচালনা পর্ষদ — ক্লিক করুন',
-      points: '660,260 720,290 760,460 765,580 740,660 740,735 725,870 675,875 675,760 640,760 640,880 590,880 580,740 565,650 510,435 565,425 610,350',
-      clipId: 'clip-mastermashai',
-      origin: '640px 570px',
-      scale: 1.06,
-      tooltipPos: { x: 640, y: 235 },
+      modalId: 'mastermashai' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/mastermashai.png',
+      leftPercent: 26.8895,
+      topPercent: 25.6510,
+      widthPercent: 11.6279,
+      heightPercent: 56.1198,
+      transformOrigin: 'bottom center',
+      hoverScale: 1.08,
     },
     {
       id: 'students',
       nameBn: 'শিক্ষার্থীবৃন্দ',
       tooltip: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও ৩ ঘণ্টার শিফট — ক্লিক করুন',
-      points: '870,610 1340,600 1590,670 1660,730 1690,820 1630,900 1520,980 1020,1010 630,980 615,890 680,730 740,720',
-      clipId: 'clip-students',
-      origin: '1150px 805px',
-      scale: 1.05,
-      tooltipPos: { x: 1150, y: 575 },
+      modalId: 'students' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/students.png',
+      leftPercent: 35.6105,
+      topPercent: 55.9896,
+      widthPercent: 48.3285,
+      heightPercent: 42.3177,
+      transformOrigin: 'bottom center',
+      hoverScale: 1.05,
     },
     {
       id: 'cottage',
       nameBn: 'শিক্ষক কুটির',
       tooltip: '🏡 শিক্ষক কুটির — শিক্ষকমণ্ডলী ও স্টাফ — ক্লিক করুন',
-      points: '1120,340 1420,150 1790,265 1790,530 1660,570 1140,580 1120,480',
-      clipId: 'clip-cottage',
-      origin: '1455px 365px',
-      scale: 1.05,
-      tooltipPos: { x: 1455, y: 130 },
+      modalId: 'cottage' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/cottage.png',
+      leftPercent: 56.6860,
+      topPercent: 17.5781,
+      widthPercent: 36.7006,
+      heightPercent: 50.1302,
+      transformOrigin: 'center center',
+      hoverScale: 1.05,
     },
     {
-      id: 'cultural-left',
-      modalId: 'cultural',
+      id: 'flowers_left',
       nameBn: 'ফুলের বাগান',
-      tooltip: '🌸 ফুলের বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
-      points: '0,720 180,740 260,820 340,890 520,940 590,1080 0,1080',
-      clipId: 'clip-cultural-left',
-      origin: '260px 920px',
-      scale: 1.06,
-      tooltipPos: { x: 260, y: 690 },
+      tooltip: '🌸 গাঁদা ফুলের বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
+      modalId: 'cultural' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/flowers_left.png',
+      leftPercent: 0.0000,
+      topPercent: 67.0573,
+      widthPercent: 23.2558,
+      heightPercent: 32.9427,
+      transformOrigin: 'bottom left',
+      hoverScale: 1.06,
     },
     {
-      id: 'cultural-right',
-      modalId: 'cultural',
+      id: 'flowers_right',
       nameBn: 'গোলাপ বাগান',
       tooltip: '🌸 গোলাপ বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
-      points: '1630,1080 1670,920 1780,820 1920,770 1920,1080',
-      clipId: 'clip-cultural-right',
-      origin: '1780px 920px',
-      scale: 1.06,
-      tooltipPos: { x: 1780, y: 740 },
+      modalId: 'cultural' as InteractiveModalType,
+      cutoutSrc: '/assets/theme2/cutouts/flowers_right.png',
+      leftPercent: 84.3023,
+      topPercent: 72.9167,
+      widthPercent: 15.6977,
+      heightPercent: 27.0833,
+      transformOrigin: 'bottom right',
+      hoverScale: 1.06,
     },
   ];
 
@@ -220,18 +241,18 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       aria-label="আনন্দ পাঠশালা ইন্টারঅ্যাক্টিভ ক্যানভাস"
       className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950"
     >
-      {/* CSS For Smooth Pop-Out Grow & Shimmer Blink on Hover (No Lines!) */}
+      {/* CSS For Smooth Pop-Out Grow & Radiant Golden Aura (Zero Lines, Zero Boxes, Zero Dots!) */}
       <style>{`
-        @keyframes hoverPopBlink {
+        @keyframes goldenSilhouetteAura {
           0%, 100% {
-            filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55)) brightness(1.1);
+            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.45));
           }
           50% {
-            filter: drop-shadow(0 18px 36px rgba(251, 191, 36, 0.45)) drop-shadow(0 0 25px rgba(255, 255, 255, 0.65)) brightness(1.2);
+            filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.75)) drop-shadow(0 0 32px rgba(245, 158, 11, 0.35));
           }
         }
-        .element-hovered-pop {
-          animation: hoverPopBlink 1.5s ease-in-out infinite;
+        .golden-aura-idle {
+          animation: goldenSilhouetteAura 3s ease-in-out infinite;
         }
       `}</style>
 
@@ -291,105 +312,68 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       {/* 2. THE MAIN 16:9 INTERACTIVE DIORAMA STAGE                                */}
       {/* ========================================================================= */}
       <section className="relative w-full flex-1 flex items-center justify-center p-0 sm:p-2 lg:p-4 bg-slate-950 overflow-hidden">
-        {/* Aspect Ratio 16:9 Container - Ensures pixel coordinates NEVER shift! */}
-        <div className="relative w-full max-w-[1536px] aspect-16/9 max-h-[82vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border-2 border-slate-800 bg-slate-900">
-          {/* SVG Canvas With Layered Pop-Out Clipped Elements (NO LINES, NO BOXES, NO DOTS!) */}
-          <svg
-            viewBox="0 0 1920 1080"
-            className="w-full h-full select-none"
-            style={{ pointerEvents: 'auto' }}
-          >
-            <defs>
-              {/* Dynamic Clip Paths for each visual element */}
-              {elements.map((el) => (
-                <clipPath key={el.clipId} id={el.clipId}>
-                  <polygon points={el.points} />
-                </clipPath>
-              ))}
-            </defs>
+        {/* Aspect Ratio 16:9 Container (1376x768 Base Coordinate Space) */}
+        <div className="relative w-full max-w-[1536px] aspect-16/9 max-h-[82vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border-2 border-slate-800 bg-slate-900 select-none">
+          {/* 1. Base Pristine Landscape - Rock Solid Background (Never Scales or Moves!) */}
+          <img
+            src="/assets/theme2/anandakanon_diorama.jpg"
+            alt="আনন্দ কানন উন্মুক্ত পাঠশালা — কুষ্টিয়া"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
 
-            {/* 1. Base Static Painting (Completely clean, natural, untouched) */}
-            <image
-              href="/assets/theme2/anandakanon_diorama.jpg"
-              width="1920"
-              height="1080"
-              preserveAspectRatio="xMidYMid slice"
-            />
+          {/* 2. Interactive Object Cutout Layers (Pixel-Exact Positioned Over Base Image) */}
+          {interactiveElements.map((el) => {
+            const isHovered = hoveredHotspot === el.id;
+            return (
+              <div
+                key={el.id}
+                onClick={() => handleOpenSpot(el.modalId as InteractiveModalType)}
+                onMouseEnter={() => setHoveredHotspot(el.id)}
+                onMouseLeave={() => setHoveredHotspot(null)}
+                style={{
+                  position: 'absolute',
+                  left: `${el.leftPercent}%`,
+                  top: `${el.topPercent}%`,
+                  width: `${el.widthPercent}%`,
+                  height: `${el.heightPercent}%`,
+                  zIndex: isHovered ? 40 : 20,
+                }}
+                className="cursor-pointer group"
+                role="button"
+                tabIndex={0}
+                aria-label={el.nameBn}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenSpot(el.modalId as InteractiveModalType);
+                  }
+                }}
+              >
+                {/* The Cutout Image with Golden Silhouette Glow and Smooth Scale */}
+                <img
+                  src={el.cutoutSrc}
+                  alt={el.nameBn}
+                  className={`w-full h-full object-contain pointer-events-auto transition-all duration-300 ease-out ${
+                    !isHovered ? 'golden-aura-idle' : ''
+                  }`}
+                  style={{
+                    transformOrigin: el.transformOrigin || 'center center',
+                    transform: isHovered ? `scale(${el.hoverScale || 1.07})` : 'scale(1)',
+                    filter: isHovered
+                      ? 'drop-shadow(0 0 26px rgba(251, 191, 36, 0.95)) drop-shadow(0 14px 28px rgba(0, 0, 0, 0.75)) brightness(1.12)'
+                      : undefined,
+                  }}
+                />
 
-            {/* 2. Interactive Clipped Elements: On Hover they smoothly Grow/Pop-out and Shimmer */}
-            {elements.map((el) => {
-              const isHovered = hoveredHotspot === el.id;
-              const targetModal = (el.modalId || el.id) as InteractiveModalType;
-              return (
-                <g key={el.id} className="cursor-pointer">
-                  {/* The Clipped Portion of the image that pops out and scales on hover */}
-                  <g
-                    clipPath={`url(#${el.clipId})`}
-                    className={`transition-transform duration-300 ease-out ${
-                      isHovered ? 'element-hovered-pop' : ''
-                    }`}
-                    style={{
-                      transformOrigin: el.origin,
-                      transform: isHovered ? `scale(${el.scale})` : 'scale(1)',
-                    }}
-                  >
-                    <image
-                      href="/assets/theme2/anandakanon_diorama.jpg"
-                      width="1920"
-                      height="1080"
-                      preserveAspectRatio="xMidYMid slice"
-                    />
-                  </g>
-
-                  {/* Invisible Hit Area (NO stroke, NO lines, NO dots — just pure mouse detection!) */}
-                  <polygon
-                    points={el.points}
-                    fill="transparent"
-                    stroke="transparent"
-                    strokeWidth="0"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleOpenSpot(targetModal)}
-                    onMouseEnter={() => setHoveredHotspot(el.id)}
-                    onMouseLeave={() => setHoveredHotspot(null)}
-                  />
-
-                  {/* Sleek Tooltip appearing only when the mouse hovers over the element */}
-                  {isHovered && (
-                    <g
-                      transform={`translate(${el.tooltipPos.x}, ${el.tooltipPos.y})`}
-                      className="pointer-events-none animate-in fade-in zoom-in-95"
-                    >
-                      {/* Tooltip Background Pill */}
-                      <rect
-                        x="-205"
-                        y="-45"
-                        width="410"
-                        height="40"
-                        rx="16"
-                        fill="#020617"
-                        fillOpacity="0.95"
-                        stroke="#f59e0b"
-                        strokeWidth="1.5"
-                        filter="drop-shadow(0 10px 20px rgba(0,0,0,0.8))"
-                      />
-                      {/* Tooltip Text */}
-                      <text
-                        x="0"
-                        y="-20"
-                        textAnchor="middle"
-                        fill="#fde68a"
-                        fontSize="15"
-                        fontWeight="bold"
-                        fontFamily="sans-serif"
-                      >
-                        {el.tooltip}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
+                {/* Sleek Tooltip appearing above the hovered object */}
+                {isHovered && (
+                  <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-full bg-slate-950/95 border border-amber-400 text-amber-200 text-xs font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                    {el.tooltip}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
