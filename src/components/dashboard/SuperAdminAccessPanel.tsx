@@ -746,9 +746,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                   ওয়েবসাইট পাবলিক থিম নির্বাচন
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                যেকোনো থিমের উপর ক্লিক করুন এবং তার নিচে &ldquo;সক্রিয় করুন&rdquo; বাটনে চাপলে সেটি কার্যকর হবে।
-              </p>
             </div>
           </div>
 
