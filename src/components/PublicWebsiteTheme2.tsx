@@ -132,6 +132,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   const [selectedClass] = useState<SchoolClass>('Playgroup');
   const [activeShift, setActiveShift] = useState<'morning' | 'day'>('morning');
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
+  const [isAnimationEnabled, setIsAnimationEnabled] = useState<boolean>(true);
 
   const handleOpenSpot = (spotId: InteractiveModalType) => {
     playChimeSound();
@@ -240,6 +241,20 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
+            onClick={() => setIsAnimationEnabled(!isAnimationEnabled)}
+            className={`px-2 py-1.5 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+              isAnimationEnabled
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-xs'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+            title={isAnimationEnabled ? 'অ্যানিমেশন বন্ধ করুন' : 'অ্যানিমেশন চালু করুন'}
+          >
+            <Sparkles className={`w-3 h-3 ${isAnimationEnabled ? 'text-emerald-400 animate-spin' : ''}`} style={{ animationDuration: '6s' }} />
+            <span>{isAnimationEnabled ? 'সচল' : 'স্থির'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => handleOpenSpot('admission')}
             className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-black shadow-md flex items-center gap-1 cursor-pointer"
           >
@@ -268,6 +283,256 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
           alt="আনন্দ পাঠশালা — উন্মুক্ত কানন ও ফুলের বাগান ডায়োরামা"
           className="w-full h-full object-cover object-center pointer-events-none"
         />
+
+        {/* ========================================================================= */}
+        {/* SOFT LIVING ANIMATIONS ENGINE (GPU-Accelerated 60FPS Ambient Life)        */}
+        {/* ========================================================================= */}
+        {isAnimationEnabled && (
+          <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden select-none">
+            {/* Inline GPU Keyframes for Soft Natural Movement */}
+            <style>{`
+              @keyframes flowerSwayLeftAnim {
+                0%, 100% { transform: rotate(0deg) skewX(0deg); }
+                50% { transform: rotate(1.8deg) skewX(1deg) translateY(-1px); }
+              }
+              @keyframes flowerSwayRightAnim {
+                0%, 100% { transform: rotate(0deg) skewX(0deg); }
+                50% { transform: rotate(-2.0deg) skewX(-1.2deg) translateY(-1.5px); }
+              }
+              @keyframes calendarBreezeAnim {
+                0%, 100% { transform: rotate(0deg); }
+                30% { transform: rotate(2.2deg); }
+                70% { transform: rotate(-1.5deg); }
+              }
+              @keyframes masterTeachingAnim {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                25% { transform: translateY(-1.2px) rotate(-0.7deg); }
+                65% { transform: translateY(-0.4px) rotate(0.4deg); }
+                85% { transform: translateY(-0.9px) rotate(-0.3deg); }
+              }
+              @keyframes floatingLetterAnim {
+                0% { transform: translate(0, 0) scale(0.65); opacity: 0; }
+                25% { opacity: 0.85; transform: translate(6px, -10px) scale(0.95); }
+                75% { opacity: 0.65; transform: translate(14px, -24px) scale(1.05); }
+                100% { opacity: 0; transform: translate(20px, -36px) scale(0.85); }
+              }
+              @keyframes kidsBreatheAnim {
+                0%, 100% { transform: translateY(0) scale(1); }
+                50% { transform: translateY(-1.0px) scale(1.003); }
+              }
+              @keyframes kidsBlinkAnim {
+                0%, 93%, 97%, 100% { opacity: 0; transform: scaleY(0); }
+                94%, 96% { opacity: 0.75; transform: scaleY(1); }
+              }
+              @keyframes waterRippleAnim {
+                0%, 100% { opacity: 0.35; transform: scaleX(1) translateX(0); }
+                50% { opacity: 0.65; transform: scaleX(1.06) translateX(4px); }
+              }
+              @keyframes driftingLeafAnim {
+                0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+                15% { opacity: 0.85; }
+                85% { opacity: 0.85; }
+                100% { transform: translate(70px, 95px) rotate(180deg); opacity: 0; }
+              }
+              @keyframes butterflyFlutterAnim1 {
+                0%, 100% { transform: translate(0, 0) rotate(0deg) scale(0.9); }
+                25% { transform: translate(16px, -15px) rotate(12deg) scale(1.05); }
+                50% { transform: translate(32px, -8px) rotate(-8deg) scale(0.95); }
+                75% { transform: translate(18px, -22px) rotate(14deg) scale(1); }
+              }
+              @keyframes butterflyFlutterAnim2 {
+                0%, 100% { transform: translate(0, 0) rotate(0deg) scale(0.85); }
+                30% { transform: translate(-20px, -12px) rotate(-14deg) scale(1.0); }
+                65% { transform: translate(-36px, -22px) rotate(10deg) scale(0.9); }
+                85% { transform: translate(-14px, -8px) rotate(-6deg) scale(0.95); }
+              }
+            `}</style>
+
+            {/* 1. Nodi / Water Ripples & Shimmer (নদীতে পানি সামান্য নড়বে) */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '0.2%',
+                top: '30%',
+                width: '9.5%',
+                height: '16%',
+              }}
+              className="pointer-events-none"
+            >
+              <div
+                style={{ animation: 'waterRippleAnim 6s ease-in-out infinite' }}
+                className="w-full h-full flex flex-col justify-around py-1"
+              >
+                <div className="w-[85%] h-[1.5px] bg-gradient-to-r from-transparent via-cyan-100/70 to-transparent rounded-full blur-[0.4px]" />
+                <div className="w-[70%] h-[1.5px] bg-gradient-to-r from-transparent via-sky-200/60 to-transparent rounded-full blur-[0.4px] ml-2" />
+                <div className="w-[90%] h-[1.5px] bg-gradient-to-r from-transparent via-teal-100/60 to-transparent rounded-full blur-[0.4px] ml-1" />
+                <div className="w-[60%] h-[1.5px] bg-gradient-to-r from-transparent via-white/70 to-transparent rounded-full blur-[0.4px] ml-3" />
+              </div>
+            </div>
+
+            {/* 2. Hanging Academic Calendar (গাছের ডালে ক্যালেন্ডার নড়বে) */}
+            <img
+              src="/assets/theme2/cutouts/calendar.png"
+              alt=""
+              style={{
+                position: 'absolute',
+                left: '4.1424%',
+                top: '15.6250%',
+                width: '10.8285%',
+                height: '34.8958%',
+                transformOrigin: 'top center',
+                animation: 'calendarBreezeAnim 5.5s ease-in-out infinite',
+              }}
+              className="object-contain object-top pointer-events-none drop-shadow-xs"
+            />
+
+            {/* 3. Master Mashai Speaking (মাস্টার মশাই কিছু বলছেন) */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '26.8895%',
+                top: '25.6510%',
+                width: '11.6279%',
+                height: '56.1198%',
+                transformOrigin: 'bottom center',
+                animation: 'masterTeachingAnim 4.2s ease-in-out infinite',
+              }}
+              className="pointer-events-none"
+            >
+              <img
+                src="/assets/theme2/cutouts/mastermashai.png"
+                alt=""
+                className="w-full h-full object-contain object-bottom pointer-events-none"
+              />
+
+              {/* Floating Teaching Letter & Melody Notes towards the chalkboard */}
+              <div className="absolute top-[26%] right-[-10%] pointer-events-none">
+                <span
+                  style={{ animation: 'floatingLetterAnim 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite' }}
+                  className="absolute text-amber-200 font-black text-xs sm:text-sm drop-shadow-sm select-none"
+                >
+                  অ
+                </span>
+                <span
+                  style={{ animation: 'floatingLetterAnim 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.6s' }}
+                  className="absolute text-emerald-200 font-black text-xs sm:text-sm drop-shadow-sm select-none"
+                >
+                  আ
+                </span>
+                <span
+                  style={{ animation: 'floatingLetterAnim 4.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 3.2s' }}
+                  className="absolute text-rose-200 font-black text-xs sm:text-sm drop-shadow-sm select-none"
+                >
+                  ♪
+                </span>
+              </div>
+            </div>
+
+            {/* 4. Little Students (বাচ্চারা চোখের পাতা নাড়াবে ও নিঃশ্বাস) */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '35.6105%',
+                top: '55.9896%',
+                width: '48.3285%',
+                height: '42.3177%',
+                transformOrigin: 'bottom center',
+                animation: 'kidsBreatheAnim 4.5s ease-in-out infinite',
+              }}
+              className="pointer-events-none"
+            >
+              <img
+                src="/assets/theme2/cutouts/students.png"
+                alt=""
+                className="w-full h-full object-contain object-bottom pointer-events-none"
+              />
+
+              {/* Gentle periodic eyelid blink overlay over children */}
+              <div
+                style={{ animation: 'kidsBlinkAnim 4.5s ease-in-out infinite' }}
+                className="absolute top-[21%] left-[32%] w-[38%] h-[8%] pointer-events-none flex justify-around items-center"
+              >
+                <span className="w-2.5 h-[1.2px] bg-amber-950/70 rounded-full blur-[0.2px]" />
+                <span className="w-2.5 h-[1.2px] bg-amber-950/70 rounded-full blur-[0.2px]" />
+                <span className="w-2.5 h-[1.2px] bg-amber-950/70 rounded-full blur-[0.2px]" />
+              </div>
+            </div>
+
+            {/* 5. Left Flower Garden (ফুলগুলো একটু দুলবে) */}
+            <img
+              src="/assets/theme2/cutouts/flowers_left.png"
+              alt=""
+              style={{
+                position: 'absolute',
+                left: '0%',
+                top: '67.0573%',
+                width: '23.2558%',
+                height: '32.9427%',
+                transformOrigin: 'bottom left',
+                animation: 'flowerSwayLeftAnim 4.6s ease-in-out infinite',
+              }}
+              className="object-contain object-bottom pointer-events-none"
+            />
+
+            {/* 6. Right Flower Garden (ফুলগুলো একটু দুলবে) */}
+            <img
+              src="/assets/theme2/cutouts/flowers_right.png"
+              alt=""
+              style={{
+                position: 'absolute',
+                left: '84.3023%',
+                top: '72.9167%',
+                width: '15.6977%',
+                height: '27.0833%',
+                transformOrigin: 'bottom right',
+                animation: 'flowerSwayRightAnim 5.0s ease-in-out infinite 0.8s',
+              }}
+              className="object-contain object-bottom pointer-events-none"
+            />
+
+            {/* 7. Tree Leaves & Flower Petals in the Breeze (গাছের পাতা নড়বে) */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <span
+                style={{ animation: 'driftingLeafAnim 7s ease-in-out infinite 0.6s' }}
+                className="absolute top-[18%] left-[10%] text-emerald-400/80 text-xs drop-shadow-xs select-none"
+              >
+                🍃
+              </span>
+              <span
+                style={{ animation: 'driftingLeafAnim 8s ease-in-out infinite 3.5s' }}
+                className="absolute top-[22%] left-[25%] text-emerald-500/70 text-[10px] drop-shadow-xs select-none"
+              >
+                🍃
+              </span>
+              <span
+                style={{ animation: 'driftingLeafAnim 6.5s ease-in-out infinite 1.8s' }}
+                className="absolute top-[64%] left-[16%] text-rose-300/80 text-[11px] drop-shadow-xs select-none"
+              >
+                🌸
+              </span>
+              <span
+                style={{ animation: 'driftingLeafAnim 7.5s ease-in-out infinite 4.2s' }}
+                className="absolute top-[72%] left-[84%] text-pink-300/80 text-[10px] drop-shadow-xs select-none"
+              >
+                🌸
+              </span>
+
+              {/* Butterflies fluttering naturally over the flowers */}
+              <span
+                style={{ animation: 'butterflyFlutterAnim1 7.2s ease-in-out infinite' }}
+                className="absolute top-[67%] left-[17%] text-xs select-none drop-shadow-xs"
+              >
+                🦋
+              </span>
+              <span
+                style={{ animation: 'butterflyFlutterAnim2 8.0s ease-in-out infinite 1.2s' }}
+                className="absolute top-[73%] left-[83%] text-xs select-none drop-shadow-xs"
+              >
+                🦋
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Interactive Hotspots Over Objects (Direct Tap on Mobile & Hover on Desktop) */}
         {hotspots.map((spot) => {
@@ -312,6 +577,20 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       {/* ========================================================================= */}
       {/* Desktop Top-Right Floating Action Buttons */}
       <div className="hidden lg:flex absolute top-5 right-6 z-40 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsAnimationEnabled(!isAnimationEnabled)}
+          className={`px-3 py-2 rounded-xl text-xs font-bold border backdrop-blur-md transition flex items-center gap-1.5 cursor-pointer shadow-lg ${
+            isAnimationEnabled
+              ? 'bg-slate-950/80 text-emerald-300 border-emerald-400/60'
+              : 'bg-slate-900/80 text-slate-400 border-slate-700'
+          }`}
+          title={isAnimationEnabled ? 'অ্যানিমেশন বন্ধ করতে ক্লিক করুন' : 'অ্যানিমেশন চালু করতে ক্লিক করুন'}
+        >
+          <Sparkles className={`w-3.5 h-3.5 ${isAnimationEnabled ? 'text-emerald-400 animate-spin' : ''}`} style={{ animationDuration: '6s' }} />
+          <span>{isAnimationEnabled ? 'অ্যানিমেশন: সচল' : 'অ্যানিমেশন: স্থির'}</span>
+        </button>
+
         <button
           type="button"
           onClick={() => handleOpenSpot('admission')}
