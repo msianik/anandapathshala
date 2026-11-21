@@ -357,7 +357,12 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   };
 
   const todayDay = getTodayDayOfWeek();
-  const effectiveDay = selectedDay === 'today' ? todayDay : selectedDay;
+  const effectiveDay =
+    selectedDay === 'today'
+      ? todayDay === 'friday' || todayDay === 'saturday'
+        ? 'sunday'
+        : todayDay
+      : selectedDay;
 
   // All non-break periods for the selected class across the entire week
   const allClassPeriodsForWeek = useMemo(() => {
@@ -1655,7 +1660,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             </div>
 
             <div className="space-y-4">
-              {DAYS_OF_WEEK_CONFIG.map((dayObj) => {
+              {DAYS_OF_WEEK_CONFIG.filter((d) => d.isSchoolDay).map((dayObj) => {
                 const dayPeriods = allClassPeriodsForWeek.filter((p) => p.day === dayObj.id);
                 const completedInDay = dayPeriods.filter(
                   (p) =>
@@ -1903,14 +1908,15 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                   }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  <span>আজকের রুটিন ({getDayNameBn(todayDay)})</span>
+                  <span>
+                    আজকের রুটিন ({todayDay === 'friday' || todayDay === 'saturday' ? 'রবিবার' : getDayNameBn(todayDay)})
+                  </span>
                 </button>
 
-                {DAYS_OF_WEEK_CONFIG.map((d) => {
+                {DAYS_OF_WEEK_CONFIG.filter((d) => d.isSchoolDay).map((d) => {
                   const isSelected = selectedDay === d.id;
                   const isToday = d.id === todayDay;
                   const isCultural = d.isCulturalDay;
-                  const isWeekend = !d.isSchoolDay;
 
                   return (
                     <button
@@ -1921,18 +1927,13 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                         isSelected
                           ? isCultural
                             ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-600/30'
-                            : isWeekend
-                            ? 'bg-slate-700 text-white shadow-xs'
                             : 'bg-slate-900 text-white shadow-xs'
                           : isCultural
                           ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
-                          : isWeekend
-                          ? 'bg-slate-50 hover:bg-slate-100 text-slate-500 border border-dashed border-slate-200'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                     >
                       {isCultural && <span>🎨</span>}
-                      {isWeekend && <span>🏖️</span>}
                       <span>{d.nameBn}</span>
                       {isToday && <span className="text-[10px] opacity-75 ml-0.5">(আজ)</span>}
                     </button>
@@ -3317,7 +3318,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                     }
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                   >
-                    {DAYS_OF_WEEK_CONFIG.map((d) => (
+                    {DAYS_OF_WEEK_CONFIG.filter((d) => d.isSchoolDay).map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.nameBn} ({d.nameEn})
                       </option>
