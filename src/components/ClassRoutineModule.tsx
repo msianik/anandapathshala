@@ -1283,204 +1283,87 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
         </div>
       </div>
 
-      {/* Persistent Weekly Progress Status & Whole-Week Completion Control Bar (For Parents & Teachers) */}
-      <div
-        className={`rounded-3xl border-2 p-4 sm:p-5 shadow-2xs transition-all space-y-4 ${
-          weeklyProgress.status === 'completed'
-            ? 'bg-gradient-to-r from-emerald-50 via-teal-50/80 to-white border-emerald-300'
-            : 'bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-white border-amber-300'
-        }`}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-black bg-slate-900 text-white">
-                <BarChart3 className="w-3.5 h-3.5 text-amber-300" />
-                <span>সাপ্তাহিক পাঠ অগ্রগতি ট্র্যাকার (Weekly Progress Summary)</span>
-              </span>
-
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
-                  weeklyProgress.status === 'completed'
-                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-2xs'
-                    : 'bg-amber-400 text-slate-950 border-amber-500 shadow-2xs'
-                }`}
-              >
-                {weeklyProgress.status === 'completed' ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>✓ সম্পূর্ণ সপ্তাহের পাঠ সম্পন্ন (Completed)</span>
-                  </>
-                ) : (
-                  <>
-                    <Hourglass className="w-3.5 h-3.5" />
-                    <span>⏳ সপ্তাহের পাঠ চলমান / পেন্ডিং (Pending)</span>
-                  </>
-                )}
-              </span>
-
-              <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200">
-                {weeklyProgress.weekLabelBn}
-              </span>
-            </div>
-
-            <h3 className="text-base sm:text-lg font-black text-slate-900">
-              {getSchoolClassNameBn(selectedClass)} — সাপ্তাহিক পাঠ ও অনুশীলন অগ্রগতি:{' '}
-              <span
-                className={
-                  weeklyProgress.status === 'completed' ? 'text-emerald-700' : 'text-amber-700'
-                }
-              >
-                {weeklyProgress.completionPercentage}% সম্পন্ন
-              </span>
-            </h3>
-
-            <p className="text-xs text-slate-700 leading-relaxed max-w-3xl">
-              <strong>শিক্ষকের সাপ্তাহিক নোট:</strong> {weeklyProgress.teacherSummaryNoteBn}
-            </p>
-          </div>
-
-          {/* Right Controls: View Switcher Tabs & Teacher Whole-Week Completed/Pending Buttons */}
-          <div className="flex flex-col sm:items-end gap-2.5 shrink-0 print:hidden">
-            {/* Primary View Mode Tabs: Daily Routine vs Cultural Hub vs Tiffin vs Weekly Summary vs Exam */}
-            <div className="inline-flex flex-wrap p-1 rounded-2xl bg-slate-900/95 text-white shadow-xs self-start sm:self-end gap-1">
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('daily_routine')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'daily_routine'
-                    ? 'bg-emerald-500 text-slate-950 shadow-xs'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>দৈনিক ক্লাস রুটিন</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('cultural_day')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'cultural_day'
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'text-rose-200 hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-                <span>🎨 কালচারাল ডে হাব</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('tiffin_routine')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'tiffin_routine'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
-                    : 'text-amber-200 hover:text-white'
-                }`}
-              >
-                <Apple className="w-3.5 h-3.5" />
-                <span>🍎 পুষ্টিকর টিফিন চার্ট</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('weekly_summary')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'weekly_summary'
-                    ? 'bg-indigo-500 text-white shadow-xs'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>📊 সাপ্তাহিক সারসংক্ষেপ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('exam_schedule')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'exam_schedule'
-                    ? 'bg-purple-400 text-slate-950 shadow-xs'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <ClipboardList className="w-3.5 h-3.5" />
-                <span>📝 পরীক্ষার সময়সূচি</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveRoutineTab('homework_checklist')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
-                  activeRoutineTab === 'homework_checklist'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
-                    : 'text-amber-200 hover:text-white'
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>📝 হোমওয়ার্ক চেকলিস্ট</span>
-              </button>
-            </div>
-
-            {/* Teacher / Admin 1-Click Whole Week Completed / Pending Action Buttons */}
-            {canEditLessonPlan && (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleMarkWholeWeek('completed')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer border ${
-                    weeklyProgress.status === 'completed'
-                      ? 'bg-emerald-700 text-white border-emerald-800 ring-2 ring-emerald-400/40'
-                      : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>✓ সম্পূর্ণ সপ্তাহ &lsquo;সম্পন্ন&rsquo; মার্ক করুন</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleMarkWholeWeek('pending')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer border ${
-                    weeklyProgress.status === 'pending'
-                      ? 'bg-amber-500 text-slate-950 border-amber-600 ring-2 ring-amber-400/40'
-                      : 'bg-white hover:bg-amber-50 text-amber-900 border-amber-300'
-                  }`}
-                >
-                  <Hourglass className="w-4 h-4" />
-                  <span>⏳ সম্পূর্ণ সপ্তাহ &lsquo;পেন্ডিং&rsquo; মার্ক করুন</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenWeeklySummaryEditModal}
-                  className="px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>সাপ্তাহিক নোট সম্পাদনা</span>
-                </button>
-              </div>
-            )}
-          </div>
+      {/* Primary View Mode Tabs Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2 rounded-2xl bg-slate-900 text-white shadow-sm print:hidden">
+        <div className="inline-flex flex-wrap p-0.5 rounded-xl gap-1 overflow-x-auto max-w-full">
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('daily_routine')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'daily_routine'
+                ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>দৈনিক ক্লাস রুটিন</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('cultural_day')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'cultural_day'
+                ? 'bg-rose-500 text-white shadow-xs'
+                : 'text-rose-200 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>🎨 কালচারাল ডে হাব</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('tiffin_routine')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'tiffin_routine'
+                ? 'bg-amber-400 text-slate-950 shadow-xs'
+                : 'text-amber-200 hover:text-white'
+            }`}
+          >
+            <Apple className="w-3.5 h-3.5" />
+            <span>🍎 পুষ্টিকর টিফিন চার্ট</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('weekly_summary')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'weekly_summary'
+                ? 'bg-indigo-500 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>📊 সাপ্তাহিক সারসংক্ষেপ</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('exam_schedule')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'exam_schedule'
+                ? 'bg-purple-400 text-slate-950 shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span>📝 পরীক্ষার সময়সূচি</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveRoutineTab('homework_checklist')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+              activeRoutineTab === 'homework_checklist'
+                ? 'bg-amber-400 text-slate-950 shadow-xs'
+                : 'text-amber-200 hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>📝 হোমওয়ার্ক চেকলিস্ট</span>
+          </button>
         </div>
 
-        {/* Progress Bar & Metadata Strip */}
-        <div className="space-y-1.5 pt-1">
-          <div className="w-full h-3 bg-white/90 rounded-full overflow-hidden border border-slate-200 p-0.5">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                weeklyProgress.status === 'completed'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
-                  : 'bg-gradient-to-r from-amber-500 to-orange-500'
-              }`}
-              style={{ width: `${Math.max(8, weeklyProgress.completionPercentage)}%` }}
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
-            <span>
-              🏠 <strong className="text-slate-900">অভিভাবকের জন্য সাপ্তাহিক পরামর্শ:</strong>{' '}
-              {weeklyProgress.parentActionNoteBn}
-            </span>
-            <span className="font-semibold text-slate-500">
-              সর্বশেষ আপডেট: {weeklyProgress.updatedByBn} ({weeklyProgress.updatedAtBn})
-            </span>
-          </div>
+        <div className="flex items-center gap-2 px-2 self-start sm:self-auto">
+          <span className="text-xs font-black text-amber-300 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+            শ্রেণি: {getSchoolClassNameBn(selectedClass)}
+          </span>
         </div>
       </div>
 
