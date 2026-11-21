@@ -219,17 +219,63 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   return (
     <main
       aria-label="আনন্দ পাঠশালা উন্মুক্ত ক্যাম্পাস"
-      className="relative w-full h-screen min-h-screen overflow-hidden p-0 m-0 bg-slate-950 text-slate-100 font-sans selection:bg-amber-400 selection:text-slate-950"
+      className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-400 selection:text-slate-950 flex flex-col lg:h-screen lg:overflow-hidden"
     >
-      {/* 1. FULLSCREEN IMMERSIVE PAINTING (Zero Margin, Zero Padding - Stretches/Covers Entire Screen) */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden select-none">
+      {/* ========================================================================= */}
+      {/* 1. MOBILE TOP COMPACT BAR (Only on Mobile/Tablet screens < lg)             */}
+      {/* ========================================================================= */}
+      <div className="lg:hidden z-30 px-3 py-2.5 bg-slate-950/95 border-b border-slate-800 backdrop-blur-md flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl overflow-hidden bg-white/95 p-0.5 border border-amber-400 shadow-xs shrink-0">
+            <img
+              src={logoUrl || schoolProfile.logoUrl || '/assets/fb/logo.jpg'}
+              alt="আনন্দ পাঠশালা লোগো"
+              className="w-full h-full object-cover rounded-lg"
+            />
+          </div>
+          <div>
+            <h1 className="text-sm font-black text-white leading-tight">
+              {schoolProfile.nameBn || 'আনন্দ পাঠশালা'}
+            </h1>
+            <span className="text-[10px] text-amber-300/90 font-medium">
+              কুষ্টিয়া • উন্মুক্ত ক্যাম্পাস
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('admission')}
+            className="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[11px] font-black shadow-md flex items-center gap-1 cursor-pointer"
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-slate-950" />
+            <span>ভর্তি আবেদন</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenLoginModal}
+            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 flex items-center gap-1 cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+            <span>লগইন</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. THE DIORAMA STAGE (Fullscreen on Desktop, Pure 16:9 on Mobile)          */}
+      {/* ========================================================================= */}
+      <div className="relative w-full aspect-[16/9] lg:aspect-auto lg:h-full lg:absolute lg:inset-0 overflow-hidden bg-slate-900 select-none shrink-0 shadow-2xl">
+        {/* Pristine 16:9 Painting (100% Visible with Zero Cropping) */}
         <img
           src="/assets/theme2/anandakanon_diorama.jpg"
           alt="আনন্দ পাঠশালা — উন্মুক্ত ক্যাম্পাস, কুষ্টিয়া"
           className="w-full h-full object-cover object-center pointer-events-none"
         />
 
-        {/* Interactive Hotspots Over Objects (Reveals ONLY Menu Name on Hover) */}
+        {/* Interactive Hotspots Over Objects (Direct Tap on Mobile & Hover on Desktop) */}
         {hotspots.map((spot) => {
           const isHovered = hoveredHotspot === spot.id;
           return (
@@ -256,9 +302,9 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                 }
               }}
             >
-              {/* Floating Menu Name Badge appearing directly on hover */}
+              {/* Floating Menu Name Badge appearing directly on hover/tap */}
               {isHovered && (
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-4 py-2 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
                   {spot.nameBn}
                 </div>
               )}
@@ -267,12 +313,15 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         })}
       </div>
 
-      {/* 2. FLOATING TOP-RIGHT ACTION BUTTONS (Directly Floating Over Painting — No Dark Header Bar) */}
-      <div className="absolute top-3 sm:top-5 right-3 sm:right-6 z-40 flex items-center gap-2">
+      {/* ========================================================================= */}
+      {/* 3. DESKTOP FLOATING CONTROLS (Only on screens >= lg)                      */}
+      {/* ========================================================================= */}
+      {/* Desktop Top-Right Floating Action Buttons */}
+      <div className="hidden lg:flex absolute top-5 right-6 z-40 items-center gap-2">
         <button
           type="button"
           onClick={() => handleOpenSpot('admission')}
-          className="px-3.5 sm:px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-black shadow-xl backdrop-blur-md transition transform hover:scale-105 flex items-center gap-1.5 cursor-pointer border border-amber-300/60"
+          className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-sm font-black shadow-xl backdrop-blur-md transition transform hover:scale-105 flex items-center gap-1.5 cursor-pointer border border-amber-300/60"
         >
           <GraduationCap className="w-4 h-4 text-slate-950" />
           <span>ভর্তি আবেদন</span>
@@ -281,19 +330,19 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={onOpenLoginModal}
-          className="px-3 sm:px-4 py-2 rounded-xl bg-slate-950/75 hover:bg-slate-950 text-white text-xs sm:text-sm font-bold border border-white/20 backdrop-blur-md transition flex items-center gap-1.5 cursor-pointer shadow-xl"
+          className="px-4 py-2 rounded-xl bg-slate-950/75 hover:bg-slate-950 text-white text-sm font-bold border border-white/20 backdrop-blur-md transition flex items-center gap-1.5 cursor-pointer shadow-xl"
         >
           <LogIn className="w-3.5 h-3.5 text-emerald-400" />
           <span>লগইন</span>
         </button>
       </div>
 
-      {/* 3. FLOATING BOTTOM QUICK DOCK (Directly Floating Over Painting For Easy Touch) */}
-      <footer className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] px-2.5 sm:px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-700/60 backdrop-blur-md shadow-2xl flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+      {/* Desktop Bottom Floating Quick Dock */}
+      <footer className="hidden lg:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-700/60 backdrop-blur-md shadow-2xl items-center gap-2 justify-center">
         <button
           type="button"
           onClick={() => handleOpenSpot('gate')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>🚪 ফটক</span>
         </button>
@@ -301,7 +350,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('calendar')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>📅 ক্যালেন্ডার</span>
         </button>
@@ -309,7 +358,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('blackboard')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>📋 চক-বোর্ড</span>
         </button>
@@ -317,7 +366,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('mastermashai')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>👨‍🏫 মাস্টার মশাই</span>
         </button>
@@ -325,7 +374,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('students')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>🎒 শিক্ষার্থী</span>
         </button>
@@ -333,7 +382,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('cottage')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>🏡 শিক্ষক কুটির</span>
         </button>
@@ -341,19 +390,141 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         <button
           type="button"
           onClick={() => handleOpenSpot('cultural')}
-          className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
         >
           <span>🌸 কালচারাল ডে</span>
         </button>
 
         <a
           href={`tel:${schoolProfile.phone || '01712-000000'}`}
-          className="hidden md:flex items-center gap-1 text-xs text-amber-300 hover:underline font-semibold ml-2 pl-2 border-l border-slate-700/80"
+          className="flex items-center gap-1 text-xs text-amber-300 hover:underline font-semibold ml-2 pl-2 border-l border-slate-700/80"
         >
           <Phone className="w-3 h-3" />
           <span>{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
         </a>
       </footer>
+
+      {/* ========================================================================= */}
+      {/* 4. MOBILE INTERACTIVE EXPLORER PANEL (Only on Mobile/Tablet screens < lg)  */}
+      {/* ========================================================================= */}
+      <div className="lg:hidden flex-1 overflow-y-auto px-3.5 py-4 space-y-3 bg-slate-950">
+        <div className="flex items-center justify-between text-xs font-bold text-amber-300/90 px-1">
+          <span>✨ ক্যাম্পাসের যেকোনো অংশে ট্যাপ করুন:</span>
+          <span className="text-[10px] text-slate-400">৭টি ইন্টারঅ্যাক্টিভ স্পট</span>
+        </div>
+
+        {/* 2-Column Mobile Touch Cards Grid */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('gate')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-amber-500/30 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🚪</span>
+              <span className="text-xs font-bold text-amber-300">ফটক ও তোরণ</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">বিদ্যালয় পরিচিতি ও বার্তা</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('calendar')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📅</span>
+              <span className="text-xs font-bold text-slate-200">ক্যালেন্ডার</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">ছুটির তালিকা ও সময়সূচী</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('blackboard')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <span className="text-xs font-bold text-slate-200">চক-বোর্ড</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">আজকের পাঠ ও নোটিশ</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('mastermashai')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">👨‍🏫</span>
+              <span className="text-xs font-bold text-slate-200">মাস্টার মশাই</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">অধ্যক্ষ ও পরিচালনা পর্ষদ</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('students')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎒</span>
+              <span className="text-xs font-bold text-slate-200">ছোট্ট সোনামণি</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">৫টি শ্রেণী ও ৩ ঘণ্টার শিফট</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('cottage')}
+            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🏡</span>
+              <span className="text-xs font-bold text-slate-200">শিক্ষক কুটির</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">শিক্ষকমণ্ডলী ও স্টাফ</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenSpot('cultural')}
+            className="col-span-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900 via-rose-950/40 to-slate-900 border border-rose-900/40 text-left transition shadow-md flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🌸</span>
+              <div>
+                <span className="text-xs font-bold text-rose-300 block">ফুলের বাগান ও কালচারাল ডে</span>
+                <span className="text-[10px] text-slate-400">প্রতি মঙ্গলবারের সঙ্গীত, আর্ট ও নৃত্য উৎসব</span>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-rose-400" />
+          </button>
+        </div>
+
+        {/* Mobile Full-Width Admission Action Button */}
+        <button
+          type="button"
+          onClick={() => handleOpenSpot('admission')}
+          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer"
+        >
+          <GraduationCap className="w-4 h-4 text-slate-950" />
+          <span>অনলাইন ভর্তি আবেদন ফর্ম (২০২৭ শিক্ষাবর্ষ)</span>
+        </button>
+
+        {/* Mobile Contact Quick Strip */}
+        <div className="pt-1 pb-4 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 px-1">
+          <span>📍 আনন্দ পাঠশালা, কুষ্টিয়া</span>
+          <a
+            href={`tel:${schoolProfile.phone || '01712-000000'}`}
+            className="text-amber-300 font-bold flex items-center gap-1 hover:underline"
+          >
+            <Phone className="w-3 h-3" />
+            <span>{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
+          </a>
+        </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* 4. MODALS (TRIGGERED ON CLICKING ANY ELEMENT)                              */}
