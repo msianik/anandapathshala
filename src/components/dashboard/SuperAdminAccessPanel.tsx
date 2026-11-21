@@ -128,7 +128,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   // Live Accounts List
   const [accounts, setAccounts] = useState<PortalAccount[]>(() => getAllPortalAccounts());
-  const [activeTab, setActiveTab] = useState<UserCategoryFilter>('all');
+  const [activeTab, setActiveTab] = useState<UserCategoryFilter>('director');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [panelToast, setPanelToast] = useState<string | null>(null);
@@ -894,19 +894,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
       {/* Role Navigation Pills & Live Counters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="inline-flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-slate-100 border border-slate-200 overflow-x-auto max-w-full scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'all'
-                ? 'bg-slate-900 text-white font-black shadow-xs'
-                : 'hover:bg-white text-slate-700'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>সকল সেন্ট্রাল পর্ষদ ({counts.all})</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setActiveTab('director')}
