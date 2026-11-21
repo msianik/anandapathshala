@@ -60,6 +60,7 @@ import {
   cloudSaveBiometricLogs,
   cloudSaveAssets,
   cloudSaveProfile,
+  cloudSavePublicWebsiteTheme,
   enrichStudentsWithPortalAccounts,
 } from './lib/schoolCloudSync';
 import { TopNavigation } from './components/TopNavigation';
@@ -265,6 +266,16 @@ export default function App() {
     window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
     return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeSync);
   }, []);
+
+  // Sync public theme when navigating back to public website
+  useEffect(() => {
+    if (currentTab === 'public' || currentRole === 'public') {
+      const storedTheme = getStoredPublicWebsiteTheme();
+      if (storedTheme && storedTheme !== publicTheme) {
+        setPublicTheme(storedTheme);
+      }
+    }
+  }, [currentTab, currentRole, publicTheme]);
 
   // Dedicated App Mode detector (iOS App, Standalone PWA, /login, or ?app=ios)
   // When active, the Public Website is completely hidden and the app functions purely as a Portal
@@ -509,6 +520,9 @@ export default function App() {
         },
         onProfileChange: (cloudProfile) => {
           setSchoolProfile(cloudProfile);
+        },
+        onPublicThemeChange: (cloudTheme) => {
+          setPublicTheme(cloudTheme);
         },
         onStatusChange: (isConnected, lastSyncTime) => {
           setCloudSyncInfo({ isConnected, lastSyncTime });
@@ -1316,6 +1330,7 @@ export default function App() {
                   onThemeSelect={(t) => {
                     setPublicTheme(t);
                     setStoredPublicWebsiteTheme(t);
+                    cloudSavePublicWebsiteTheme(t);
                   }}
                   onGoToDashboard={() => {
                     setCurrentRole(loggedInAccount.role);

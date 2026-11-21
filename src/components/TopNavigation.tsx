@@ -49,6 +49,7 @@ import {
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from '../utils/publicWebsiteTheme';
+import { cloudSavePublicWebsiteTheme } from '../lib/schoolCloudSync';
 import {
   getStoredDirectChatMessages,
   getUnreadMessagesCount,
@@ -799,6 +800,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   onClick={() => {
                     setPublicTheme('theme1');
                     setStoredPublicWebsiteTheme('theme1');
+                    cloudSavePublicWebsiteTheme('theme1');
                   }}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
                     publicTheme === 'theme1'
@@ -818,6 +820,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   onClick={() => {
                     setPublicTheme('theme2');
                     setStoredPublicWebsiteTheme('theme2');
+                    cloudSavePublicWebsiteTheme('theme2');
                   }}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
                     publicTheme === 'theme2'
@@ -837,6 +840,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   onClick={() => {
                     setPublicTheme('theme3');
                     setStoredPublicWebsiteTheme('theme3');
+                    cloudSavePublicWebsiteTheme('theme3');
                   }}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
                     publicTheme === 'theme3'

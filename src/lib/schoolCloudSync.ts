@@ -73,6 +73,11 @@ import { INITIAL_PARENT_TEACHER_MESSAGES } from '../utils/directChatLogic';
 import { INITIAL_STAFF_MESSAGES, DEFAULT_STAFF_CHANNELS } from '../utils/staffChatLogic';
 import { getCulturalEventThemes, getCulturalStarBadges, getWeeklyTiffinMenu } from '../utils/culturalAndTiffinLogic';
 import { getGalleryItems } from '../utils/culturalGalleryLogic';
+import {
+  PublicWebsiteThemeId,
+  PUBLIC_WEBSITE_THEME_STORAGE_KEY,
+  PUBLIC_THEME_CHANGE_EVENT,
+} from '../utils/publicWebsiteTheme';
 
 const COLLECTION_NAME = 'portal_data';
 const TIMESTAMP_PREFIX = 'ananda_sync_time_';
@@ -1028,15 +1033,48 @@ export async function cloudSaveThemeColor(themeHex: string): Promise<boolean> {
   setLocalTimestamp('school_theme', now);
 
   try {
-    await setDoc(doc(db, COLLECTION_NAME, 'school_theme'), {
-      themeColor: themeHex,
-      updatedAt: isoTime,
-      updatedAtMs: now,
-    });
+    await setDoc(
+      doc(db, COLLECTION_NAME, 'school_theme'),
+      {
+        themeColor: themeHex,
+        updatedAt: isoTime,
+        updatedAtMs: now,
+      },
+      { merge: true }
+    );
     return true;
   } catch (err) {
     console.error('[CloudSync] Failed to save theme color to Firestore:', err);
     notifySyncError('স্কুল থিম কালার', err);
+    return false;
+  }
+}
+
+export async function cloudSavePublicWebsiteTheme(theme: PublicWebsiteThemeId): Promise<boolean> {
+  const now = Date.now();
+  const isoTime = new Date(now).toISOString();
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY, theme);
+    } catch {}
+  }
+  setLocalTimestamp('public_theme', now);
+
+  try {
+    await setDoc(
+      doc(db, COLLECTION_NAME, 'school_theme'),
+      {
+        publicWebsiteTheme: theme,
+        updatedAt: isoTime,
+        updatedAtMs: now,
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] Failed to save public website theme to Firestore:', err);
+    notifySyncError('পাবলিক ওয়েবসাইট থিম', err);
     return false;
   }
 }
@@ -1090,6 +1128,10 @@ export async function syncAllPortalDataToCloud(): Promise<{
   const dirPerms = safeLocalGet<DirectorAccessPermission[]>('ananda_director_access_permissions_v1') || INITIAL_DIRECTOR_PERMISSIONS;
   const rolePolicy = safeLocalGet<RolePolicyConfig>('ananda_role_policy_config_v1') || DEFAULT_ROLE_POLICY_CONFIG;
   const themeHex = (typeof window !== 'undefined' ? localStorage.getItem('ananda_school_theme_color') : null) || '#059669';
+  const publicTheme =
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY) as PublicWebsiteThemeId)
+      : null) || 'theme2';
 
   await Promise.allSettled([
     students.length ? pushTask('students', () => cloudSaveStudents(students)) : Promise.resolve(),
@@ -1117,6 +1159,7 @@ export async function syncAllPortalDataToCloud(): Promise<{
     pushTask('director_permissions', () => cloudSaveDirectorPermissions(dirPerms)),
     pushTask('role_policy', () => cloudSaveRolePolicy(rolePolicy)),
     pushTask('school_theme', () => cloudSaveThemeColor(themeHex)),
+    pushTask('public_theme', () => cloudSavePublicWebsiteTheme(publicTheme)),
   ]);
 
   return {
@@ -1156,6 +1199,7 @@ export interface CloudSyncListeners {
   onAdmissionsChange?: (apps: AdmissionApplication[]) => void;
   onGalleryChange?: (items: CulturalGalleryItem[]) => void;
   onBiometricUsersChange?: (users: any[]) => void;
+  onPublicThemeChange?: (theme: PublicWebsiteThemeId) => void;
   onStatusChange?: (isConnected: boolean, lastSyncTime: string) => void;
 }
 
@@ -2262,7 +2306,7 @@ export function subscribeToSchoolCloud(
     console.warn('[CloudSync] Error attaching role policy listener:', e);
   }
 
-  // 32. School Theme Subscription
+  // 32. School Theme & Public Website Theme Subscription
   try {
     const unsubTheme = onSnapshot(
       doc(db, COLLECTION_NAME, 'school_theme'),
@@ -2276,6 +2320,23 @@ export function subscribeToSchoolCloud(
                 localStorage.setItem('ananda_school_theme_color', data.themeColor);
               }
               window.dispatchEvent(new CustomEvent('school-theme-updated', { detail: { themeColor: data.themeColor } }));
+            });
+          }
+          if (
+            data?.publicWebsiteTheme &&
+            (data.publicWebsiteTheme === 'theme1' ||
+              data.publicWebsiteTheme === 'theme2' ||
+              data.publicWebsiteTheme === 'theme3')
+          ) {
+            const cloudTheme = data.publicWebsiteTheme as PublicWebsiteThemeId;
+            safeProcessCloudUpdate(() => {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY, cloudTheme);
+              }
+              window.dispatchEvent(
+                new CustomEvent(PUBLIC_THEME_CHANGE_EVENT, { detail: { theme: cloudTheme } })
+              );
+              listeners.onPublicThemeChange?.(cloudTheme);
             });
           }
         }
@@ -2507,6 +2568,19 @@ export function subscribeToSchoolCloud(
     if (color) cloudSaveThemeColor(color);
   };
 
+  const handlePublicThemeUpdated = (e: Event) => {
+    if (isReceivingCloudUpdate) return;
+    const cust = e as CustomEvent<{ theme?: PublicWebsiteThemeId }>;
+    const theme =
+      cust.detail?.theme ||
+      (typeof window !== 'undefined'
+        ? (localStorage.getItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY) as PublicWebsiteThemeId)
+        : null);
+    if (theme && (theme === 'theme1' || theme === 'theme2' || theme === 'theme3')) {
+      cloudSavePublicWebsiteTheme(theme);
+    }
+  };
+
   window.addEventListener('ananda-students-updated', handleStudentsUpdated);
   window.addEventListener('ananda-teachers-updated', handleTeachersUpdated);
   window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsUpdated);
@@ -2538,6 +2612,7 @@ export function subscribeToSchoolCloud(
   window.addEventListener('ananda-director-permissions-updated', handleDirectorPermissionsUpdated);
   window.addEventListener('ananda-role-policy-updated', handleRolePolicyUpdated);
   window.addEventListener('school-theme-updated', handleThemeColorUpdated);
+  window.addEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeUpdated);
 
   return () => {
     unsubscribers.forEach((u) => {
@@ -2576,5 +2651,6 @@ export function subscribeToSchoolCloud(
     window.removeEventListener('ananda-director-permissions-updated', handleDirectorPermissionsUpdated);
     window.removeEventListener('ananda-role-policy-updated', handleRolePolicyUpdated);
     window.removeEventListener('school-theme-updated', handleThemeColorUpdated);
+    window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handlePublicThemeUpdated);
   };
 }

@@ -59,11 +59,11 @@ export const PUBLIC_WEBSITE_THEMES: PublicWebsiteThemeInfo[] = [
 ];
 
 /**
- * Get active theme from localStorage or default to 'theme1'
+ * Get active theme from localStorage or default to 'theme2'
  */
 export function getStoredPublicWebsiteTheme(): PublicWebsiteThemeId {
   if (typeof window === 'undefined' || !window.localStorage) {
-    return 'theme1';
+    return 'theme2';
   }
   try {
     const stored = localStorage.getItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY);
@@ -71,7 +71,7 @@ export function getStoredPublicWebsiteTheme(): PublicWebsiteThemeId {
       return stored;
     }
   } catch {}
-  return 'theme1';
+  return 'theme2';
 }
 
 /**

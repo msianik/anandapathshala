@@ -61,9 +61,9 @@ describe('Public Website Theme Manager', () => {
     }
   });
 
-  test('default public website theme is theme1', () => {
+  test('default public website theme is theme2', () => {
     const theme = getStoredPublicWebsiteTheme();
-    expect(theme).toBe('theme1');
+    expect(theme).toBe('theme2');
   });
 
   test('PUBLIC_WEBSITE_THEMES defines theme1, theme2, and theme3', () => {

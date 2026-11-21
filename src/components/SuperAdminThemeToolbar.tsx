@@ -4,6 +4,7 @@ import {
   PUBLIC_WEBSITE_THEMES,
   setStoredPublicWebsiteTheme,
 } from '../utils/publicWebsiteTheme';
+import { cloudSavePublicWebsiteTheme } from '../lib/schoolCloudSync';
 import {
   Palette,
   Check,
@@ -31,6 +32,7 @@ export const SuperAdminThemeToolbar: React.FC<SuperAdminThemeToolbarProps> = ({
   const handleSelect = (theme: PublicWebsiteThemeId) => {
     onThemeSelect(theme);
     setStoredPublicWebsiteTheme(theme);
+    cloudSavePublicWebsiteTheme(theme);
   };
 
   return (

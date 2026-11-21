@@ -15,6 +15,7 @@ import {
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from '../utils/publicWebsiteTheme';
+import { cloudSavePublicWebsiteTheme } from '../lib/schoolCloudSync';
 import {
   Palette,
   Check,
@@ -70,6 +71,7 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
   const handleSelectPublicTheme = (themeId: PublicWebsiteThemeId) => {
     setPublicTheme(themeId);
     setStoredPublicWebsiteTheme(themeId);
+    cloudSavePublicWebsiteTheme(themeId);
     setToastMessage(
       themeId === 'theme1'
         ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
