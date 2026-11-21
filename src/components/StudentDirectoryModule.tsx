@@ -561,7 +561,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     if (!studentToDelete) return;
     removePortalAccountByEntityId(studentToDelete.id);
     onDeleteStudent(studentToDelete.id);
-    showToast(`🗑️ "${studentToDelete.nameBn}" এর রেকর্ড ও পোর্টাল অ্যাকাউন্ট মুছে ফেলা হয়েছে।`);
+    showToast(`🗑️ "${studentToDelete.nameBn}" এর রেকর্ড, পোর্টাল অ্যাকাউন্ট ও বায়োমেট্রিক মেশিন থেকে সম্পূর্ণ মুছে ফেলা হয়েছে।`);
     setStudentToDelete(null);
   };
 
@@ -1738,8 +1738,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
               <h3 className="text-base font-black text-slate-900">
                 আপনি কি নিশ্চিতভাবে মুছে ফেলতে চান?
               </h3>
-              <p className="text-xs text-slate-500">
-                “<strong>{studentToDelete.nameBn}</strong>” (শ্রেণি: {studentToDelete.className}, রোল: {studentToDelete.rollNo}) এর তথ্য তালিকা থেকে মুছে যাবে।
+              <p className="text-xs text-slate-500 leading-relaxed">
+                “<strong>{studentToDelete.nameBn}</strong>” (শ্রেণি: {studentToDelete.className}, রোল: {studentToDelete.rollNo}) এর রেকর্ড, পোর্টাল অ্যাকাউন্ট এবং ডিজিটাল বায়োমেট্রিক ফিঙ্গারপ্রিন্ট মেশিনের তালিকা থেকে সম্পূর্ণ মুছে ফেলা হবে।
               </p>
             </div>
             <div className="flex items-center gap-2 pt-2">

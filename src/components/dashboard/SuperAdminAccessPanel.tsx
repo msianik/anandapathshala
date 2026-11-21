@@ -41,7 +41,8 @@ import {
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from '../../utils/publicWebsiteTheme';
-import { cloudSavePublicWebsiteTheme } from '../../lib/schoolCloudSync';
+import { cloudSavePublicWebsiteTheme, cloudSaveStudents } from '../../lib/schoolCloudSync';
+import { removeStudentFromBiometricDevice } from '../../utils/biometricAttendanceLogic';
 import {
   DirectorAccessPermission,
   PortalAccount,
@@ -97,9 +98,10 @@ export interface SuperAdminAccessPanelProps {
   students?: Student[];
   teachersList?: TeacherMember[];
   directorsList?: CommitteeDirector[];
+  onNavigateTab?: (tab: string) => void;
 }
 
-type UserCategoryFilter = 'all' | 'director' | 'principal' | 'teacher' | 'staff' | 'parent';
+type UserCategoryFilter = 'all' | 'director' | 'principal' | 'teacher' | 'staff';
 
 export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   isSuperAdmin,
@@ -112,6 +114,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   onSetAllEditAccess,
   onSelectRole,
   logoUrl,
+  onNavigateTab,
 }) => {
   if (!isSuperAdmin) return null;
 
@@ -368,6 +371,9 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   // Filter accounts
   const filteredAccounts = accounts.filter((acc) => {
+    // If on "all", show all administrative & staff accounts (students are managed in Student Directory)
+    if (activeTab === 'all' && acc.role === 'parent') return false;
+
     // Role filter
     if (activeTab === 'director') {
       // Shafee Abdullah is strictly Principal, NOT a board director!
@@ -418,7 +424,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     }
     if (activeTab === 'teacher' && acc.role !== 'teacher') return false;
     if (activeTab === 'staff' && acc.role !== 'accountant' && acc.role !== 'gate_security') return false;
-    if (activeTab === 'parent' && acc.role !== 'parent') return false;
 
     // Status filter
     if (statusFilter === 'active' && acc.isAccessDisabled) return false;
@@ -449,7 +454,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   // Role Counts
   const counts = {
-    all: accounts.length,
+    all: accounts.filter((a) => a.role !== 'parent').length,
     director: accounts.filter((a) => {
       // Exclude Principal
       if (
@@ -617,8 +622,25 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
     const success = deletePortalUserAccount(deletingAccount.id);
     if (success) {
+      // If student/parent account, also sync-delete from biometric device and student list
+      const targetStudentId = deletingAccount.studentId || deletingAccount.id.replace('acc-std-', '');
+      if (deletingAccount.role === 'parent' || deletingAccount.studentId) {
+        removeStudentFromBiometricDevice(targetStudentId);
+        try {
+          const raw = localStorage.getItem('ananda_students_v2') || localStorage.getItem('ananda_students_v1');
+          if (raw) {
+            const list: Student[] = JSON.parse(raw);
+            const filtered = list.filter((s) => s.id !== targetStudentId);
+            localStorage.setItem('ananda_students_v2', JSON.stringify(filtered));
+            localStorage.setItem('ananda_students_v1', JSON.stringify(filtered));
+            cloudSaveStudents(filtered);
+          }
+        } catch {}
+        window.dispatchEvent(new CustomEvent('ananda-students-updated'));
+      }
+
       setAccounts(getAllPortalAccounts());
-      showToast(`🗑️ ${deletingAccount.nameBn}-এর অ্যাকাউন্ট সম্পূর্ণ ডিলিট করা হয়েছে।`);
+      showToast(`🗑️ ${deletingAccount.nameBn}-এর অ্যাকাউন্ট, পোর্টাল লগইন ও ডিজিটাল বায়োমেট্রিক সম্পূর্ণ ডিলিট করা হয়েছে।`);
     } else {
       showToast('❌ ডিলিট করা সম্ভব হয়নি।');
     }
@@ -945,7 +967,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>সকল ইউজার ({counts.all})</span>
+            <span>সকল স্টাফ ও পর্ষদ ({counts.all})</span>
           </button>
 
           <button
@@ -1000,18 +1022,22 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             <span>কর্মচারীবৃন্দ ({counts.staff})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('parent')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'parent'
-                ? 'bg-rose-700 text-white font-black shadow-xs'
-                : 'hover:bg-white text-slate-700'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>শিক্ষার্থীবৃন্দ ({counts.parent})</span>
-          </button>
+          {onNavigateTab ? (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('students')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs hover:scale-102"
+              title="শিক্ষার্থী সেন্ট্রাল ডিরেক্টরিতে যান (যেখান থেকে এক জায়গা থেকে সকল শিক্ষার্থীর আইডি তৈরি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
+            >
+              <Users className="w-3.5 h-3.5 text-rose-600" />
+              <span>শিক্ষার্থী ডিরেক্টরি ({toBengaliNumber(counts.parent || availableStudents.length)} জন) ↗</span>
+            </button>
+          ) : (
+            <div className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 flex items-center gap-1.5 shrink-0">
+              <Users className="w-3.5 h-3.5 text-rose-600" />
+              <span>শিক্ষার্থী ডিরেক্টরি ({toBengaliNumber(counts.parent || availableStudents.length)} জন)</span>
+            </div>
+          )}
         </div>
 
         {/* Live Search & Status Filters */}
@@ -1345,7 +1371,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     { role: 'principal' as const, label: '🎓 প্রিন্সিপাল' },
                     { role: 'accountant' as const, label: '💼 হিসাবরক্ষক' },
                     { role: 'gate_security' as const, label: '🛡️ সিকিউরিটি' },
-                    { role: 'parent' as const, label: '🎓 শিক্ষার্থী' },
                   ].map((r) => (
                     <button
                       key={r.role}
@@ -1365,9 +1390,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                             ? 'হিসাবরক্ষণ কর্মকর্তা'
                             : r.role === 'gate_security'
                             ? 'গেট সিকিউরিটি ও কেয়ারটেকার'
-                            : r.role === 'principal'
-                            ? 'প্রিন্সিপাল ও একাডেমিক প্রধান'
-                            : 'student'
+                            : 'প্রিন্সিপাল ও একাডেমিক প্রধান'
                         );
                       }}
                       className={`py-1.5 px-2 rounded-xl text-xs font-bold transition border text-center cursor-pointer ${
@@ -1380,6 +1403,23 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Central Student Directory Guidance */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                <span>🎓 <strong>শিক্ষার্থী ভর্তি ও আইডি কার্ড:</strong> নতুন শিক্ষার্থী ভর্তি করা মাত্রই স্বয়ংক্রিয়ভাবে তার স্টুডেন্ট আইডি, পোর্টাল অ্যাকাউন্ট এবং ডিজিটাল বায়োমেট্রিক মেশিনে সিঙ্ক হয়ে যায়।</span>
+                {onNavigateTab && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddModalOpen(false);
+                      onNavigateTab('students');
+                    }}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg shrink-0 cursor-pointer text-center"
+                  >
+                    শিক্ষার্থী ডিরেক্টরিতে যান ↗
+                  </button>
+                )}
               </div>
 
               {/* PRE-EXISTING PROFILE LINKER (পূর্বনির্ধারিত প্রোফাইল থেকে লিংক করার ড্রপডাউন) */}
