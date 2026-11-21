@@ -1096,13 +1096,6 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           >
             {showOnlyHomeworkFilter ? '✓ সব ক্লাস দেখুন' : '📚 শুধু বাড়ির কাজ দেখুন'}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowDetailedLessonPlans((prev) => !prev)}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition cursor-pointer"
-          >
-            {showDetailedLessonPlans ? 'সংক্ষিপ্ত ভিউ' : 'বিস্তারিত ভিউ'}
-          </button>
         </div>
       </div>
 
