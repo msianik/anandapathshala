@@ -1162,38 +1162,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           </div>
         </div>
 
-        {/* Shift Details Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
-          <div
-            className={`p-2 rounded-xl border flex items-center justify-between ${
-              shiftFilter === 'morning' || shiftFilter === 'all'
-                ? 'bg-amber-100/70 border-amber-300 text-amber-950 font-bold'
-                : 'bg-white/60 border-slate-200 text-slate-600'
-            }`}
-          >
-            <span className="flex items-center gap-1">
-              <span>☀️ <strong>মর্নিং শিফট:</strong> সকাল ০৮:০০ – বেলা ১১:০০ (৩ ঘণ্টা)</span>
-            </span>
-            <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-amber-300">
-              সকল শ্রেণি (হাতেখড়ি–শ্রেণি ২)
-            </span>
-          </div>
 
-          <div
-            className={`p-2 rounded-xl border flex items-center justify-between ${
-              shiftFilter === 'day' || shiftFilter === 'all'
-                ? 'bg-sky-100/70 border-sky-300 text-sky-950 font-bold'
-                : 'bg-white/60 border-slate-200 text-slate-600'
-            }`}
-          >
-            <span className="flex items-center gap-1">
-              <span>🌤️ <strong>ডে শিফট:</strong> বেলা ১১:০০ – দুপুর ০২:০০ (৩ ঘণ্টা)</span>
-            </span>
-            <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-sky-300">
-              সকল শ্রেণি (হাতেখড়ি–শ্রেণি ২)
-            </span>
-          </div>
-        </div>
 
 
       </div>
