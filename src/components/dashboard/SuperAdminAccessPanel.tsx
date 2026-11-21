@@ -36,10 +36,12 @@ import {
 } from 'lucide-react';
 import {
   PublicWebsiteThemeId,
+  PUBLIC_WEBSITE_THEMES,
   getStoredPublicWebsiteTheme,
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from '../../utils/publicWebsiteTheme';
+import { cloudSavePublicWebsiteTheme } from '../../lib/schoolCloudSync';
 import {
   DirectorAccessPermission,
   PortalAccount,
@@ -123,6 +125,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   const [publicTheme, setPublicTheme] = useState<PublicWebsiteThemeId>(() =>
     getStoredPublicWebsiteTheme()
   );
+  const [stagedTheme, setStagedTheme] = useState<PublicWebsiteThemeId | null>(null);
 
   useEffect(() => {
     const handleSync = (e: any) => {
@@ -133,13 +136,17 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     return () => window.removeEventListener(PUBLIC_THEME_CHANGE_EVENT, handleSync);
   }, []);
 
-  const handleToggleTheme = (themeId: PublicWebsiteThemeId) => {
+  const handleApplyTheme = (themeId: PublicWebsiteThemeId) => {
     setPublicTheme(themeId);
     setStoredPublicWebsiteTheme(themeId);
+    cloudSavePublicWebsiteTheme(themeId);
+    setStagedTheme(null);
     showToast(
       themeId === 'theme1'
         ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে কার্যকর হয়েছে!'
-        : '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে কার্যকর হয়েছে!'
+        : themeId === 'theme2'
+        ? '✓ থিম ২ (আনন্দ কানন উন্মুক্ত বাগান ডায়োরামা) সফলভাবে কার্যকর হয়েছে!'
+        : '✓ থিম ৩ (আনন্দ কানন তোরণ ও ক্যাম্পাস) সফলভাবে কার্যকর হয়েছে!'
     );
   };
 
@@ -667,6 +674,129 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         </div>
       )}
 
+      {/* 👑 Website Public Theme Selection Bar (একদম মাথার উপরে থিম কন্ট্রোল) */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-2xl p-4 sm:p-5 border-2 border-amber-400 shadow-md space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0">
+              <Palette className="w-4 h-4 text-slate-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                  সুপার অ্যাডমিন থিম
+                </span>
+                <span className="text-xs sm:text-sm font-black text-white">
+                  ওয়েবসাইট পাবলিক থিম নির্বাচন
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                যেকোনো থিমের উপর ক্লিক করুন এবং তার নিচে &ldquo;সক্রিয় করুন&rdquo; বাটনে চাপলে সেটি কার্যকর হবে।
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-[11px] font-bold text-amber-300 bg-slate-850 px-3 py-1 rounded-xl border border-slate-700 flex items-center gap-1.5 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>
+                বর্তমানে সক্রিয়:{' '}
+                {publicTheme === 'theme1'
+                  ? 'থিম ১ (ক্লাসিক ক্যাম্পাস)'
+                  : publicTheme === 'theme2'
+                  ? 'থিম ২ (কানন বাগান)'
+                  : 'থিম ৩ (তোরণ ক্যাম্পাস)'}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* 3 Themes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {PUBLIC_WEBSITE_THEMES.map((theme) => {
+            const isCurrentlyActive = publicTheme === theme.id;
+            const isStaged = stagedTheme === theme.id;
+
+            return (
+              <div
+                key={theme.id}
+                onClick={() => setStagedTheme(theme.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setStagedTheme(theme.id);
+                  }
+                }}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 select-none ${
+                  isCurrentlyActive
+                    ? 'bg-slate-850/90 border-emerald-500 ring-2 ring-emerald-500/30 shadow-sm'
+                    : isStaged
+                    ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 shadow-md'
+                    : 'bg-slate-900/80 hover:bg-slate-850 border-slate-750 hover:border-slate-600'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <span className="text-xs font-black text-white flex items-center gap-1.5">
+                      <span>{theme.nameBn}</span>
+                    </span>
+                    {isCurrentlyActive && (
+                      <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40 shrink-0 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        <span>সক্রিয় রয়েছে</span>
+                      </span>
+                    )}
+                    {!isCurrentlyActive && isStaged && (
+                      <span className="text-[10px] font-bold bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40 shrink-0">
+                        সিলেক্টেড
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    {theme.taglineBn}
+                  </p>
+                </div>
+
+                {/* Bottom Action: সক্রিয় করুন অপশন */}
+                <div className="pt-2 border-t border-slate-800">
+                  {isCurrentlyActive ? (
+                    <div className="w-full py-1.5 px-2 rounded-lg bg-emerald-950/60 text-emerald-300 text-[11px] font-bold text-center border border-emerald-800/60 flex items-center justify-center gap-1">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>এই থিমটি বর্তমানে সক্রিয়</span>
+                    </div>
+                  ) : isStaged ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyTheme(theme.id);
+                      }}
+                      className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-black transition cursor-pointer shadow-md flex items-center justify-center gap-1.5 ring-2 ring-amber-300/40 animate-pulse"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+                      <span>সক্রিয় করুন</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStagedTheme(theme.id);
+                      }}
+                      className="w-full py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white text-[11px] font-bold text-center border border-slate-700 transition flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>থিম বাছাই করুন</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main Header / Clickable Option Bar to Toggle Dropdown */}
       <div
         onClick={toggleExpanded}
@@ -798,47 +928,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 <span>সকলকে সক্রিয়</span>
               </button>
 
-              {/* Public Website Theme Toggle */}
-              <div className="flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl border border-amber-400/70 shadow-xs">
-                <Palette className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="text-[11px] font-bold text-slate-300">ওয়েবসাইট থিম:</span>
-                <button
-                  type="button"
-                  onClick={() => handleToggleTheme('theme1')}
-                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    publicTheme === 'theme1'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                  }`}
-                  title="থিম ১: ক্লাসিক কিন্ডারগার্টেন"
-                >
-                  থিম ১
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleTheme('theme2')}
-                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    publicTheme === 'theme2'
-                      ? 'bg-sky-400 text-slate-950 font-black shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                  }`}
-                  title="থিম ২: আনন্দ কানন উন্মুক্ত বাগান ডায়োরামা"
-                >
-                  থিম ২
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleTheme('theme3')}
-                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    publicTheme === 'theme3'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                  }`}
-                  title="থিম ৩: আনন্দ কানন তোরণ ও ফটক ডায়োরামা"
-                >
-                  থিম ৩
-                </button>
-              </div>
+
             </div>
           </div>
 
