@@ -853,27 +853,15 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         </div>
       </div>
 
-      {/* Main Header / Clickable Option Bar to Toggle Dropdown */}
-      <div
-        onClick={toggleExpanded}
-        className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 cursor-pointer select-none group"
-        role="button"
-        aria-expanded={isExpanded}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpanded();
-          }
-        }}
-      >
+      {/* Main Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0 text-xl sm:text-2xl border-2 border-white ring-2 ring-amber-400 group-hover:scale-105 transition-transform">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0 text-xl sm:text-2xl border-2 border-white ring-2 ring-amber-400">
             👑
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm sm:text-base font-black text-slate-900 group-hover:text-amber-700 transition-colors">
+              <h2 className="text-sm sm:text-base font-black text-slate-900">
                 সুপার অ্যাডমিন সেন্ট্রাল অ্যাক্সেস ও ইউজার কন্ট্রোল হাব
               </h2>
               <span className="text-[10px] font-black bg-amber-100 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300 uppercase shrink-0">
@@ -884,109 +872,27 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
               </span>
             </div>
             <p className="text-[11.5px] text-slate-500 mt-0.5 truncate leading-tight">
-              {isExpanded
-                ? 'সকল পরিচালক, প্রিন্সিপাল, শিক্ষক, কর্মচারী ও অভিভাবক অ্যাকাউন্টের বিস্তারিত তালিকা ও অ্যাক্সেস নিয়ন্ত্রণ।'
-                : 'ক্লিক করে সকল ইউজারদের নাম, রোল, পাসওয়ার্ড, অ্যাক্সেস সক্রিয়/স্থগিত ও নতুন ইউজার তৈরির বিস্তারিত ড্রপডাউন খুলুন।'}
+              সকল পরিচালনা পর্ষদ ও প্রিন্সিপাল অ্যাকাউন্টের বিস্তারিত তালিকা ও অ্যাক্সেস নিয়ন্ত্রণ।
             </p>
           </div>
         </div>
 
-        {/* Right Action & Dropdown Toggle Pill */}
+        {/* Right Action */}
         <div className="flex items-center gap-2 self-start lg:self-center shrink-0">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(true);
-              openAddModal('director');
-            }}
+            onClick={() => openAddModal('director')}
             className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
             title="নতুন ইউজার তৈরি করুন"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>+ নতুন ইউজার</span>
           </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleExpanded();
-            }}
-            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0 border ${
-              isExpanded
-                ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-            }`}
-            title={isExpanded ? 'ড্রপডাউন বন্ধ করুন' : 'ইউজারদের বিস্তারিত ড্রপডাউন খুলুন'}
-          >
-            <span>{isExpanded ? 'ড্রপডাউন বন্ধ করুন' : 'বিস্তারিত ড্রপডাউন'}</span>
-            <ChevronDown
-              className={`w-4 h-4 transition-transform duration-300 ${
-                isExpanded ? 'rotate-180 text-slate-950' : 'text-slate-600'
-              }`}
-            />
-          </button>
         </div>
       </div>
 
-      {/* Expanded Dropdown Details */}
-      {isExpanded && (
-        <div className="space-y-4 pt-3 border-t border-amber-100 animate-in fade-in slide-in-from-top-2 duration-300">
-          {/* Global Quick Action Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-50/60 p-3 rounded-2xl border border-amber-200/80">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>এক ক্লিকে কেন্দ্রীয় নিয়ন্ত্রণ:</span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onSetAllEditAccess) {
-                    onSetAllEditAccess(true);
-                  }
-                  showToast('✅ সকল পরিচালকের পূর্ণ এডিট ক্ষমতা উন্মুক্ত করা হয়েছে!');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black transition cursor-pointer shadow-2xs flex items-center gap-1"
-                title="সকল পরিচালকের পূর্ণ এডিট ক্ষমতা দিন"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>সবাইকে পূর্ণ এডিট</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onSetAllEditAccess) {
-                    onSetAllEditAccess(false);
-                  }
-                  showToast('👁️ সকল পরিচালকের জন্য শুধু ভিউ মোড সক্রিয় করা হয়েছে।');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                title="সকল পরিচালকের শুধু ভিউ মোড সক্রিয় করুন"
-              >
-                <Eye className="w-3.5 h-3.5 text-slate-500" />
-                <span>সবাইকে শুধু ভিউ</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setAllPortalUsersAccess(true);
-                  setAccounts(getAllPortalAccounts());
-                  showToast('✅ সকল ব্যবহারকারীর অ্যাকাউন্ট সক্রিয় রাখা হয়েছে!');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                title="সকল অ্যাকাউন্ট সক্রিয় করুন"
-              >
-                <Unlock className="w-3.5 h-3.5 text-teal-700" />
-                <span>সকলকে সক্রিয়</span>
-              </button>
-
-
-            </div>
-          </div>
+      {/* User Management Details */}
+      <div className="space-y-4 pt-3 border-t border-amber-100">
 
       {/* Role Navigation Pills & Live Counters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1270,20 +1176,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
           })
         )}
       </div>
-
-          {/* Bottom Collapse Button */}
-          <div className="flex items-center justify-center pt-2">
-            <button
-              type="button"
-              onClick={toggleExpanded}
-              className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-950 border border-slate-200 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-              <span>ইউজার ড্রপডাউন বন্ধ করুন</span>
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* ========================================================
           MODAL 1: ADD NEW USER (নতুন ইউজার তৈরি)
