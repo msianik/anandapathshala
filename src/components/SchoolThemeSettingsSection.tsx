@@ -74,8 +74,8 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
       themeId === 'theme1'
         ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
         : themeId === 'theme2'
-        ? '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
-        : '✓ থিম ৩ (আনন্দ কানন উন্মুক্ত পাঠশালা) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+        ? '✓ থিম ২ (আনন্দ কানন উন্মুক্ত বাগান ডায়োরামা) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+        : '✓ থিম ৩ (আনন্দ কানন তোরণ ও ফটক ডায়োরামা) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
     );
     setTimeout(() => setToastMessage(null), 3500);
   };
@@ -205,8 +205,8 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
               {publicTheme === 'theme1'
                 ? 'থিম ১ (ক্লাসিক)'
                 : publicTheme === 'theme2'
-                ? 'থিম ২ (মডার্ন স্মার্ট)'
-                : 'থিম ৩ (উন্মুক্ত ক্যাম্পাস)'}
+                ? 'থিম ২ (কানন বাগান)'
+                : 'থিম ৩ (তোরণ ক্যাম্পাস)'}
             </span>
           </div>
         </div>
@@ -273,14 +273,14 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
                       </>
                     ) : t.id === 'theme2' ? (
                       <>
-                        <span className="px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800/80 text-sky-300">
-                          ✓ স্প্লিট-হিরো ও ভাসমান ব্যাজ
+                        <span className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/80 text-emerald-300">
+                          ✓ উন্মুক্ত বাগান ও মাস্টার মশাই
                         </span>
                         <span className="px-2 py-0.5 rounded bg-teal-950/80 border border-teal-800/80 text-teal-300">
-                          ✓ ৩ ঘণ্টার ইন্টারঅ্যাক্টিভ শিফট
+                          ✓ গাছে ঝুলন্ত ক্যালেন্ডার ও চক-বোর্ড
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800/80 text-rose-300">
-                          ✓ মঙ্গলবারের কালচারাল ডে
+                        <span className="px-2 py-0.5 rounded bg-pink-950/80 border border-pink-800/80 text-pink-300">
+                          ✓ মাদুরে শিক্ষার্থী ও শিক্ষক কুটির
                         </span>
                       </>
                     ) : (

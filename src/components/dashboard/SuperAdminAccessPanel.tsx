@@ -822,7 +822,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                       ? 'bg-sky-400 text-slate-950 font-black shadow-xs'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
                   }`}
-                  title="থিম ২: মডার্ন স্মার্ট প্রি-স্কুল"
+                  title="থিম ২: আনন্দ কানন উন্মুক্ত বাগান ডায়োরামা"
                 >
                   থিম ২
                 </button>
@@ -831,10 +831,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                   onClick={() => handleToggleTheme('theme3')}
                   className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                     publicTheme === 'theme3'
-                      ? 'bg-emerald-400 text-slate-950 font-black shadow-xs'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800'
                   }`}
-                  title="থিম ৩: আনন্দ কানন উন্মুক্ত পাঠশালা"
+                  title="থিম ৩: আনন্দ কানন তোরণ ও ফটক ডায়োরামা"
                 >
                   থিম ৩
                 </button>

@@ -789,8 +789,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   {publicTheme === 'theme1'
                     ? 'থিম ১ (ক্লাসিক)'
                     : publicTheme === 'theme2'
-                    ? 'থিম ২ (মডার্ন)'
-                    : 'থিম ৩ (উন্মুক্ত)'}
+                    ? 'থিম ২ (কানন বাগান)'
+                    : 'থিম ৩ (তোরণ ক্যাম্পাস)'}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -821,15 +821,15 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   }}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
                     publicTheme === 'theme2'
-                      ? 'border-sky-500 bg-sky-50 text-slate-950 shadow-xs ring-1 ring-sky-400'
+                      ? 'border-emerald-500 bg-emerald-50 text-slate-950 shadow-xs ring-1 ring-emerald-400'
                       : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                   }`}
                 >
                   <div>
-                    <p className="font-black">থিম ২: মডার্ন</p>
-                    <p className="text-[10px] text-slate-500">স্মার্ট প্রি-স্কুল</p>
+                    <p className="font-black">থিম ২: কানন</p>
+                    <p className="text-[10px] text-slate-500">উন্মুক্ত বাগান</p>
                   </div>
-                  {publicTheme === 'theme2' && <Check className="w-4 h-4 text-sky-600 stroke-[3]" />}
+                  {publicTheme === 'theme2' && <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />}
                 </button>
 
                 <button
@@ -840,15 +840,15 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   }}
                   className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
                     publicTheme === 'theme3'
-                      ? 'border-emerald-500 bg-emerald-50 text-slate-950 shadow-xs ring-1 ring-emerald-400'
+                      ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
                       : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                   }`}
                 >
                   <div>
-                    <p className="font-black">থিম ৩: কানন</p>
-                    <p className="text-[10px] text-slate-500">উন্মুক্ত ডায়োরামা</p>
+                    <p className="font-black">থিম ৩: তোরণ</p>
+                    <p className="text-[10px] text-slate-500">গ্রাম্য তোরণ ফটক</p>
                   </div>
-                  {publicTheme === 'theme3' && <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />}
+                  {publicTheme === 'theme3' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
                 </button>
               </div>
             </div>
