@@ -21,8 +21,13 @@ import {
   getTeacherLeaveBalance,
   STAFF_CHANGE_EVENT,
   TEACHERS_UPDATED_EVENT,
+  removeStaffFromBiometricDevice,
 } from '../utils/staffManagementLogic';
-import { toBengaliNumber, downloadAttendanceCsvFile } from '../utils/schoolLogic';
+import {
+  toBengaliNumber,
+  downloadAttendanceCsvFile,
+  deletePortalUserAccountByTeacherId,
+} from '../utils/schoolLogic';
 import {
   StaffMonthlyAttendanceSummary,
   StaffMonthlyReportMeta,
@@ -719,6 +724,7 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
 
   // Handle Delete Staff
   const handleDeleteStaff = async (teacherId: string) => {
+    // 1. Delete from staff list & cloud
     const updated = deleteStaffMember(teacherId);
     setStaffList(updated);
     setEditingStaff(null);
@@ -726,8 +732,19 @@ export const StaffManagementModule: React.FC<StaffManagementModuleProps> = ({
       setSelectedStaffDetails(null);
     }
     await cloudSaveTeachers(updated);
+
+    // 2. Remove from portal accounts
+    deletePortalUserAccountByTeacherId(teacherId);
+    removePortalAccountByEntityId(`acc-tch-${teacherId}`);
     removePortalAccountByEntityId(teacherId);
-    setStaffCheckInToast('✓ স্টাফ সফলভাবে তালিকা ও ক্লাউড থেকে অপসারিত হয়েছেন!');
+
+    // 3. Remove from biometric fingerprint machine
+    removeStaffFromBiometricDevice(teacherId);
+
+    window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
+
+    setStaffCheckInToast('✓ শিক্ষক/কর্মীর রেকর্ড, পোর্টাল অ্যাকাউন্ট ও বায়োমেট্রিক মেশিন থেকে সফলভাবে মুছে ফেলা হয়েছে!');
     setTimeout(() => setStaffCheckInToast(null), 4000);
   };
 

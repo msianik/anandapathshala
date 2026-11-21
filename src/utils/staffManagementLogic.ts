@@ -208,7 +208,35 @@ export function saveStaffMember(member: TeacherMember): TeacherMember[] {
   return saveAllStaffMembers(updated);
 }
 
+export function removeStaffFromBiometricDevice(teacherId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    let deviceUsers: any[] = [];
+    const rawUsers = localStorage.getItem(BIOMETRIC_DEVICE_USERS_KEY);
+    if (rawUsers) {
+      try {
+        deviceUsers = JSON.parse(rawUsers);
+      } catch {}
+    }
+    if (Array.isArray(deviceUsers)) {
+      const filtered = deviceUsers.filter(
+        (u) =>
+          u.personId !== teacherId &&
+          u.enrollId !== teacherId &&
+          u.enrollId !== teacherId.toUpperCase()
+      );
+      localStorage.setItem(BIOMETRIC_DEVICE_USERS_KEY, JSON.stringify(filtered));
+    }
+    window.dispatchEvent(
+      new CustomEvent(BIOMETRIC_DEVICE_UPDATED_EVENT, { detail: { removedPersonId: teacherId } })
+    );
+  } catch (err) {
+    console.error('Failed to remove staff from biometric device:', err);
+  }
+}
+
 export function deleteStaffMember(id: string): TeacherMember[] {
+  removeStaffFromBiometricDevice(id);
   const current = getStoredStaffMembers();
   const updated = current.filter((m) => m.id !== id);
   return saveAllStaffMembers(updated);

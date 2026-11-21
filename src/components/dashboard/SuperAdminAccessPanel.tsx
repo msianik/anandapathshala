@@ -41,8 +41,16 @@ import {
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from '../../utils/publicWebsiteTheme';
-import { cloudSavePublicWebsiteTheme, cloudSaveStudents } from '../../lib/schoolCloudSync';
+import {
+  cloudSavePublicWebsiteTheme,
+  cloudSaveStudents,
+  cloudSaveTeachers,
+} from '../../lib/schoolCloudSync';
 import { removeStudentFromBiometricDevice } from '../../utils/biometricAttendanceLogic';
+import {
+  removeStaffFromBiometricDevice,
+  deleteStaffMember,
+} from '../../utils/staffManagementLogic';
 import {
   DirectorAccessPermission,
   PortalAccount,
@@ -101,7 +109,7 @@ export interface SuperAdminAccessPanelProps {
   onNavigateTab?: (tab: string) => void;
 }
 
-type UserCategoryFilter = 'all' | 'director' | 'principal' | 'teacher' | 'staff';
+type UserCategoryFilter = 'all' | 'director' | 'principal';
 
 export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
   isSuperAdmin,
@@ -371,8 +379,15 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
 
   // Filter accounts
   const filteredAccounts = accounts.filter((acc) => {
-    // If on "all", show all administrative & staff accounts (students are managed in Student Directory)
-    if (activeTab === 'all' && acc.role === 'parent') return false;
+    // If on "all", show central leadership & board directors (teachers & staff are managed in Staff Directory)
+    if (activeTab === 'all') {
+      const isTeacherOrStaffOrParent =
+        acc.role === 'parent' ||
+        acc.role === 'teacher' ||
+        acc.role === 'accountant' ||
+        acc.role === 'gate_security';
+      if (isTeacherOrStaffOrParent) return false;
+    }
 
     // Role filter
     if (activeTab === 'director') {
@@ -422,8 +437,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         return false;
       }
     }
-    if (activeTab === 'teacher' && acc.role !== 'teacher') return false;
-    if (activeTab === 'staff' && acc.role !== 'accountant' && acc.role !== 'gate_security') return false;
 
     // Status filter
     if (statusFilter === 'active' && acc.isAccessDisabled) return false;
@@ -452,9 +465,15 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
     return true;
   });
 
-  // Role Counts
+  // Role Counts for Super Admin Central Hub
   const counts = {
-    all: accounts.filter((a) => a.role !== 'parent').length,
+    all: accounts.filter(
+      (a) =>
+        a.role !== 'parent' &&
+        a.role !== 'teacher' &&
+        a.role !== 'accountant' &&
+        a.role !== 'gate_security'
+    ).length,
     director: accounts.filter((a) => {
       // Exclude Principal
       if (
@@ -492,13 +511,14 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
         a.nameBn?.includes('শাফী আব্দুল্লাহ')
       );
     }).length,
-    teacher: accounts.filter((a) => a.role === 'teacher').length,
-    staff: accounts.filter((a) => a.role === 'accountant' || a.role === 'gate_security').length,
+    totalStaff: accounts.filter(
+      (a) => a.role === 'teacher' || a.role === 'accountant' || a.role === 'gate_security'
+    ).length,
     parent: accounts.filter((a) => a.role === 'parent').length,
   };
 
   // Open Add Modal
-  const openAddModal = (defaultRole: PortalAccountRole = 'teacher') => {
+  const openAddModal = (defaultRole: PortalAccountRole = 'director') => {
     setNewRole(defaultRole);
     setNewNameBn('');
     setNewNameEn('');
@@ -637,6 +657,20 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
           }
         } catch {}
         window.dispatchEvent(new CustomEvent('ananda-students-updated'));
+      }
+
+      // If teacher/staff account, also sync-delete from biometric device and staff list
+      if (
+        deletingAccount.role === 'teacher' ||
+        deletingAccount.id.startsWith('acc-tch-') ||
+        deletingAccount.role === 'accountant' ||
+        deletingAccount.role === 'gate_security'
+      ) {
+        const teacherId = deletingAccount.id.replace('acc-tch-', '');
+        removeStaffFromBiometricDevice(teacherId);
+        const updatedStaff = deleteStaffMember(teacherId);
+        cloudSaveTeachers(updatedStaff);
+        window.dispatchEvent(new CustomEvent('ananda-teachers-updated'));
       }
 
       setAccounts(getAllPortalAccounts());
@@ -864,7 +898,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(true);
-              openAddModal('teacher');
+              openAddModal('director');
             }}
             className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
             title="নতুন ইউজার তৈরি করুন"
@@ -967,7 +1001,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>সকল স্টাফ ও পর্ষদ ({counts.all})</span>
+            <span>সকল সেন্ট্রাল পর্ষদ ({counts.all})</span>
           </button>
 
           <button
@@ -996,38 +1030,29 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             <span>প্রিন্সিপাল ({counts.principal})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('teacher')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'teacher'
-                ? 'bg-indigo-700 text-white font-black shadow-xs'
-                : 'hover:bg-white text-slate-700'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>শিক্ষকবৃন্দ ({counts.teacher})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('staff')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'staff'
-                ? 'bg-emerald-700 text-white font-black shadow-xs'
-                : 'hover:bg-white text-slate-700'
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>কর্মচারীবৃন্দ ({counts.staff})</span>
-          </button>
+          {onNavigateTab ? (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('staff')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 shadow-2xs hover:scale-102"
+              title="শিক্ষক ও কর্মী সেন্ট্রাল ডিরেক্টরিতে যান (যেখানে এক জায়গা থেকে সকল শিক্ষক/কর্মীর নিয়োগ, আইডি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+              <span>শিক্ষক ও কর্মী ডিরেক্টরি ({toBengaliNumber(counts.totalStaff || availableTeachers.length)} জন) ↗</span>
+            </button>
+          ) : (
+            <div className="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 flex items-center gap-1.5 shrink-0">
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+              <span>শিক্ষক ও কর্মী ডিরেক্টরি ({toBengaliNumber(counts.totalStaff || availableTeachers.length)} জন)</span>
+            </div>
+          )}
 
           {onNavigateTab ? (
             <button
               type="button"
               onClick={() => onNavigateTab('students')}
               className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs hover:scale-102"
-              title="শিক্ষার্থী সেন্ট্রাল ডিরেক্টরিতে যান (যেখান থেকে এক জায়গা থেকে সকল শিক্ষার্থীর আইডি তৈরি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
+              title="শিক্ষার্থী সেন্ট্রাল ডিরেক্টরিতে যান (যেখানে এক জায়গা থেকে সকল শিক্ষার্থীর আইডি তৈরি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
             >
               <Users className="w-3.5 h-3.5 text-rose-600" />
               <span>শিক্ষার্থী ডিরেক্টরি ({toBengaliNumber(counts.parent || availableStudents.length)} জন) ↗</span>
@@ -1083,7 +1108,7 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             <p className="text-xs text-slate-400">সার্চ ফিল্টার পরিবর্তন করুন অথবা নতুন ইউজার যোগ করুন।</p>
             <button
               type="button"
-              onClick={() => openAddModal(activeTab === 'all' ? 'teacher' : (activeTab as any))}
+              onClick={() => openAddModal(activeTab === 'all' ? 'director' : (activeTab as any))}
               className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black transition cursor-pointer inline-flex items-center gap-1.5 mt-2"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -1362,15 +1387,12 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
               {/* Role Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ইউজারের ভূমিকা (Role) *
+                  কেন্দ্রীয় পরিচালনা ভূমিকা (Role) *
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   {[
-                    { role: 'teacher' as const, label: '👨‍🏫 শিক্ষক' },
-                    { role: 'director' as const, label: '🏛️ পরিচালক' },
+                    { role: 'director' as const, label: '🏛️ পরিচালনা পর্ষদ / পরিচালক' },
                     { role: 'principal' as const, label: '🎓 প্রিন্সিপাল' },
-                    { role: 'accountant' as const, label: '💼 হিসাবরক্ষক' },
-                    { role: 'gate_security' as const, label: '🛡️ সিকিউরিটি' },
                   ].map((r) => (
                     <button
                       key={r.role}
@@ -1384,16 +1406,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                         setNewRoleTitleBn(
                           r.role === 'director'
                             ? 'সম্মানিত পরিচালক, পরিচালনা পর্ষদ'
-                            : r.role === 'teacher'
-                            ? 'সহকারী শিক্ষক'
-                            : r.role === 'accountant'
-                            ? 'হিসাবরক্ষণ কর্মকর্তা'
-                            : r.role === 'gate_security'
-                            ? 'গেট সিকিউরিটি ও কেয়ারটেকার'
                             : 'প্রিন্সিপাল ও একাডেমিক প্রধান'
                         );
                       }}
-                      className={`py-1.5 px-2 rounded-xl text-xs font-bold transition border text-center cursor-pointer ${
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition border text-center cursor-pointer ${
                         newRole === r.role
                           ? 'bg-amber-400 text-slate-950 border-amber-400 font-black shadow-2xs'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1405,21 +1421,39 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 </div>
               </div>
 
-              {/* Central Student Directory Guidance */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-                <span>🎓 <strong>শিক্ষার্থী ভর্তি ও আইডি কার্ড:</strong> নতুন শিক্ষার্থী ভর্তি করা মাত্রই স্বয়ংক্রিয়ভাবে তার স্টুডেন্ট আইডি, পোর্টাল অ্যাকাউন্ট এবং ডিজিটাল বায়োমেট্রিক মেশিনে সিঙ্ক হয়ে যায়।</span>
-                {onNavigateTab && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddModalOpen(false);
-                      onNavigateTab('students');
-                    }}
-                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg shrink-0 cursor-pointer text-center"
-                  >
-                    শিক্ষার্থী ডিরেক্টরিতে যান ↗
-                  </button>
-                )}
+              {/* Guidance for Staff & Student creation */}
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                  <span>👨‍🏫 <strong>শিক্ষক ও কর্মী নিয়োগ:</strong> শিক্ষক বা কর্মচারীর নিয়োগ, আইডি কার্ড তৈরি, পোর্টাল ও বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক &ldquo;শিক্ষক ও স্টাফ ডিরেক্টরি&rdquo; থেকে এক জায়গা থেকে পরিচালিত হয়।</span>
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModalOpen(false);
+                        onNavigateTab('staff');
+                      }}
+                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shrink-0 cursor-pointer text-center"
+                    >
+                      শিক্ষক ডিরেক্টরিতে যান ↗
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                  <span>🎓 <strong>শিক্ষার্থী ভর্তি ও আইডি কার্ড:</strong> নতুন শিক্ষার্থী ভর্তি করা মাত্রই স্বয়ংক্রিয়ভাবে তার স্টুডেন্ট আইডি, পোর্টাল অ্যাকাউন্ট এবং ডিজিটাল বায়োমেট্রিক মেশিনে সিঙ্ক হয়ে যায়।</span>
+                  {onNavigateTab && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModalOpen(false);
+                        onNavigateTab('students');
+                      }}
+                      className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg shrink-0 cursor-pointer text-center"
+                    >
+                      শিক্ষার্থী ডিরেক্টরিতে যান ↗
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* PRE-EXISTING PROFILE LINKER (পূর্বনির্ধারিত প্রোফাইল থেকে লিংক করার ড্রপডাউন) */}

@@ -1113,6 +1113,29 @@ export function deletePortalUserAccountByStudentId(studentId: string): boolean {
   }
 }
 
+export function deletePortalUserAccountByTeacherId(teacherId: string): boolean {
+  try {
+    const allAccounts = getAllPortalAccounts();
+    const target = allAccounts.find(
+      (a) => a.id === `acc-tch-${teacherId}` || a.id === teacherId || a.username === teacherId
+    );
+    if (target) {
+      return deletePortalUserAccount(target.id);
+    }
+    const deleted = getDeletedPortalAccountIds();
+    const toAdd = [teacherId, `acc-tch-${teacherId}`];
+    const nextDeleted = Array.from(new Set([...deleted, ...toAdd]));
+    memoryDeletedAccountIds = nextDeleted;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DELETED_PORTAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(nextDeleted));
+      removePortalAccountByEntityId(`acc-tch-${teacherId}`);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function togglePortalUserAccess(accountId: string, disableAccess: boolean): boolean {
   try {
     const allAccounts = getAllPortalAccounts();
