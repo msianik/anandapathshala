@@ -14,7 +14,6 @@ import {
   INITIAL_SCHOOL_NOTICES,
 } from '../data/mockData';
 import {
-  Sparkles,
   CheckCircle2,
   Phone,
   LogIn,
@@ -129,7 +128,6 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   const [selectedClass] = useState<SchoolClass>('Playgroup');
   const [activeShift, setActiveShift] = useState<'morning' | 'day'>('morning');
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
-  const [auraEnabled, setAuraEnabled] = useState<boolean>(true);
 
   const handleOpenSpot = (spotId: InteractiveModalType) => {
     playChimeSound();
@@ -137,64 +135,83 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   };
 
   /**
-   * EXACT ORGANIC CONTOURS TRACED ON 1920x1080 COORDINATES:
-   * No square boxes! No red dots!
-   * Seamless silhouette paths matching each visual element.
+   * INTERACTIVE POP-OUT ELEMENT CONFIGURATIONS:
+   * - ZERO lines or boxes shown in normal state.
+   * - When hovered, the actual drawn object scales up ("একটু বড় হয়ে ভেসে উঠবে")
+   *   and gently shimmers ("ব্লিংক করবে").
    */
-  const interactiveElements = [
+  const elements = [
     {
       id: 'calendar',
-      nameBn: 'একাডেমিক ক্যালেন্ডার',
+      nameBn: 'ক্যালেন্ডার',
       tooltip: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা — ক্লিক করুন',
-      d: 'M 175,225 L 295,260 L 295,570 L 75,570 L 75,260 Z',
-      tooltipPos: { x: 185, y: 210 },
-      glowStroke: 'rgba(251, 191, 36, 0.95)',
-      glowFill: 'rgba(251, 191, 36, 0.12)',
+      points: '175,225 295,260 295,570 75,570 75,260',
+      clipId: 'clip-calendar',
+      origin: '185px 398px',
+      scale: 1.07,
+      tooltipPos: { x: 185, y: 205 },
     },
     {
       id: 'blackboard',
-      nameBn: 'ক্লাসরুম ব্ল্যাকবোর্ড',
+      nameBn: 'ব্ল্যাকবোর্ড',
       tooltip: '📋 ক্লাসরুম চক-বোর্ড — আজকের পাঠ ও নোটিশ — ক্লিক করুন',
-      d: 'M 440,390 L 590,425 L 605,730 L 580,920 L 540,920 L 515,730 L 415,735 L 390,945 L 355,945 L 305,735 L 295,435 Z',
-      tooltipPos: { x: 450, y: 370 },
-      glowStroke: 'rgba(52, 211, 153, 0.95)',
-      glowFill: 'rgba(16, 185, 129, 0.12)',
+      points: '440,390 590,425 605,730 580,920 540,920 515,730 415,735 390,945 355,945 305,735 295,435',
+      clipId: 'clip-blackboard',
+      origin: '450px 660px',
+      scale: 1.06,
+      tooltipPos: { x: 450, y: 360 },
     },
     {
       id: 'mastermashai',
       nameBn: 'মাস্টার মশাই',
       tooltip: '👨‍🏫 মাস্টার মশাই — অধ্যক্ষ ও পরিচালনা পর্ষদ — ক্লিক করুন',
-      d: 'M 660,260 C 695,260 720,290 715,340 C 735,370 755,420 760,460 L 765,580 L 740,660 L 740,735 L 725,870 L 675,875 L 675,760 L 640,760 L 640,880 L 590,880 L 580,740 L 565,650 L 530,470 L 510,435 L 565,425 C 585,380 610,350 620,320 C 625,275 645,260 660,260 Z',
-      tooltipPos: { x: 660, y: 240 },
-      glowStroke: 'rgba(251, 191, 36, 0.95)',
-      glowFill: 'rgba(245, 158, 11, 0.15)',
+      points: '660,260 720,290 760,460 765,580 740,660 740,735 725,870 675,875 675,760 640,760 640,880 590,880 580,740 565,650 510,435 565,425 610,350',
+      clipId: 'clip-mastermashai',
+      origin: '640px 570px',
+      scale: 1.06,
+      tooltipPos: { x: 640, y: 235 },
     },
     {
       id: 'students',
       nameBn: 'শিক্ষার্থীবৃন্দ',
-      tooltip: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও শিফট তথ্য — ক্লিক করুন',
-      d: 'M 870,610 C 1020,590 1340,600 1590,670 C 1660,730 1690,820 1630,900 C 1520,980 1200,1010 1020,1010 C 800,1010 630,980 615,890 C 610,810 680,730 740,720 C 790,660 830,620 870,610 Z',
-      tooltipPos: { x: 1100, y: 580 },
-      glowStroke: 'rgba(244, 63, 94, 0.9)',
-      glowFill: 'rgba(244, 63, 94, 0.12)',
+      tooltip: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও ৩ ঘণ্টার শিফট — ক্লিক করুন',
+      points: '870,610 1340,600 1590,670 1660,730 1690,820 1630,900 1520,980 1020,1010 630,980 615,890 680,730 740,720',
+      clipId: 'clip-students',
+      origin: '1150px 805px',
+      scale: 1.05,
+      tooltipPos: { x: 1150, y: 575 },
     },
     {
       id: 'cottage',
       nameBn: 'শিক্ষক কুটির',
       tooltip: '🏡 শিক্ষক কুটির — শিক্ষকমণ্ডলী ও স্টাফ — ক্লিক করুন',
-      d: 'M 1120,340 L 1420,150 L 1790,265 L 1790,530 L 1660,570 L 1140,580 L 1120,480 Z',
-      tooltipPos: { x: 1450, y: 130 },
-      glowStroke: 'rgba(45, 212, 191, 0.95)',
-      glowFill: 'rgba(20, 184, 166, 0.14)',
+      points: '1120,340 1420,150 1790,265 1790,530 1660,570 1140,580 1120,480',
+      clipId: 'clip-cottage',
+      origin: '1455px 365px',
+      scale: 1.05,
+      tooltipPos: { x: 1455, y: 130 },
     },
     {
-      id: 'cultural',
+      id: 'cultural-left',
+      modalId: 'cultural',
       nameBn: 'ফুলের বাগান',
       tooltip: '🌸 ফুলের বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
-      d: 'M 0,720 C 80,720 180,740 260,820 C 340,890 520,940 590,1080 L 0,1080 Z M 1630,1080 C 1670,920 1780,820 1920,770 L 1920,1080 Z',
-      tooltipPos: { x: 260, y: 700 },
-      glowStroke: 'rgba(244, 114, 182, 0.95)',
-      glowFill: 'rgba(236, 72, 153, 0.14)',
+      points: '0,720 180,740 260,820 340,890 520,940 590,1080 0,1080',
+      clipId: 'clip-cultural-left',
+      origin: '260px 920px',
+      scale: 1.06,
+      tooltipPos: { x: 260, y: 690 },
+    },
+    {
+      id: 'cultural-right',
+      modalId: 'cultural',
+      nameBn: 'গোলাপ বাগান',
+      tooltip: '🌸 গোলাপ বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
+      points: '1630,1080 1670,920 1780,820 1920,770 1920,1080',
+      clipId: 'clip-cultural-right',
+      origin: '1780px 920px',
+      scale: 1.06,
+      tooltipPos: { x: 1780, y: 740 },
     },
   ];
 
@@ -203,20 +220,18 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       aria-label="আনন্দ পাঠশালা ইন্টারঅ্যাক্টিভ ক্যানভাস"
       className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950"
     >
-      {/* Dynamic CSS for Breathing Silhouette Aura */}
+      {/* CSS For Smooth Pop-Out Grow & Shimmer Blink on Hover (No Lines!) */}
       <style>{`
-        @keyframes organicAuraPulse {
+        @keyframes hoverPopBlink {
           0%, 100% {
-            opacity: 0.35;
-            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4)) drop-shadow(0 0 16px rgba(251, 191, 36, 0.2));
+            filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55)) brightness(1.1);
           }
           50% {
-            opacity: 0.85;
-            filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.85)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.6));
+            filter: drop-shadow(0 18px 36px rgba(251, 191, 36, 0.45)) drop-shadow(0 0 25px rgba(255, 255, 255, 0.65)) brightness(1.2);
           }
         }
-        .organic-aura-breathing {
-          animation: organicAuraPulse 3s ease-in-out infinite;
+        .element-hovered-pop {
+          animation: hoverPopBlink 1.5s ease-in-out infinite;
         }
       `}</style>
 
@@ -244,7 +259,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                 </span>
               </div>
               <p className="text-[11px] text-amber-300/80 font-medium hidden sm:block">
-                ছবিটির ক্যালেন্ডার, ব্ল্যাকবোর্ড, মাস্টার মশাই, কুটির বা ফুলে সরাসরি ট্যাপ করুন
+                ছবিটির ক্যালেন্ডার, ব্ল্যাকবোর্ড, মাস্টার মশাই, শিক্ষার্থী, কুটির বা ফুলে মাউস নিয়ে ট্যাপ করুন
               </p>
             </div>
           </div>
@@ -278,65 +293,67 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       <section className="relative w-full flex-1 flex items-center justify-center p-0 sm:p-2 lg:p-4 bg-slate-950 overflow-hidden">
         {/* Aspect Ratio 16:9 Container - Ensures pixel coordinates NEVER shift! */}
         <div className="relative w-full max-w-[1536px] aspect-16/9 max-h-[82vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border-2 border-slate-800 bg-slate-900">
-          {/* Main Landscape Illustration Image */}
-          <img
-            src="/assets/theme2/anandakanon_diorama.jpg"
-            alt="আনন্দ পাঠশালার চিত্রায়িত উন্মুক্ত বাগান ও পাঠদান দৃশ্য"
-            className="w-full h-full object-cover object-center select-none pointer-events-none"
-            draggable={false}
-          />
-
-          {/* Soft ambient vignette overlay */}
-          <div className="absolute inset-0 bg-radial from-transparent via-transparent to-slate-950/30 pointer-events-none" />
-
-          {/* ======================================================================= */}
-          {/* SVG SILHOUETTE AURAS & INTERACTIVE HOTSPOTS (NO BOXES, NO HARD DOTS!)   */}
-          {/* ======================================================================= */}
+          {/* SVG Canvas With Layered Pop-Out Clipped Elements (NO LINES, NO BOXES, NO DOTS!) */}
           <svg
             viewBox="0 0 1920 1080"
-            className="absolute inset-0 w-full h-full select-none"
+            className="w-full h-full select-none"
             style={{ pointerEvents: 'auto' }}
           >
             <defs>
-              {/* Luminous Glow Filter for Contours */}
-              <filter id="auraGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur1" />
-                <feGaussianBlur in="SourceAlpha" stdDeviation="22" result="blur2" />
-                <feMerge>
-                  <feMergeNode in="blur2" />
-                  <feMergeNode in="blur1" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
+              {/* Dynamic Clip Paths for each visual element */}
+              {elements.map((el) => (
+                <clipPath key={el.clipId} id={el.clipId}>
+                  <polygon points={el.points} />
+                </clipPath>
+              ))}
             </defs>
 
-            {interactiveElements.map((el) => {
+            {/* 1. Base Static Painting (Completely clean, natural, untouched) */}
+            <image
+              href="/assets/theme2/anandakanon_diorama.jpg"
+              width="1920"
+              height="1080"
+              preserveAspectRatio="xMidYMid slice"
+            />
+
+            {/* 2. Interactive Clipped Elements: On Hover they smoothly Grow/Pop-out and Shimmer */}
+            {elements.map((el) => {
               const isHovered = hoveredHotspot === el.id;
+              const targetModal = (el.modalId || el.id) as InteractiveModalType;
               return (
                 <g key={el.id} className="cursor-pointer">
-                  {/* Organic Silhouette Contour Path with Aura */}
-                  <path
-                    d={el.d}
-                    fill={isHovered ? el.glowFill : auraEnabled ? 'rgba(251, 191, 36, 0.04)' : 'transparent'}
-                    stroke={isHovered ? el.glowStroke : auraEnabled ? el.glowStroke : 'transparent'}
-                    strokeWidth={isHovered ? 5 : 2.5}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    filter="url(#auraGlow)"
-                    className={`transition-all duration-300 ${
-                      auraEnabled && !isHovered ? 'organic-aura-breathing' : ''
+                  {/* The Clipped Portion of the image that pops out and scales on hover */}
+                  <g
+                    clipPath={`url(#${el.clipId})`}
+                    className={`transition-transform duration-300 ease-out ${
+                      isHovered ? 'element-hovered-pop' : ''
                     }`}
                     style={{
-                      cursor: 'pointer',
-                      transformOrigin: `${el.tooltipPos.x}px ${el.tooltipPos.y}px`,
-                      transform: isHovered ? 'scale(1.012)' : 'scale(1)',
+                      transformOrigin: el.origin,
+                      transform: isHovered ? `scale(${el.scale})` : 'scale(1)',
                     }}
-                    onClick={() => handleOpenSpot(el.id as InteractiveModalType)}
+                  >
+                    <image
+                      href="/assets/theme2/anandakanon_diorama.jpg"
+                      width="1920"
+                      height="1080"
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  </g>
+
+                  {/* Invisible Hit Area (NO stroke, NO lines, NO dots — just pure mouse detection!) */}
+                  <polygon
+                    points={el.points}
+                    fill="transparent"
+                    stroke="transparent"
+                    strokeWidth="0"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleOpenSpot(targetModal)}
                     onMouseEnter={() => setHoveredHotspot(el.id)}
                     onMouseLeave={() => setHoveredHotspot(null)}
                   />
 
-                  {/* Sleek Tooltip appearing only on hover right above the figure */}
+                  {/* Sleek Tooltip appearing only when the mouse hovers over the element */}
                   {isHovered && (
                     <g
                       transform={`translate(${el.tooltipPos.x}, ${el.tooltipPos.y})`}
@@ -344,9 +361,9 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                     >
                       {/* Tooltip Background Pill */}
                       <rect
-                        x="-200"
+                        x="-205"
                         y="-45"
-                        width="400"
+                        width="410"
                         height="40"
                         rx="16"
                         fill="#020617"
@@ -436,20 +453,10 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
             </button>
           </div>
 
-          {/* Right: Aura Glow Toggle & Phone */}
+          {/* Right: Phone & Location */}
           <div className="flex items-center gap-3 text-xs text-slate-400">
-            <button
-              type="button"
-              onClick={() => setAuraEnabled(!auraEnabled)}
-              className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 text-[11px] font-bold hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer"
-              title="ছবির উপাদানগুলোর উজ্জ্বল আভা অন/অফ করুন"
-            >
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>উজ্জ্বল আভা: {auraEnabled ? 'অন' : 'অফ'}</span>
-            </button>
-
+            <span className="hidden sm:inline">কুষ্টিয়া সদর</span>
             <span className="hidden sm:inline">•</span>
-
             <a
               href={`tel:${schoolProfile.phone || '01712-000000'}`}
               className="text-amber-300 hover:underline font-semibold flex items-center gap-1"
