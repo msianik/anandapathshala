@@ -1029,64 +1029,10 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
             <UserCheck className="w-3.5 h-3.5" />
             <span>প্রিন্সিপাল ({counts.principal})</span>
           </button>
-
-          {onNavigateTab ? (
-            <button
-              type="button"
-              onClick={() => onNavigateTab('staff')}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 shadow-2xs hover:scale-102"
-              title="শিক্ষক ও কর্মী সেন্ট্রাল ডিরেক্টরিতে যান (যেখানে এক জায়গা থেকে সকল শিক্ষক/কর্মীর নিয়োগ, আইডি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-              <span>শিক্ষক ও কর্মী ডিরেক্টরি ({toBengaliNumber(counts.totalStaff || availableTeachers.length)} জন) ↗</span>
-            </button>
-          ) : (
-            <div className="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 flex items-center gap-1.5 shrink-0">
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-              <span>শিক্ষক ও কর্মী ডিরেক্টরি ({toBengaliNumber(counts.totalStaff || availableTeachers.length)} জন)</span>
-            </div>
-          )}
-
-          {onNavigateTab ? (
-            <button
-              type="button"
-              onClick={() => onNavigateTab('students')}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs hover:scale-102"
-              title="শিক্ষার্থী সেন্ট্রাল ডিরেক্টরিতে যান (যেখানে এক জায়গা থেকে সকল শিক্ষার্থীর আইডি তৈরি, পোর্টাল ও বায়োমেট্রিক সিঙ্ক এবং ডিলিট করা হয়)"
-            >
-              <Users className="w-3.5 h-3.5 text-rose-600" />
-              <span>শিক্ষার্থী ডিরেক্টরি ({toBengaliNumber(counts.parent || availableStudents.length)} জন) ↗</span>
-            </button>
-          ) : (
-            <div className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 flex items-center gap-1.5 shrink-0">
-              <Users className="w-3.5 h-3.5 text-rose-600" />
-              <span>শিক্ষার্থী ডিরেক্টরি ({toBengaliNumber(counts.parent || availableStudents.length)} জন)</span>
-            </div>
-          )}
         </div>
 
-        {/* Live Search & Status Filters */}
+        {/* Status Filters */}
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="নাম, ইউজার আইডি, মোবাইল..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 focus:bg-white"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
