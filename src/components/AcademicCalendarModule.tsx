@@ -509,12 +509,6 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
                   : 'আনন্দ পাঠশালা একাডেমি ইভেন্ট, পরীক্ষা ও ছুটির ক্যালেন্ডার'}
               </span>
             </h2>
-
-            <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-              {isParent
-                ? `${childClassBn} শ্রেণির শিখন মূল্যায়ন, পরীক্ষা, অভিভাবক সমাবেশ (PTM) এবং প্রাতিষ্ঠানিক ছুটির রিয়েল-টাইম তথ্য।`
-                : 'শিখন মূল্যায়ন, সরকারি ও প্রাতিষ্ঠানিক ছুটি, অভিভাবক সমাবেশ (PTM) এবং ক্যাম্পাসের সাংস্কৃতিক ও বিজ্ঞান মেলার রিয়েল-টাইম তথ্য।'}
-            </p>
           </div>
 
           {/* Action buttons */}

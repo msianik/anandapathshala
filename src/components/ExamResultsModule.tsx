@@ -700,9 +700,6 @@ export const ExamResultsModule: React.FC<ExamResultsModuleProps> = ({
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               পরীক্ষার ফলাফল ও মেধা তালিকা
             </h2>
-            <p className="text-emerald-100 text-xs sm:text-sm max-w-xl">
-              বিষয়ভিত্তিক নম্বর এন্ট্রি, স্বয়ংক্রিয় জিপিএ/গ্রেড হিসাব ও এক ক্লিকে শিশুদের রঙিন প্রগ্রেস রিপোর্ট কার্ড প্রিন্ট ও সংরক্ষণ।
-            </p>
           </div>
 
           {/* Term Switcher & Controls */}
@@ -747,17 +744,6 @@ export const ExamResultsModule: React.FC<ExamResultsModuleProps> = ({
                 )}
               </button>
             )}
-
-            {/* CSV Export */}
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold rounded-2xl text-xs sm:text-sm border border-white/20 transition-all backdrop-blur-md"
-              title="এক্সেল সিএসভি ডাউনলোড"
-            >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">CSV এক্সপোর্ট</span>
-            </button>
           </div>
         </div>
       </div>
