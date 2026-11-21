@@ -3,9 +3,10 @@
  * Allows Super Admin to toggle between:
  * - Theme 1: Classic Kindergarten Portal (Current original layout)
  * - Theme 2: Modern Smart Preschool (New playful & engaging split-hero layout)
+ * - Theme 3: Anando Kanon Open-Air School (Interactive village campus & diorama)
  */
 
-export type PublicWebsiteThemeId = 'theme1' | 'theme2';
+export type PublicWebsiteThemeId = 'theme1' | 'theme2' | 'theme3';
 
 export interface PublicWebsiteThemeInfo {
   id: PublicWebsiteThemeId;
@@ -44,6 +45,17 @@ export const PUBLIC_WEBSITE_THEMES: PublicWebsiteThemeInfo[] = [
     primaryAccent: '#0284c7',
     bgGradient: 'from-sky-600 via-teal-600 to-emerald-600',
   },
+  {
+    id: 'theme3',
+    nameBn: 'থিম ৩: আনন্দ কানন উন্মুক্ত পাঠশালা',
+    nameEn: 'Theme 3: Anando Kanon Open-Air School',
+    taglineBn: 'ঐতিহ্যবাহী গ্রাম্য তোরণ, মাস্টার মশাই ও উন্মুক্ত ক্যাম্পাস ডায়োরামা',
+    badgeBn: 'ইন্টারঅ্যাক্টিভ ডায়োরামা',
+    descriptionBn:
+      'গ্রাম্য বাঁশের ফটক, ব্ল্যাকবোর্ডে পাঠদানরত মাস্টার মশাই, গাছের ডালে ঝুলন্ত ক্যালেন্ডার ও মাদুরে বসা শিক্ষার্থীদের ইন্টারঅ্যাক্টিভ উন্মুক্ত ক্যাম্পাস।',
+    primaryAccent: '#f59e0b',
+    bgGradient: 'from-amber-600 via-emerald-700 to-teal-800',
+  },
 ];
 
 /**
@@ -55,7 +67,7 @@ export function getStoredPublicWebsiteTheme(): PublicWebsiteThemeId {
   }
   try {
     const stored = localStorage.getItem(PUBLIC_WEBSITE_THEME_STORAGE_KEY);
-    if (stored === 'theme1' || stored === 'theme2') {
+    if (stored === 'theme1' || stored === 'theme2' || stored === 'theme3') {
       return stored;
     }
   } catch {}

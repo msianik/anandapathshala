@@ -826,6 +826,18 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
                 >
                   থিম ২
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleTheme('theme3')}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    publicTheme === 'theme3'
+                      ? 'bg-emerald-400 text-slate-950 font-black shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="থিম ৩: আনন্দ কানন উন্মুক্ত পাঠশালা"
+                >
+                  থিম ৩
+                </button>
               </div>
             </div>
           </div>

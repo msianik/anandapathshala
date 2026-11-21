@@ -9,6 +9,7 @@ import {
   Check,
   LayoutDashboard,
   Sparkles,
+  Trees,
   ChevronUp,
   ChevronDown,
   ShieldAlert,
@@ -35,7 +36,7 @@ export const SuperAdminThemeToolbar: React.FC<SuperAdminThemeToolbarProps> = ({
   return (
     <aside
       aria-label="সুপার অ্যাডমিন ওয়েবসাইট থিম বার"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-xl transition-all duration-300"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl transition-all duration-300"
     >
       <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-amber-400/80 rounded-2xl shadow-2xl p-2.5 sm:p-3 text-white flex flex-col gap-2">
         {/* Top Header Row */}
@@ -78,7 +79,7 @@ export const SuperAdminThemeToolbar: React.FC<SuperAdminThemeToolbarProps> = ({
 
         {/* Theme Buttons Row (Visible if not collapsed) */}
         {!isCollapsed && (
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-800/80">
             {PUBLIC_WEBSITE_THEMES.map((theme) => {
               const isActive = currentTheme === theme.id;
               return (
@@ -102,8 +103,10 @@ export const SuperAdminThemeToolbar: React.FC<SuperAdminThemeToolbarProps> = ({
                     >
                       {theme.id === 'theme1' ? (
                         <Palette className="w-3.5 h-3.5" />
-                      ) : (
+                      ) : theme.id === 'theme2' ? (
                         <Sparkles className="w-3.5 h-3.5" />
+                      ) : (
+                        <Trees className="w-3.5 h-3.5" />
                       )}
                     </div>
                     <div className="min-w-0 leading-tight">

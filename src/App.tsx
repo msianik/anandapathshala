@@ -65,6 +65,7 @@ import {
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
 import { PublicWebsiteTheme2 } from './components/PublicWebsiteTheme2';
+import { PublicWebsiteTheme3 } from './components/PublicWebsiteTheme3';
 import { SuperAdminThemeToolbar } from './components/SuperAdminThemeToolbar';
 import {
   PublicWebsiteThemeId,
@@ -1323,7 +1324,30 @@ export default function App() {
                 />
               )}
 
-            {publicTheme === 'theme2' ? (
+            {publicTheme === 'theme3' ? (
+              <PublicWebsiteTheme3
+                onEnterPortal={(tab) => {
+                  if (!loggedInAccount) {
+                    setIsLoginModalOpen(true);
+                  } else {
+                    setCurrentRole(loggedInAccount.role);
+                    setCurrentTab(tab || 'overview');
+                  }
+                }}
+                onOpenLoginModal={() => setIsLoginModalOpen(true)}
+                onOpenMobileModal={() => setIsMobileModalOpen(true)}
+                isMobilePreview={isMobilePreview}
+                onAddAdmission={handleAddAdmission}
+                logoUrl={logoUrl}
+                fbGallery={fbGallery}
+                isLoggedIn={Boolean(loggedInAccount)}
+                onAddMultipleGalleryPhotos={handleAddMultipleGalleryPhotos}
+                onDeleteGalleryPhoto={handleDeleteGalleryPhoto}
+                schoolProfile={schoolProfile}
+                leadershipProfiles={leadershipProfiles}
+                notices={notices}
+              />
+            ) : publicTheme === 'theme2' ? (
               <PublicWebsiteTheme2
                 onEnterPortal={(tab) => {
                   if (!loggedInAccount) {

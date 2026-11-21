@@ -73,7 +73,9 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
     setToastMessage(
       themeId === 'theme1'
         ? '✓ থিম ১ (ক্লাসিক ক্যাম্পাস) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
-        : '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+        : themeId === 'theme2'
+        ? '✓ থিম ২ (মডার্ন স্মার্ট প্রি-স্কুল) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
+        : '✓ থিম ৩ (আনন্দ কানন উন্মুক্ত পাঠশালা) সফলভাবে পাবলিক সাইটে কার্যকর হয়েছে!'
     );
     setTimeout(() => setToastMessage(null), 3500);
   };
@@ -198,12 +200,19 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
 
           <div className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-bold text-amber-300 flex items-center gap-1.5 self-start sm:self-auto">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>সক্রিয়: {publicTheme === 'theme1' ? 'থিম ১ (ক্লাসিক)' : 'থিম ২ (মডার্ন স্মার্ট)'}</span>
+            <span>
+              সক্রিয়:{' '}
+              {publicTheme === 'theme1'
+                ? 'থিম ১ (ক্লাসিক)'
+                : publicTheme === 'theme2'
+                ? 'থিম ২ (মডার্ন স্মার্ট)'
+                : 'থিম ৩ (উন্মুক্ত ক্যাম্পাস)'}
+            </span>
           </div>
         </div>
 
-        {/* 2 Theme Cards Side-by-Side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 3 Theme Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PUBLIC_WEBSITE_THEMES.map((t) => {
             const isSelected = publicTheme === t.id;
             return (
@@ -262,7 +271,7 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
                           ✓ বিস্তারিত স্ট্যাটস বার
                         </span>
                       </>
-                    ) : (
+                    ) : t.id === 'theme2' ? (
                       <>
                         <span className="px-2 py-0.5 rounded bg-sky-950/80 border border-sky-800/80 text-sky-300">
                           ✓ স্প্লিট-হিরো ও ভাসমান ব্যাজ
@@ -271,7 +280,19 @@ export const SchoolThemeSettingsSection: React.FC<SchoolThemeSettingsSectionProp
                           ✓ ৩ ঘণ্টার ইন্টারঅ্যাক্টিভ শিফট
                         </span>
                         <span className="px-2 py-0.5 rounded bg-rose-950/80 border border-rose-800/80 text-rose-300">
-                          ✓ মঙ্গলবারের কালচারাল ডে হাইলাইটস
+                          ✓ মঙ্গলবারের কালচারাল ডে
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800/80 text-amber-300">
+                          ✓ ঐতিহ্যবাহী তোরণ ও কুটির
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/80 text-emerald-300">
+                          ✓ মাস্টার মশাই ও চকবোর্ড
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-teal-950/80 border border-teal-800/80 text-teal-300">
+                          ✓ ডালে ঝুলন্ত ক্যালেন্ডার ডায়োরামা
                         </span>
                       </>
                     )}

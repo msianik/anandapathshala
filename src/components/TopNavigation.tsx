@@ -786,10 +786,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                 <span>🌐 পাবলিক ওয়েবসাইট থিম:</span>
                 <span className="text-[11px] text-amber-600 font-extrabold">
-                  {publicTheme === 'theme1' ? 'থিম ১ (ক্লাসিক)' : 'থিম ২ (মডার্ন)'}
+                  {publicTheme === 'theme1'
+                    ? 'থিম ১ (ক্লাসিক)'
+                    : publicTheme === 'theme2'
+                    ? 'থিম ২ (মডার্ন)'
+                    : 'থিম ৩ (উন্মুক্ত)'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -826,6 +830,25 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                     <p className="text-[10px] text-slate-500">স্মার্ট প্রি-স্কুল</p>
                   </div>
                   {publicTheme === 'theme2' && <Check className="w-4 h-4 text-sky-600 stroke-[3]" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPublicTheme('theme3');
+                    setStoredPublicWebsiteTheme('theme3');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                    publicTheme === 'theme3'
+                      ? 'border-emerald-500 bg-emerald-50 text-slate-950 shadow-xs ring-1 ring-emerald-400'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                  }`}
+                >
+                  <div>
+                    <p className="font-black">থিম ৩: কানন</p>
+                    <p className="text-[10px] text-slate-500">উন্মুক্ত ডায়োরামা</p>
+                  </div>
+                  {publicTheme === 'theme3' && <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />}
                 </button>
               </div>
             </div>

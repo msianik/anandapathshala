@@ -66,15 +66,17 @@ describe('Public Website Theme Manager', () => {
     expect(theme).toBe('theme1');
   });
 
-  test('PUBLIC_WEBSITE_THEMES defines exactly theme1 and theme2', () => {
-    expect(PUBLIC_WEBSITE_THEMES.length).toBe(2);
+  test('PUBLIC_WEBSITE_THEMES defines theme1, theme2, and theme3', () => {
+    expect(PUBLIC_WEBSITE_THEMES.length).toBe(3);
     expect(PUBLIC_WEBSITE_THEMES[0].id).toBe('theme1');
     expect(PUBLIC_WEBSITE_THEMES[1].id).toBe('theme2');
+    expect(PUBLIC_WEBSITE_THEMES[2].id).toBe('theme3');
     expect(PUBLIC_WEBSITE_THEMES[0].nameBn).toContain('থিম ১');
     expect(PUBLIC_WEBSITE_THEMES[1].nameBn).toContain('থিম ২');
+    expect(PUBLIC_WEBSITE_THEMES[2].nameBn).toContain('থিম ৩');
   });
 
-  test('can set and retrieve theme2 from storage and dispatch event', () => {
+  test('can set and retrieve theme2 and theme3 from storage and dispatch event', () => {
     let capturedEventDetail: any = null;
     const listener = (e: any) => {
       capturedEventDetail = e.detail;
@@ -86,6 +88,11 @@ describe('Public Website Theme Manager', () => {
     expect(getStoredPublicWebsiteTheme()).toBe('theme2');
     expect(capturedEventDetail).not.toBeNull();
     expect(capturedEventDetail.theme).toBe('theme2');
+
+    // Switch to theme3
+    setStoredPublicWebsiteTheme('theme3');
+    expect(getStoredPublicWebsiteTheme()).toBe('theme3');
+    expect(capturedEventDetail.theme).toBe('theme3');
 
     // Switch back to theme1
     setStoredPublicWebsiteTheme('theme1');
