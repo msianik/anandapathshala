@@ -183,12 +183,12 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
     },
     {
       id: 'cottage',
-      nameBn: '🏡 শিক্ষক কুটির (স্নেহময়ী শিক্ষক ও শিক্ষিকা)',
+      nameBn: '🏡 আনন্দ পাঠশালা কুটির ও শিক্ষকমণ্ডলী',
       modalId: 'cottage' as InteractiveModalType,
-      leftPercent: 68.0,
-      topPercent: 28.0,
-      widthPercent: 25.0,
-      heightPercent: 36.0,
+      leftPercent: 65.0,
+      topPercent: 20.0,
+      widthPercent: 30.0,
+      heightPercent: 44.0,
     },
     {
       id: 'cultural',
