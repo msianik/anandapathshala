@@ -968,16 +968,6 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
 
           <button
             type="button"
-            onClick={handleExportCsv}
-            className="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold rounded-xl text-xs border border-white/20 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-            title="বর্তমান শ্রেণির রুটিন ও পাঠ পরিকল্পনা CSV ফরম্যাটে ডাউনলোড করুন"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
-            <span>CSV রুটিন ও লেসন প্ল্যান</span>
-          </button>
-
-          <button
-            type="button"
             onClick={handleManualCloudSync}
             disabled={isCloudSyncing}
             className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border ${
@@ -1000,18 +990,6 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             <Printer className="w-4 h-4 text-amber-300" />
             <span>প্রিন্ট</span>
           </button>
-
-          {canEditLessonPlan && (
-            <button
-              type="button"
-              onClick={handleResetRoutines}
-              className="px-3 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold rounded-xl text-xs border border-rose-500/30 transition flex items-center gap-1 cursor-pointer"
-              title="ডিফল্ট রুটিনে রিসেট"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>রিসেট</span>
-            </button>
-          )}
         </div>
       </div>
 
