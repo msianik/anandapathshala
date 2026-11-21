@@ -1229,12 +1229,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
           </div>
         </div>
 
-        <div className="bg-white/80 p-2 rounded-xl border border-amber-200/60 text-[11px] text-slate-700 flex items-center gap-2">
-          <span className="text-amber-600 shrink-0">ℹ️</span>
-          <span>
-            <strong>আনন্দ পাঠশালা নীতি:</strong> প্লে-গ্রুপসহ প্রতিটি শ্রেণিতে অনেক শিক্ষার্থী থাকায় দুই শিফটেই (মর্নিং ও ডে) সমান্তরাল শ্রেণি ও শাখা পরিচালিত হয়।
-          </span>
-        </div>
+
       </div>
 
       {/* Class Selector Cards */}
