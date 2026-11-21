@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Edit2,
 } from 'lucide-react';
 import { CulturalGalleryItem, SchoolClass, UserRole } from '../types/school';
 import {
@@ -77,9 +78,10 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [lightboxItem, setLightboxItem] = useState<CulturalGalleryItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // New photo form
+  // Photo form
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] =
     useState<CulturalGalleryItem['albumCategory']>('tuesday_cultural');
@@ -90,6 +92,33 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
   const [formCaption, setFormCaption] = useState('');
   const [formDate, setFormDate] = useState('নভেম্বর ২০২৬');
   const [formPhotographer, setFormPhotographer] = useState('ফাতেমা আক্তার');
+
+  const handleOpenAdd = () => {
+    setEditingItemId(null);
+    setFormTitle('');
+    setFormCategory('tuesday_cultural');
+    setFormClass('Play');
+    setFormImageUrl(
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80'
+    );
+    setFormCaption('');
+    setFormDate('নভেম্বর ২০২৬');
+    setFormPhotographer('ফাতেমা আক্তার');
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: CulturalGalleryItem, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingItemId(item.id);
+    setFormTitle(item.titleBn);
+    setFormCategory(item.albumCategory);
+    setFormClass(item.className || 'all');
+    setFormImageUrl(item.imageUrl);
+    setFormCaption(item.captionBn);
+    setFormDate(item.dateBn);
+    setFormPhotographer(item.photographerNameBn || '');
+    setIsAddModalOpen(true);
+  };
 
   useEffect(() => {
     const handleUpdate = () => setItems(getGalleryItems());
@@ -153,22 +182,48 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
     }
 
     const catMeta = CATEGORY_TABS.find((c) => c.key === formCategory);
-    const newItem: CulturalGalleryItem = {
-      id: `gal-${Date.now()}`,
-      titleBn: formTitle.trim(),
-      albumCategory: formCategory,
-      categoryLabelBn: catMeta ? catMeta.labelBn : 'কালচারাল ডে',
-      dateBn: formDate.trim() || 'নভেম্বর ২০২৬',
-      imageUrl: formImageUrl.trim(),
-      captionBn: formCaption.trim(),
-      className: formClass,
-      likesCount: 1,
-      featured: true,
-      photographerNameBn: formPhotographer.trim() || 'আনন্দ পাঠশালা শিক্ষক',
-    };
 
-    saveGalleryItem(newItem);
+    if (editingItemId) {
+      const existing = items.find((i) => i.id === editingItemId);
+      const updatedItem: CulturalGalleryItem = {
+        ...(existing || {}),
+        id: editingItemId,
+        titleBn: formTitle.trim(),
+        albumCategory: formCategory,
+        categoryLabelBn: catMeta ? catMeta.labelBn : 'কালচারাল ডে',
+        dateBn: formDate.trim() || 'নভেম্বর ২০২৬',
+        imageUrl: formImageUrl.trim(),
+        captionBn: formCaption.trim(),
+        className: formClass,
+        photographerNameBn: formPhotographer.trim() || 'আনন্দ পাঠশালা শিক্ষক',
+        likesCount: existing?.likesCount || 1,
+        featured: existing?.featured ?? true,
+      };
+
+      saveGalleryItem(updatedItem);
+      if (lightboxItem && lightboxItem.id === editingItemId) {
+        setLightboxItem(updatedItem);
+      }
+    } else {
+      const newItem: CulturalGalleryItem = {
+        id: `gal-${Date.now()}`,
+        titleBn: formTitle.trim(),
+        albumCategory: formCategory,
+        categoryLabelBn: catMeta ? catMeta.labelBn : 'কালচারাল ডে',
+        dateBn: formDate.trim() || 'নভেম্বর ২০২৬',
+        imageUrl: formImageUrl.trim(),
+        captionBn: formCaption.trim(),
+        className: formClass,
+        likesCount: 1,
+        featured: true,
+        photographerNameBn: formPhotographer.trim() || 'আনন্দ পাঠশালা শিক্ষক',
+      };
+
+      saveGalleryItem(newItem);
+    }
+
     setIsAddModalOpen(false);
+    setEditingItemId(null);
     setFormTitle('');
     setFormCaption('');
   };
@@ -210,7 +265,7 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
             {canEdit && (
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={handleOpenAdd}
                 className="px-4 py-2.5 rounded-xl bg-white text-rose-950 hover:bg-rose-50 text-xs font-black transition cursor-pointer flex items-center gap-2 shadow-md"
               >
                 <Plus className="w-4 h-4 text-rose-600" />
@@ -372,14 +427,24 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
                       <Share2 className="w-4 h-4" />
                     </button>
                     {canEdit && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(item.id, e)}
-                        className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500 transition cursor-pointer"
-                        title="মুছে ফেলুন"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenEdit(item, e)}
+                          className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition cursor-pointer"
+                          title="ইভেন্ট এডিট করুন"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDelete(item.id, e)}
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500 transition cursor-pointer"
+                          title="মুছে ফেলুন"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -422,6 +487,19 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      handleOpenEdit(lightboxItem, e);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition active:scale-95"
+                    title="ইভেন্ট এডিট করুন"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>এডিট</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => handleLike(lightboxItem.id)}
@@ -498,11 +576,15 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
-                  <Camera className="w-5 h-5" />
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                  editingItemId ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-600'
+                }`}>
+                  {editingItemId ? <Edit2 className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-sm">নতুন কালচারাল ছবি যোগ করুন</h3>
+                  <h3 className="font-black text-slate-900 text-sm">
+                    {editingItemId ? 'কালচারাল ইভেন্ট/ছবি এডিট করুন' : 'নতুন কালচারাল ছবি যোগ করুন'}
+                  </h3>
                   <p className="text-[11px] text-slate-500">কালচারাল ডে ও ক্যাম্পাসের রঙিন মুহূর্ত</p>
                 </div>
               </div>
@@ -616,16 +698,21 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingItemId(null);
+                  }}
                   className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
                 >
                   বাতিল
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-black text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md cursor-pointer"
+                  className={`px-5 py-2 text-xs font-black text-white rounded-xl shadow-md cursor-pointer transition active:scale-95 ${
+                    editingItemId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
                 >
-                  সংরক্ষণ ও প্রকাশ করুন
+                  {editingItemId ? 'পরিবর্তন সংরক্ষণ করুন' : 'সংরক্ষণ ও প্রকাশ করুন'}
                 </button>
               </div>
             </form>
