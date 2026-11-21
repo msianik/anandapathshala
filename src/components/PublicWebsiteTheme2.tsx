@@ -1,11 +1,8 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import {
   SchoolClass,
-  SchoolShift,
   AdmissionApplication,
   FacebookGalleryItem,
-  TeacherMember,
-  CommitteeDirector,
   SchoolProfile,
   LeadershipProfiles,
   SchoolNotice,
@@ -14,41 +11,18 @@ import {
   SCHOOL_PROFILE,
   PRINCIPAL_AND_DIRECTOR_PROFILES,
   SCHOOL_TEACHERS,
-  MANAGEMENT_COMMITTEE,
   INITIAL_SCHOOL_NOTICES,
 } from '../data/mockData';
-import { ALL_SCHOOL_CLASSES } from '../utils/schoolLogic';
 import {
   Sparkles,
-  ShieldCheck,
-  Heart,
-  BookOpen,
   CheckCircle2,
-  MapPin,
   Phone,
-  Mail,
-  Send,
-  Star,
-  ArrowRight,
   LogIn,
   GraduationCap,
-  Users,
-  Quote,
   X,
-  Clock,
   Sun,
-  Sunrise,
   Palette,
-  Calendar,
-  Layers,
-  HelpCircle,
-  Volume2,
-  VolumeX,
-  Maximize2,
-  Smile,
-  Compass,
-  Check,
-  Eye,
+  ArrowRight,
 } from 'lucide-react';
 
 const OnlineAdmissionModule = lazy(() =>
@@ -72,11 +46,11 @@ interface PublicWebsiteTheme2Props {
 }
 
 type InteractiveModalType =
-  | 'mastermashai'
+  | 'calendar'
   | 'blackboard'
+  | 'mastermashai'
   | 'students'
   | 'cottage'
-  | 'calendar'
   | 'cultural'
   | 'admission'
   | null;
@@ -109,14 +83,8 @@ function playChimeSound() {
 }
 
 export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
-  onEnterPortal,
   onOpenLoginModal,
-  onOpenMobileModal = () => {},
-  isMobilePreview = false,
-  onAddAdmission,
   logoUrl = '/assets/fb/logo.jpg',
-  fbGallery = [],
-  isLoggedIn = false,
   schoolProfile: propSchoolProfile,
   leadershipProfiles: propLeadershipProfiles,
   notices: propNotices,
@@ -158,10 +126,10 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   });
 
   const [activeModal, setActiveModal] = useState<InteractiveModalType>(null);
-  const [selectedClass, setSelectedClass] = useState<SchoolClass>('Playgroup');
+  const [selectedClass] = useState<SchoolClass>('Playgroup');
   const [activeShift, setActiveShift] = useState<'morning' | 'day'>('morning');
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
-  const [showBlinkingAura, setShowBlinkingAura] = useState<boolean>(true);
+  const [auraEnabled, setAuraEnabled] = useState<boolean>(true);
 
   const handleOpenSpot = (spotId: InteractiveModalType) => {
     playChimeSound();
@@ -169,98 +137,64 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
   };
 
   /**
-   * EXACT PIXEL-ACCURATE HOTSPOT BOUNDS MATCHING THE 16:9 PAINTING:
-   * 1. Calendar: Hanging from the tree on the far left
-   * 2. Blackboard: Chalkboard on easel to the left of the teacher
-   * 3. Master Mashai: Standing Bengali teacher in cream panjabi with glasses
-   * 4. Students: Children seated on mats in the center-foreground
-   * 5. Cottage: Red-roofed rustic cottage with teachers on veranda
-   * 6. Cultural Flowerbed: Blooming marigolds and flower garden in front
+   * EXACT ORGANIC CONTOURS TRACED ON 1920x1080 COORDINATES:
+   * No square boxes! No red dots!
+   * Seamless silhouette paths matching each visual element.
    */
-  const hotspots = [
+  const interactiveElements = [
     {
       id: 'calendar',
-      tooltipTitle: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা',
-      tooltipHint: 'ক্লিক করে ক্লাসের রুটিন ও ছুটির তালিকা দেখুন',
-      // The drawn calendar hanging on the tree on the left:
-      bounds: {
-        left: '4.5%',
-        top: '22%',
-        width: '11.5%',
-        height: '31%',
-      },
-      beaconPos: { left: '10%', top: '24%' },
-      glowColor: 'amber',
+      nameBn: 'একাডেমিক ক্যালেন্ডার',
+      tooltip: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা — ক্লিক করুন',
+      d: 'M 175,225 L 295,260 L 295,570 L 75,570 L 75,260 Z',
+      tooltipPos: { x: 185, y: 210 },
+      glowStroke: 'rgba(251, 191, 36, 0.95)',
+      glowFill: 'rgba(251, 191, 36, 0.12)',
     },
     {
       id: 'blackboard',
-      tooltipTitle: '📋 ক্লাসরুম চক-বোর্ড',
-      tooltipHint: 'ক্লিক করে আজকের বিষয়ভিত্তিক পাঠ ও নোটিশ দেখুন',
-      // The standing blackboard on the easel:
-      bounds: {
-        left: '15.5%',
-        top: '36%',
-        width: '15.5%',
-        height: '52%',
-      },
-      beaconPos: { left: '23%', top: '38%' },
-      glowColor: 'emerald',
+      nameBn: 'ক্লাসরুম ব্ল্যাকবোর্ড',
+      tooltip: '📋 ক্লাসরুম চক-বোর্ড — আজকের পাঠ ও নোটিশ — ক্লিক করুন',
+      d: 'M 440,390 L 590,425 L 605,730 L 580,920 L 540,920 L 515,730 L 415,735 L 390,945 L 355,945 L 305,735 L 295,435 Z',
+      tooltipPos: { x: 450, y: 370 },
+      glowStroke: 'rgba(52, 211, 153, 0.95)',
+      glowFill: 'rgba(16, 185, 129, 0.12)',
     },
     {
       id: 'mastermashai',
-      tooltipTitle: '👨‍🏫 মাস্টার মশাই — অধ্যক্ষ ও পরিচালনা পর্ষদ',
-      tooltipHint: 'ক্লিক করে সম্মানিত অধ্যক্ষ ও পরিচালকের পরিচিতি দেখুন',
-      // The Bengali mastermashai with glasses and panjabi:
-      bounds: {
-        left: '28.5%',
-        top: '25%',
-        width: '12%',
-        height: '59%',
-      },
-      beaconPos: { left: '34%', top: '27%' },
-      glowColor: 'amber',
+      nameBn: 'মাস্টার মশাই',
+      tooltip: '👨‍🏫 মাস্টার মশাই — অধ্যক্ষ ও পরিচালনা পর্ষদ — ক্লিক করুন',
+      d: 'M 660,260 C 695,260 720,290 715,340 C 735,370 755,420 760,460 L 765,580 L 740,660 L 740,735 L 725,870 L 675,875 L 675,760 L 640,760 L 640,880 L 590,880 L 580,740 L 565,650 L 530,470 L 510,435 L 565,425 C 585,380 610,350 620,320 C 625,275 645,260 660,260 Z',
+      tooltipPos: { x: 660, y: 240 },
+      glowStroke: 'rgba(251, 191, 36, 0.95)',
+      glowFill: 'rgba(245, 158, 11, 0.15)',
     },
     {
       id: 'students',
-      tooltipTitle: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও ৩ ঘণ্টার শিফট',
-      tooltipHint: 'ক্লিক করে শ্রেণীসমূহ, প্রভাতী ও দিবা শিফট এবং শাখা দেখুন',
-      // The children seated on the colorful mats:
-      bounds: {
-        left: '32%',
-        top: '56%',
-        width: '56%',
-        height: '42%',
-      },
-      beaconPos: { left: '60%', top: '60%' },
-      glowColor: 'rose',
+      nameBn: 'শিক্ষার্থীবৃন্দ',
+      tooltip: '🎒 ছোট্ট সোনামণিরা — ৫টি শ্রেণী ও শিফট তথ্য — ক্লিক করুন',
+      d: 'M 870,610 C 1020,590 1340,600 1590,670 C 1660,730 1690,820 1630,900 C 1520,980 1200,1010 1020,1010 C 800,1010 630,980 615,890 C 610,810 680,730 740,720 C 790,660 830,620 870,610 Z',
+      tooltipPos: { x: 1100, y: 580 },
+      glowStroke: 'rgba(244, 63, 94, 0.9)',
+      glowFill: 'rgba(244, 63, 94, 0.12)',
     },
     {
       id: 'cottage',
-      tooltipTitle: '🏡 শিক্ষক কুটির — শিক্ষকমণ্ডলী ও স্টাফ',
-      tooltipHint: 'ক্লিক করে আনন্দ পাঠশালার স্নেহময়ী শিক্ষকদের পরিচিতি দেখুন',
-      // The rustic cottage & teachers on the open veranda:
-      bounds: {
-        left: '57%',
-        top: '13%',
-        width: '37%',
-        height: '46%',
-      },
-      beaconPos: { left: '75%', top: '22%' },
-      glowColor: 'teal',
+      nameBn: 'শিক্ষক কুটির',
+      tooltip: '🏡 শিক্ষক কুটির — শিক্ষকমণ্ডলী ও স্টাফ — ক্লিক করুন',
+      d: 'M 1120,340 L 1420,150 L 1790,265 L 1790,530 L 1660,570 L 1140,580 L 1120,480 Z',
+      tooltipPos: { x: 1450, y: 130 },
+      glowStroke: 'rgba(45, 212, 191, 0.95)',
+      glowFill: 'rgba(20, 184, 166, 0.14)',
     },
     {
       id: 'cultural',
-      tooltipTitle: '🌸 ফুলের বাগান — মঙ্গলবারের কালচারাল ডে',
-      tooltipHint: 'ক্লিক করে ছবি আঁকা, ছড়া গান ও মঙ্গলবারের উৎসব দেখুন',
-      // Blooming flowerbeds at the foreground:
-      bounds: {
-        left: '0%',
-        top: '70%',
-        width: '26%',
-        height: '30%',
-      },
-      beaconPos: { left: '8%', top: '78%' },
-      glowColor: 'pink',
+      nameBn: 'ফুলের বাগান',
+      tooltip: '🌸 ফুলের বাগান — মঙ্গলবারের কালচারাল ডে — ক্লিক করুন',
+      d: 'M 0,720 C 80,720 180,740 260,820 C 340,890 520,940 590,1080 L 0,1080 Z M 1630,1080 C 1670,920 1780,820 1920,770 L 1920,1080 Z',
+      tooltipPos: { x: 260, y: 700 },
+      glowStroke: 'rgba(244, 114, 182, 0.95)',
+      glowFill: 'rgba(236, 72, 153, 0.14)',
     },
   ];
 
@@ -269,6 +203,23 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       aria-label="আনন্দ পাঠশালা ইন্টারঅ্যাক্টিভ ক্যানভাস"
       className="relative w-full min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden flex flex-col justify-between selection:bg-amber-400 selection:text-slate-950"
     >
+      {/* Dynamic CSS for Breathing Silhouette Aura */}
+      <style>{`
+        @keyframes organicAuraPulse {
+          0%, 100% {
+            opacity: 0.35;
+            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4)) drop-shadow(0 0 16px rgba(251, 191, 36, 0.2));
+          }
+          50% {
+            opacity: 0.85;
+            filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.85)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.6));
+          }
+        }
+        .organic-aura-breathing {
+          animation: organicAuraPulse 3s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* ========================================================================= */}
       {/* 1. TOP MINIMALIST FLOATING NAVIGATION BAR                                 */}
       {/* ========================================================================= */}
@@ -293,18 +244,9 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                 </span>
               </div>
               <p className="text-[11px] text-amber-300/80 font-medium hidden sm:block">
-                ছবিটির ক্যালেন্ডার, মাস্টার মশাই, ব্ল্যাকবোর্ড বা কুটিরে সরাসরি ট্যাপ করুন
+                ছবিটির ক্যালেন্ডার, ব্ল্যাকবোর্ড, মাস্টার মশাই, কুটির বা ফুলে সরাসরি ট্যাপ করুন
               </p>
             </div>
-          </div>
-
-          {/* Interactive Hint Indicator */}
-          <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-amber-400/50 text-xs font-bold text-amber-300 shadow-md">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-            </span>
-            <span>ছবির উপাদানে ক্লিক করে পাঠশালার পরিবেশ দেখুন</span>
           </div>
 
           {/* Action CTAs */}
@@ -345,72 +287,92 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
           />
 
           {/* Soft ambient vignette overlay */}
-          <div className="absolute inset-0 bg-radial from-transparent via-transparent to-slate-950/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-radial from-transparent via-transparent to-slate-950/30 pointer-events-none" />
 
           {/* ======================================================================= */}
-          {/* INTERACTIVE HOTSPOTS DIRECTLY OVER THE DRAWN OBJECTS                     */}
+          {/* SVG SILHOUETTE AURAS & INTERACTIVE HOTSPOTS (NO BOXES, NO HARD DOTS!)   */}
           {/* ======================================================================= */}
-          {hotspots.map((spot) => {
-            const isHovered = hoveredHotspot === spot.id;
-            return (
-              <div
-                key={spot.id}
-                style={{
-                  left: spot.bounds.left,
-                  top: spot.bounds.top,
-                  width: spot.bounds.width,
-                  height: spot.bounds.height,
-                }}
-                className="absolute z-20 cursor-pointer group"
-                onClick={() => handleOpenSpot(spot.id as InteractiveModalType)}
-                onMouseEnter={() => setHoveredHotspot(spot.id)}
-                onMouseLeave={() => setHoveredHotspot(null)}
-              >
-                {/* 1. Subtle Blinking Glow/Shimmer Outline on the Object */}
-                <div
-                  className={`w-full h-full rounded-2xl transition-all duration-300 ${
-                    isHovered
-                      ? 'border-3 border-amber-300 bg-amber-400/20 shadow-[0_0_35px_rgba(251,191,36,0.7)] backdrop-brightness-110'
-                      : showBlinkingAura
-                      ? 'border-2 border-amber-300/40 bg-amber-400/5 animate-pulse'
-                      : 'border-transparent'
-                  }`}
-                />
+          <svg
+            viewBox="0 0 1920 1080"
+            className="absolute inset-0 w-full h-full select-none"
+            style={{ pointerEvents: 'auto' }}
+          >
+            <defs>
+              {/* Luminous Glow Filter for Contours */}
+              <filter id="auraGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur1" />
+                <feGaussianBlur in="SourceAlpha" stdDeviation="22" result="blur2" />
+                <feMerge>
+                  <feMergeNode in="blur2" />
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
 
-                {/* 2. Soft Breathing Beacon Dot at Corner */}
-                <div
-                  style={{
-                    left: '50%',
-                    top: '10%',
-                  }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                >
-                  <span className="flex h-3.5 w-3.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80" />
-                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.9)] border border-white" />
-                  </span>
-                </div>
-
-                {/* 3. Floating Tooltip (Appears ONLY on Hover, NEVER clutters by default!) */}
-                {isHovered && (
-                  <div
-                    className={`absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-200 animate-in fade-in zoom-in-95 ${
-                      parseFloat(spot.bounds.top) < 30 ? 'top-[105%]' : '-top-12'
+            {interactiveElements.map((el) => {
+              const isHovered = hoveredHotspot === el.id;
+              return (
+                <g key={el.id} className="cursor-pointer">
+                  {/* Organic Silhouette Contour Path with Aura */}
+                  <path
+                    d={el.d}
+                    fill={isHovered ? el.glowFill : auraEnabled ? 'rgba(251, 191, 36, 0.04)' : 'transparent'}
+                    stroke={isHovered ? el.glowStroke : auraEnabled ? el.glowStroke : 'transparent'}
+                    strokeWidth={isHovered ? 5 : 2.5}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    filter="url(#auraGlow)"
+                    className={`transition-all duration-300 ${
+                      auraEnabled && !isHovered ? 'organic-aura-breathing' : ''
                     }`}
-                  >
-                    <div className="bg-slate-950/95 backdrop-blur-md text-white px-3.5 py-1.5 rounded-xl border border-amber-400 shadow-2xl whitespace-nowrap text-center">
-                      <p className="text-xs font-black text-amber-300 leading-tight">
-                        {spot.tooltipTitle}
-                      </p>
-                      <p className="text-[10px] text-slate-300 font-medium mt-0.5">
-                        👆 {spot.tooltipHint}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    style={{
+                      cursor: 'pointer',
+                      transformOrigin: `${el.tooltipPos.x}px ${el.tooltipPos.y}px`,
+                      transform: isHovered ? 'scale(1.012)' : 'scale(1)',
+                    }}
+                    onClick={() => handleOpenSpot(el.id as InteractiveModalType)}
+                    onMouseEnter={() => setHoveredHotspot(el.id)}
+                    onMouseLeave={() => setHoveredHotspot(null)}
+                  />
+
+                  {/* Sleek Tooltip appearing only on hover right above the figure */}
+                  {isHovered && (
+                    <g
+                      transform={`translate(${el.tooltipPos.x}, ${el.tooltipPos.y})`}
+                      className="pointer-events-none animate-in fade-in zoom-in-95"
+                    >
+                      {/* Tooltip Background Pill */}
+                      <rect
+                        x="-200"
+                        y="-45"
+                        width="400"
+                        height="40"
+                        rx="16"
+                        fill="#020617"
+                        fillOpacity="0.95"
+                        stroke="#f59e0b"
+                        strokeWidth="1.5"
+                        filter="drop-shadow(0 10px 20px rgba(0,0,0,0.8))"
+                      />
+                      {/* Tooltip Text */}
+                      <text
+                        x="0"
+                        y="-20"
+                        textAnchor="middle"
+                        fill="#fde68a"
+                        fontSize="15"
+                        fontWeight="bold"
+                        fontFamily="sans-serif"
+                      >
+                        {el.tooltip}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </section>
 
@@ -474,16 +436,16 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
             </button>
           </div>
 
-          {/* Right: Blink Aura Toggle & Phone */}
+          {/* Right: Aura Glow Toggle & Phone */}
           <div className="flex items-center gap-3 text-xs text-slate-400">
             <button
               type="button"
-              onClick={() => setShowBlinkingAura(!showBlinkingAura)}
+              onClick={() => setAuraEnabled(!auraEnabled)}
               className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 text-[11px] font-bold hover:bg-slate-800 transition flex items-center gap-1 cursor-pointer"
-              title="ছবির উপাদানের ব্লিংক অন/অফ করুন"
+              title="ছবির উপাদানগুলোর উজ্জ্বল আভা অন/অফ করুন"
             >
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>ব্লিংক: {showBlinkingAura ? 'চালু' : 'বন্ধ'}</span>
+              <span>উজ্জ্বল আভা: {auraEnabled ? 'অন' : 'অফ'}</span>
             </button>
 
             <span className="hidden sm:inline">•</span>
@@ -500,7 +462,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       </footer>
 
       {/* ========================================================================= */}
-      {/* 4. MODALS (TRIGGERED ON CLICKING ANY HOTSPOT)                              */}
+      {/* 4. MODALS (TRIGGERED ON CLICKING ANY ELEMENT)                              */}
       {/* ========================================================================= */}
 
       {/* MODAL 1: HANGING ACADEMIC CALENDAR (ঝুলন্ত ক্যালেন্ডার) */}
