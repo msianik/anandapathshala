@@ -1871,6 +1871,164 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     return matched.length > 0 ? matched : getPeriodsForClass(allRoutines, childClass, todayDay);
   }, [allRoutines, childClass, todayDay, childTargetSection]);
 
+  // School timing calculation based on class routine and shift
+  const schoolTimeInfo = React.useMemo(() => {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    // 1. Check if today is Friday (Weekend)
+    if (isFriday || todayDay === 'friday') {
+      return {
+        isWeekend: true,
+        isBeforeSchool: false,
+        isSchoolRunning: false,
+        isSchoolEnded: true,
+        schoolStartStr: '',
+        schoolEndStr: '',
+      };
+    }
+
+    // 2. Parse start and end times
+    let startMins = 8 * 60; // 08:00 AM
+    let endMins = myChild.shift === 'day' ? 14 * 60 : 11 * 60 + 15; // 11:15 AM (Morning) or 02:00 PM (Day)
+    let startStr = 'সকাল ০৮:০০';
+    let endStr = myChild.shift === 'day' ? 'দুপুর ০২:০০' : 'সকাল ১১:১৫';
+
+    const parseTimeToMins = (t?: string) => {
+      if (!t) return null;
+      const clean = t.trim().toUpperCase();
+      const isPM = clean.includes('PM');
+      const isAM = clean.includes('AM');
+      const parts = clean.replace(/AM|PM/g, '').trim().split(':');
+      if (parts.length >= 2) {
+        let h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return null;
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        return h * 60 + m;
+      }
+      return null;
+    };
+
+    if (childTodayPeriods && childTodayPeriods.length > 0) {
+      const sorted = [...childTodayPeriods].sort((a, b) => a.periodNo - b.periodNo);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+
+      const pStart = parseTimeToMins(first.startTime);
+      const pEnd = parseTimeToMins(last.endTime);
+
+      if (pStart !== null) {
+        startMins = pStart;
+        startStr = first.startTime;
+      }
+      if (pEnd !== null) {
+        endMins = pEnd;
+        endStr = last.endTime;
+      }
+    }
+
+    // Gate opens 15 mins before first period
+    const gateOpenMins = startMins - 15;
+    // Dismissal ends 15 mins after last period
+    const dismissalEndMins = endMins + 15;
+
+    const isBeforeSchool = currentMins < gateOpenMins;
+    const isSchoolRunning = currentMins >= gateOpenMins && currentMins <= dismissalEndMins;
+    const isSchoolEnded = currentMins > dismissalEndMins;
+
+    return {
+      isWeekend: false,
+      isBeforeSchool,
+      isSchoolRunning,
+      isSchoolEnded,
+      schoolStartStr: startStr,
+      schoolEndStr: endStr,
+    };
+  }, [childTodayPeriods, isFriday, todayDay, myChild.shift]);
+
+  // Live dynamic status strictly following school routine and attendance punch rules
+  const liveChildStatusInfo = React.useMemo(() => {
+    const hasPunchedToday = Boolean(childAttendanceStats.recentCheckIn);
+    const isPickedUp = myChild.currentStatus === 'picked_up';
+
+    // 1. Weekend (Friday)
+    if (schoolTimeInfo.isWeekend) {
+      return {
+        text: '🕌 আজ সাপ্তাহিক ছুটি (শুক্রবার)',
+        dotColor: 'bg-slate-400',
+        biometricBadge: 'আজ স্কুল বন্ধ',
+      };
+    }
+
+    // 2. School Hours Ended (ক্লাস রুটিন অনুযায়ী স্কুল টাইম শেষের পরে)
+    if (schoolTimeInfo.isSchoolEnded) {
+      if (hasPunchedToday) {
+        if (isPickedUp || childAttendanceStats.checkOutTime) {
+          return {
+            text: `✓ নিরাপদে স্কুল ত্যাগ করেছে ${childAttendanceStats.checkOutTime ? `(প্রস্থান: ${childAttendanceStats.checkOutTime})` : '· ছুটি সম্পন্ন'}`,
+            dotColor: 'bg-teal-400',
+            biometricBadge: `চেক-ইন ${childAttendanceStats.recentCheckIn}`,
+          };
+        }
+        return {
+          text: '🏠 আজকের ক্লাস শেষ · স্কুল ছুটি হয়ে গেছে',
+          dotColor: 'bg-indigo-400',
+          biometricBadge: `চেক-ইন ${childAttendanceStats.recentCheckIn}`,
+        };
+      } else {
+        // ওইদিন কোনো পাঞ্চ দেওয়া হয়নি / ক্লাসে আসেনি
+        return {
+          text: '❌ আজ স্কুলে আসেনি (অনুপস্থিত ছিল)',
+          dotColor: 'bg-rose-400',
+          biometricBadge: 'পাঞ্চ করা হয়নি',
+        };
+      }
+    }
+
+    // 3. Early morning before school starts
+    if (schoolTimeInfo.isBeforeSchool) {
+      return {
+        text: `⏰ স্কুল শুরুর অপেক্ষা (আজকের ক্লাস শুরু: ${schoolTimeInfo.schoolStartStr})`,
+        dotColor: 'bg-amber-400',
+        biometricBadge: 'আজকের পাঞ্চ অপেক্ষমাণ',
+      };
+    }
+
+    // 4. During School Running Hours
+    if (isPickedUp) {
+      return {
+        text: `✓ নিরাপদে স্কুল ত্যাগ করেছে ${childAttendanceStats.checkOutTime ? `(প্রস্থান: ${childAttendanceStats.checkOutTime})` : '(Picked Up)'}`,
+        dotColor: 'bg-teal-400',
+        biometricBadge: childAttendanceStats.recentCheckIn ? `চেক-ইন ${childAttendanceStats.recentCheckIn}` : 'প্রস্থান সম্পন্ন',
+      };
+    }
+
+    if (myChild.currentStatus === 'absent') {
+      return {
+        text: '⚠️ আজ ক্লাসে অনুপস্থিত',
+        dotColor: 'bg-rose-400 animate-pulse',
+        biometricBadge: 'অনুপস্থিত',
+      };
+    }
+
+    if (hasPunchedToday) {
+      return {
+        text: `✓ স্কুলে উপস্থিত (বায়োমেট্রিক পাঞ্চ: ${childAttendanceStats.recentCheckIn})`,
+        dotColor: 'bg-emerald-400 animate-ping',
+        biometricBadge: `চেক-ইন ${childAttendanceStats.recentCheckIn}`,
+      };
+    }
+
+    // During school hours, but has not punched yet
+    return {
+      text: '⚠️ আজ এখনও স্কুলে আসেনি (পাঞ্চ অপেক্ষমাণ)',
+      dotColor: 'bg-amber-400 animate-pulse',
+      biometricBadge: 'আজকের পাঞ্চ অপেক্ষমাণ',
+    };
+  }, [schoolTimeInfo, childAttendanceStats, myChild.currentStatus]);
+
   const childWeeklyPeriodsForSelectedDay = React.useMemo(() => {
     const matched = getPeriodsForClass(allRoutines, childClass, selectedChildDayTab, undefined, childTargetSection);
     return matched.length > 0 ? matched : getPeriodsForClass(allRoutines, childClass, selectedChildDayTab);
@@ -1992,24 +2150,12 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                   সন্তানের আজকের লাইভ স্ট্যাটাস
                 </span>
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    myChild.currentStatus === 'in_class'
-                      ? 'bg-emerald-400 animate-ping'
-                      : myChild.currentStatus === 'picked_up'
-                      ? 'bg-teal-400'
-                      : 'bg-rose-400 animate-pulse'
-                  }`}
+                  className={`w-2 h-2 rounded-full ${liveChildStatusInfo.dotColor}`}
                 />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-black text-white">
-                  {myChild.currentStatus === 'picked_up'
-                    ? `✓ নিরাপদে স্কুল ত্যাগ করেছে ${childAttendanceStats.checkOutTime ? `(প্রস্থান: ${childAttendanceStats.checkOutTime})` : '(Picked Up)'}`
-                    : myChild.currentStatus === 'absent'
-                    ? '⚠️ আজ ক্লাসে অনুপস্থিত'
-                    : childAttendanceStats.recentCheckIn
-                    ? `✓ স্কুলে উপস্থিত (বায়োমেট্রিক পাঞ্চ: ${childAttendanceStats.recentCheckIn})`
-                    : '✓ স্কুলের শ্রেণিকক্ষে উপস্থিত আছে'}
+                  {liveChildStatusInfo.text}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
@@ -2017,7 +2163,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 <span className="flex items-center gap-1">
                   <span>বায়োমেট্রিক:</span>
                   <strong className="text-amber-200 font-bold">
-                    {childAttendanceStats.recentCheckIn ? `চেক-ইন ${childAttendanceStats.recentCheckIn}` : 'আজকের পাঞ্চ অপেক্ষমাণ'}
+                    {liveChildStatusInfo.biometricBadge}
                   </strong>
                   <button
                     type="button"
