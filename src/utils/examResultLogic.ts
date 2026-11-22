@@ -750,27 +750,6 @@ export function updateStudentExamResult(
 }
 
 /**
- * Sorts and updates merit positions based on totalObtained marks and GPA
- */
-function recalculateMeritPositions(
-  results: StudentExamResult[],
-  className: SchoolClass,
-  examTermId: string
-): void {
-  const classResults = results.filter((r) => r.className === className && r.examTermId === examTermId);
-  classResults.sort((a, b) => {
-    if (b.totalObtained !== a.totalObtained) {
-      return b.totalObtained - a.totalObtained;
-    }
-    return b.gpa - a.gpa;
-  });
-
-  classResults.forEach((res, rank) => {
-    res.meritPosition = rank + 1;
-  });
-}
-
-/**
  * Toggles or sets the published status of an exam term or class
  */
 export function toggleExamPublishStatus(examTermId: string, isPublished: boolean): void {
