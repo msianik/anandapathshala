@@ -137,6 +137,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const isAdmin =
     !readOnly &&
     (currentRole === 'super_admin' ||
+      currentRole === 'admin' ||
       currentRole === 'principal' ||
       currentRole === 'director');
 

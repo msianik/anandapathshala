@@ -66,6 +66,7 @@ export const CulturalGalleryModule: React.FC<CulturalGalleryModuleProps> = ({
   const canEdit =
     propCanEdit ??
     (currentRole === 'super_admin' ||
+      currentRole === 'admin' ||
       currentRole === 'principal' ||
       currentRole === 'director' ||
       currentRole === 'teacher');

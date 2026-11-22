@@ -207,6 +207,7 @@ export const SchoolAssetsModule: React.FC<SchoolAssetsModuleProps> = ({
   // Permissions: Super Admin, Principal, and Director can edit and add assets.
   const canManageAssets =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     currentRole === 'director';
 

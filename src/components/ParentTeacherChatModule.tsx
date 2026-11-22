@@ -69,7 +69,7 @@ export const ParentTeacherChatModule: React.FC<ParentTeacherChatModuleProps> = (
 }) => {
   const isParent = currentRole === 'parent';
   const isTeacher = currentRole === 'teacher';
-  const isAdmin = currentRole === 'principal' || currentRole === 'super_admin' || currentRole === 'director';
+  const isAdmin = currentRole === 'principal' || currentRole === 'admin' || currentRole === 'super_admin' || currentRole === 'director';
 
   const [activeChatSection, setActiveChatSection] = useState<'parent_chat' | 'staff_room'>(() => {
     if (currentRole === 'director' || currentRole === 'super_admin' || currentRole === 'accountant' || currentRole === 'gate_security') {

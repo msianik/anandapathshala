@@ -56,7 +56,7 @@ export const FcmNotificationCenter: React.FC<FcmNotificationCenterProps> = ({
   >('all');
 
   // Cloud sync error alerts are restricted strictly to Super Admin and Admin (Principal) accounts
-  const isAdminOrSuperAdmin = currentRole === 'super_admin' || currentRole === 'principal';
+  const isAdminOrSuperAdmin = currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal';
 
   const visibleNotifications = notifications.filter(
     (n) => n.type !== 'cloud_sync_alert' || isAdminOrSuperAdmin

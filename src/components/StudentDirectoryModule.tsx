@@ -110,9 +110,10 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   onNavigateTab,
   assessments,
 }) => {
-  // Access Guard: Super Admin, Directors, Principal, and Teachers can view all students
+  // Access Guard: Super Admin, Admin, Directors, Principal, and Teachers can view all students
   const hasAccess =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'director' ||
     currentRole === 'principal' ||
     currentRole === 'teacher';
@@ -121,6 +122,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     currentRole === 'director' ? getPermissionForDirector(loggedInAccount?.directorId) : null;
   const canEditStudents =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     (currentRole === 'director' && Boolean(dirPerm?.canManageStudentsAndAdmissions));
 

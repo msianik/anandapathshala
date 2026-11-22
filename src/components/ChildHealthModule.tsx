@@ -84,7 +84,7 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const canEdit =
-    currentRole === 'super_admin' || currentRole === 'principal' || currentRole === 'teacher';
+    currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal' || currentRole === 'teacher';
   const isParent = currentRole === 'parent';
   const effectiveStudentId = isParent ? (loggedInStudentId || 'std-1') : undefined;
 

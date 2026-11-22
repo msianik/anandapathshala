@@ -140,6 +140,7 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
   // But can only create invoices or confirm payments if granted by Super Admin.
   const canEditFees =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     currentRole === 'accountant' ||
     Boolean(currentRole === 'director' && dirPerm?.canManageFeesAndAccounts);

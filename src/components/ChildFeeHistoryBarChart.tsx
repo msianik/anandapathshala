@@ -101,9 +101,11 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
     !isParentRole &&
     !isTeacherRole &&
     (currentRole === 'super_admin' ||
+      currentRole === 'admin' ||
       currentRole === 'principal' ||
       currentRole === 'accountant' ||
       loggedInAccount?.role === 'super_admin' ||
+      loggedInAccount?.role === 'admin' ||
       loggedInAccount?.role === 'principal');
 
   // Filter visible students based on role:

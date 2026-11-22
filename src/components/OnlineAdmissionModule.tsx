@@ -49,6 +49,7 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
 }) => {
   const isAdmin =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     currentRole === 'director';
 

@@ -88,7 +88,7 @@ export const ExamResultsModule: React.FC<ExamResultsModuleProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const canEdit =
-    currentRole === 'super_admin' || currentRole === 'principal' || currentRole === 'teacher';
+    currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal' || currentRole === 'teacher';
 
   const isParent = currentRole === 'parent';
 

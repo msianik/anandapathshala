@@ -113,6 +113,7 @@ export const AcademicCalendarModule: React.FC<AcademicCalendarModuleProps> = ({
     currentRole === 'director' ? getPermissionForDirector(loggedInAccount?.directorId) : null;
   const isAdmin =
     currentRole === 'super_admin' ||
+    currentRole === 'admin' ||
     currentRole === 'principal' ||
     Boolean(currentRole === 'director' && dirPerm?.canManageNoticesAndEvents);
 

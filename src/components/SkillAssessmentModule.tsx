@@ -29,7 +29,7 @@ export const SkillAssessmentModule: React.FC<SkillAssessmentModuleProps> = ({
   loggedInStudentId,
 }) => {
   const isParent = currentRole === 'parent';
-  const canEdit = !isParent && (currentRole === 'super_admin' || currentRole === 'principal' || currentRole === 'teacher');
+  const canEdit = !isParent && (currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'principal' || currentRole === 'teacher');
   const parentDefaultId = loggedInStudentId || 'std-1';
 
   const [selectedStudentId, setSelectedStudentId] = useState<string>(() => {
