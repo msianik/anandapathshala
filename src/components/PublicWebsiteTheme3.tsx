@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import {
   SchoolClass,
   AdmissionApplication,
@@ -140,6 +140,38 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
   const [activeShift, setActiveShift] = useState<'morning' | 'day'>('morning');
   const [hoveredHotspot, setHoveredHotspot] = useState<string | null>(null);
 
+  const stageContainerRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const el = stageContainerRef.current;
+    if (!el) return;
+    const updateSize = () => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const targetRatio = 1376 / 768;
+      const currentRatio = rect.width / rect.height;
+      let w = rect.width;
+      let h = rect.height;
+      if (currentRatio > targetRatio) {
+        h = rect.height;
+        w = h * targetRatio;
+      } else {
+        w = rect.width;
+        h = w / targetRatio;
+      }
+      setStageSize({ width: Math.round(w), height: Math.round(h) });
+    };
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(el);
+    window.addEventListener('resize', updateSize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, []);
+
   const handleOpenSpot = (spotId: InteractiveModalType) => {
     playChimeSound();
     setActiveModal(spotId);
@@ -213,9 +245,9 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
   ];
 
   /**
-   * SIMPLE INTERACTIVE HOTSPOTS:
-   * Pure painting with ZERO image transforms or effects.
-   * Hovering over any object reveals ONLY its menu name floating above.
+   * HOTSPOTS FOR DIORAMA CAMPUS:
+   * Precisely mapped to the exact 1376x768 painting pixels.
+   * Hovering over any object illuminates it with a subtle golden tint.
    * Clicking opens the corresponding modal.
    */
   const hotspots = [
@@ -223,73 +255,73 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
       id: 'gate',
       nameBn: '✨ আমাদের সম্পর্কে (আনন্দ পাঠশালা সাইনবোর্ড ও তোরণ)',
       modalId: 'gate' as InteractiveModalType,
-      leftPercent: 69.5,
-      topPercent: 2.5,
-      widthPercent: 29.0,
-      heightPercent: 27.0,
+      leftPercent: 69.8,
+      topPercent: 2.6,
+      widthPercent: 29.1,
+      heightPercent: 26.7,
     },
     {
       id: 'calendar',
       nameBn: '📅 একাডেমিক ক্যালেন্ডার ও ছুটির তালিকা',
       modalId: 'calendar' as InteractiveModalType,
-      leftPercent: 7.5,
-      topPercent: 31.5,
-      widthPercent: 8.5,
-      heightPercent: 17.5,
+      leftPercent: 7.3,
+      topPercent: 31.3,
+      widthPercent: 8.4,
+      heightPercent: 17.6,
     },
     {
       id: 'blackboard',
       nameBn: '📋 ক্লাসরুম চক-বোর্ড (আজকের পাঠ ও নোটিশ)',
       modalId: 'blackboard' as InteractiveModalType,
-      leftPercent: 16.5,
-      topPercent: 38.5,
-      widthPercent: 14.5,
-      heightPercent: 35.0,
+      leftPercent: 16.7,
+      topPercent: 39.1,
+      widthPercent: 13.1,
+      heightPercent: 33.9,
     },
     {
       id: 'mastermashai',
       nameBn: '👨‍🏫 মাস্টার মশাই (অধ্যক্ষ ও পরিচালনা পর্ষদ)',
       modalId: 'mastermashai' as InteractiveModalType,
-      leftPercent: 27.5,
-      topPercent: 33.0,
-      widthPercent: 12.0,
-      heightPercent: 41.0,
+      leftPercent: 27.6,
+      topPercent: 33.2,
+      widthPercent: 10.2,
+      heightPercent: 40.4,
     },
     {
       id: 'students_right',
       nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও শিফট তথ্য)',
       modalId: 'students' as InteractiveModalType,
       leftPercent: 40.0,
-      topPercent: 54.0,
-      widthPercent: 33.0,
-      heightPercent: 43.0,
+      topPercent: 54.7,
+      widthPercent: 30.5,
+      heightPercent: 40.4,
     },
     {
       id: 'students_left',
       nameBn: '🎒 ছোট্ট সোনামণিরা (৫টি শ্রেণী ও শিফট তথ্য)',
       modalId: 'students' as InteractiveModalType,
-      leftPercent: 3.5,
-      topPercent: 62.0,
-      widthPercent: 33.0,
-      heightPercent: 36.0,
+      leftPercent: 3.6,
+      topPercent: 62.5,
+      widthPercent: 28.3,
+      heightPercent: 33.9,
     },
     {
       id: 'cottage',
       nameBn: '🏡 শিক্ষক কুটির (শিক্ষকমণ্ডলী ও স্টাফ)',
       modalId: 'cottage' as InteractiveModalType,
-      leftPercent: 41.5,
-      topPercent: 20.5,
-      widthPercent: 26.5,
-      heightPercent: 34.0,
+      leftPercent: 41.4,
+      topPercent: 20.8,
+      widthPercent: 26.2,
+      heightPercent: 32.6,
     },
     {
       id: 'flowers_right',
       nameBn: '🌸 ফুলের বাগান (মঙ্গলবারের কালচারাল ডে)',
       modalId: 'cultural' as InteractiveModalType,
-      leftPercent: 76.0,
-      topPercent: 76.0,
-      widthPercent: 24.0,
-      heightPercent: 24.0,
+      leftPercent: 76.3,
+      topPercent: 75.5,
+      widthPercent: 23.7,
+      heightPercent: 24.5,
     },
   ];
 
@@ -342,58 +374,60 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. THE DIORAMA STAGE (Fullscreen on Desktop, Pure 16:9 on Mobile)          */}
+      {/* 2. THE DIORAMA STAGE (Fullscreen Letterboxed/Pillarboxed 1376:768 Canvas)  */}
       {/* ========================================================================= */}
-      <div className="relative w-full aspect-[16/9] lg:aspect-auto lg:h-full lg:absolute lg:inset-0 overflow-hidden bg-slate-900 select-none shrink-0 shadow-2xl">
-        {/* Pristine 16:9 Painting (100% Visible with Zero Cropping) */}
-        <img
-          src="/assets/theme2/anandakanon_diorama.jpg"
-          alt="আনন্দ পাঠশালা — উন্মুক্ত ক্যাম্পাস, কুষ্টিয়া"
-          className="w-full h-full object-cover object-center pointer-events-none"
-        />
+      <div
+        ref={stageContainerRef}
+        className="relative w-full aspect-[1376/768] lg:aspect-auto lg:h-full lg:absolute lg:inset-0 overflow-hidden bg-slate-950 select-none shrink-0 flex items-center justify-center shadow-2xl"
+      >
+        {/* Synchronized 1376:768 Stage: The painting and all hotspots scale 1:1 together */}
+        <div
+          style={
+            stageSize
+              ? { width: `${stageSize.width}px`, height: `${stageSize.height}px` }
+              : { width: '100%', aspectRatio: '1376 / 768' }
+          }
+          className="relative shrink-0 max-w-full max-h-full"
+        >
+          {/* Pristine 1376:768 Painting (100% visible, zero cropping, zero distortion) */}
+          <img
+            src="/assets/theme2/anandakanon_diorama.jpg"
+            alt="আনন্দ পাঠশালা — উন্মুক্ত ক্যাম্পাস, কুষ্টিয়া"
+            className="w-full h-full block pointer-events-none select-none"
+          />
 
-        {/* Interactive Hotspots Over Objects (Direct Tap on Mobile & Hover on Desktop) */}
-        {hotspots.map((spot) => {
-          const isHovered = hoveredHotspot === spot.id;
-          const isGateOrSignboard = spot.id === 'gate';
-          return (
-            <div
-              key={spot.id}
-              onClick={() => handleOpenSpot(spot.modalId)}
-              onMouseEnter={() => setHoveredHotspot(spot.id)}
-              onMouseLeave={() => setHoveredHotspot(null)}
-              style={{
-                position: 'absolute',
-                left: `${spot.leftPercent}%`,
-                top: `${spot.topPercent}%`,
-                width: `${spot.widthPercent}%`,
-                height: `${spot.heightPercent}%`,
-              }}
-              className="cursor-pointer z-20 group"
-              role="button"
-              tabIndex={0}
-              aria-label={spot.nameBn}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleOpenSpot(spot.modalId);
-                }
-              }}
-            >
-              {/* Subtle hover highlight: only visible on mouse hover with smooth rounded border */}
-              <div className="absolute inset-0 rounded-3xl transition-all duration-200 pointer-events-none group-hover:bg-amber-400/20 group-hover:border-2 group-hover:border-amber-300/80 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
-
-              {/* Floating Menu Name Badge appearing directly on hover/tap */}
-              {isHovered && (
-                <div className={`absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 ${
-                  spot.topPercent < 10 ? 'top-full mt-2.5' : '-top-10'
-                }`}>
-                  {spot.nameBn}
-                </div>
-              )}
-            </div>
-          );
-        })}
+          {/* Interactive Hotspots Over Exact Painting Objects */}
+          {hotspots.map((spot) => {
+            return (
+              <div
+                key={spot.id}
+                onClick={() => handleOpenSpot(spot.modalId)}
+                onMouseEnter={() => setHoveredHotspot(spot.id)}
+                onMouseLeave={() => setHoveredHotspot(null)}
+                style={{
+                  position: 'absolute',
+                  left: `${spot.leftPercent}%`,
+                  top: `${spot.topPercent}%`,
+                  width: `${spot.widthPercent}%`,
+                  height: `${spot.heightPercent}%`,
+                }}
+                className="cursor-pointer z-20 group"
+                role="button"
+                tabIndex={0}
+                aria-label={spot.nameBn}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenSpot(spot.modalId);
+                  }
+                }}
+              >
+                {/* Soft yellow glow over object on hover (only object illuminates softly, no extra borders or text badges) */}
+                <div className="absolute inset-0 rounded-2xl transition-all duration-200 pointer-events-none group-hover:bg-amber-300/25 group-hover:ring-1 group-hover:ring-amber-300/50 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]" />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ========================================================================= */}
