@@ -380,15 +380,9 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
                 }
               }}
             >
-              {/* Highlight Marker for Gate / Signboard: Glowing boundary & badge */}
+              {/* Subtle hover highlight for Gate / Signboard: only visible on mouse hover */}
               {isGateOrSignboard && (
-                <div className="absolute inset-0 rounded-2xl border-2 border-amber-300/80 bg-amber-400/10 hover:bg-amber-400/25 transition-all duration-300 shadow-lg group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.6)]">
-                  {/* Elegant pulsating badge above the signboard */}
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 text-[10px] sm:text-xs font-black shadow-md flex items-center gap-1 border border-amber-200 animate-pulse pointer-events-none">
-                    <Sparkles className="w-3 h-3 text-slate-950 shrink-0" />
-                    <span>আমাদের সম্পর্কে</span>
-                  </div>
-                </div>
+                <div className="absolute inset-0 rounded-2xl transition-all duration-200 pointer-events-none group-hover:bg-amber-400/20 group-hover:border-2 group-hover:border-amber-300/80 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
               )}
 
               {/* Floating Menu Name Badge appearing directly on hover/tap */}
