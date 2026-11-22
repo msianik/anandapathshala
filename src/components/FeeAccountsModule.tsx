@@ -27,7 +27,6 @@ import {
   FeeReportPeriodOption,
 } from '../utils/pdfReceiptGenerator';
 import { ChildFeeHistoryBarChart } from './ChildFeeHistoryBarChart';
-import { CurrentMonthCashFlowBarChart } from './CurrentMonthCashFlowBarChart';
 import { ThreePartMoneyReceiptModal } from './ThreePartMoneyReceiptModal';
 import {
   CreditCard,
@@ -1718,19 +1717,6 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                 </span>
               </div>
             </div>
-
-            {/* Recharts Cash Flow Bar Chart comparing Paid vs Due for Current School Month */}
-            <CurrentMonthCashFlowBarChart
-              currentMonthBn={currentMonthSummaryReport.currentMonthBn}
-              totalBilled={currentMonthSummaryReport.totalBilled}
-              collectedAmount={currentMonthSummaryReport.collectedAmount}
-              pendingAmount={currentMonthSummaryReport.pendingAmount}
-              paidStudentsCount={currentMonthSummaryReport.paidStudentsCount}
-              pendingStudentsCount={currentMonthSummaryReport.pendingStudentsCount}
-              collectionRate={currentMonthSummaryReport.collectionRate}
-              pendingRate={currentMonthSummaryReport.pendingRate}
-              classBreakdown={currentMonthSummaryReport.classBreakdown}
-            />
 
             {/* Quick Visual Collection Ratio Progress Bar */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
