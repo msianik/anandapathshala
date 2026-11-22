@@ -99,6 +99,29 @@ const AVATAR_COLORS = [
   'bg-violet-100 text-violet-800 border border-violet-300',
 ];
 
+const toEnglishDigits = (str: string): string => {
+  const bnToEn: Record<string, string> = {
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+    '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+  };
+  return (str || '').replace(/[০-৯]/g, (d) => bnToEn[d] || d).trim();
+};
+
+const getNextUniqueStudentId = (studentList: Student[]): string => {
+  const existingNumbers = new Set<number>();
+  studentList.forEach((s) => {
+    const raw = toEnglishDigits(s.rollNo).replace(/\D/g, '');
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num > 0) existingNumbers.add(num);
+  });
+  if (existingNumbers.size === 0) return '101';
+  let candidate = Math.max(...existingNumbers) + 1;
+  while (existingNumbers.has(candidate)) {
+    candidate++;
+  }
+  return String(candidate);
+};
+
 export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   students,
   onAddStudent,
@@ -185,6 +208,17 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedPhotoName, setUploadedPhotoName] = useState('');
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+
+  // Real-time unique student ID duplicate check
+  const isDuplicateId = useMemo(() => {
+    const cleanId = toEnglishDigits(formData.rollNo);
+    if (!cleanId) return false;
+    return students.some(
+      (s) =>
+        s.id !== editingStudent?.id &&
+        (toEnglishDigits(s.rollNo) === cleanId || toEnglishDigits(s.id) === cleanId)
+    );
+  }, [formData.rollNo, students, editingStudent]);
 
   const handleForceCloudSync = async () => {
     setIsCloudSyncing(true);
@@ -335,9 +369,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   // Open Add Modal
   const handleOpenAddModal = (presetClass?: SchoolClass) => {
     const targetClass = presetClass ? presetClass : (selectedClass !== 'all' ? selectedClass : 'HateKhori');
-    const existingInClass = students.filter((s) => isSameSchoolClass(s.className, targetClass));
-    const nextRoll = String(existingInClass.length + 1).padStart(2, '0');
-    const defaultUser = `std_${targetClass.toLowerCase().replace(/[^a-z0-9]/g, '')}_${nextRoll}`;
+    const nextUniqueId = getNextUniqueStudentId(students);
+    const defaultUser = `std_${nextUniqueId}`;
 
     const initialClassSecs = getClassSectionsForYear(currentAcademicYear, targetClass);
     const firstSec = initialClassSecs[0];
@@ -345,7 +378,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     const initialShift = firstSec?.shift || 'morning';
 
     setFormData({
-      rollNo: nextRoll,
+      rollNo: nextUniqueId,
       nameBn: '',
       nameEn: '',
       className: targetClass,
@@ -414,6 +447,18 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     e.preventDefault();
     if (!formData.nameBn.trim()) {
       showToast('⚠️ অনুগ্রহ করে শিক্ষার্থীর নাম (বাংলায়) পূরণ করুন।');
+      return;
+    }
+
+    const enteredId = formData.rollNo.trim();
+    if (!enteredId) {
+      showToast('⚠️ অনুগ্রহ করে শিক্ষার্থী আইডি নম্বর পূরণ করুন।');
+      return;
+    }
+
+    if (isDuplicateId) {
+      showToast('⚠️ এই আইডি নম্বরটি অলরেডি ব্যবহার করা হয়েছে (Duplicate ID)!');
+      alert(`⚠️ এই আইডি নম্বরটি ("${formData.rollNo}") ইতিমধ্যেই অন্য একজন শিক্ষার্থীর জন্য ব্যবহার করা হয়েছে (Duplicate ID)! অনুগ্রহ করে একটি ইউনিক আইডি দিন।`);
       return;
     }
 
@@ -509,6 +554,18 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     if (!editingStudent) return;
     if (!formData.nameBn.trim()) {
       showToast('⚠️ অনুগ্রহ করে শিক্ষার্থীর নাম পূরণ করুন।');
+      return;
+    }
+
+    const enteredId = formData.rollNo.trim();
+    if (!enteredId) {
+      showToast('⚠️ অনুগ্রহ করে শিক্ষার্থী আইডি নম্বর পূরণ করুন।');
+      return;
+    }
+
+    if (isDuplicateId) {
+      showToast('⚠️ এই আইডি নম্বরটি অলরেডি ব্যবহার করা হয়েছে (Duplicate ID)!');
+      alert(`⚠️ এই আইডি নম্বরটি ("${formData.rollNo}") ইতিমধ্যেই অন্য একজন শিক্ষার্থীর জন্য ব্যবহার করা হয়েছে (Duplicate ID)! অনুগ্রহ করে একটি ইউনিক আইডি দিন।`);
       return;
     }
 
@@ -788,7 +845,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="নাম, শ্রেণি বা রোল দিয়ে খুঁজুন..."
+            placeholder="নাম, শ্রেণি বা আইডি নম্বর দিয়ে খুঁজুন..."
             className="w-full pl-9 pr-24 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500/20 transition-all outline-none"
           />
           {searchQuery && (
@@ -1281,7 +1338,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold text-[11px]">
                 <tr>
-                  <th className="py-3 px-3 text-center">রোল</th>
+                  <th className="py-3 px-3 text-center">আইডি নম্বর</th>
                   <th className="py-3 px-3">শিক্ষার্থীর নাম</th>
                   <th className="py-3 px-3">শ্রেণি ও শাখা</th>
                   <th className="py-3 px-3">লিঙ্গ ও বয়স</th>
@@ -1644,14 +1701,35 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">রোল নম্বর *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700">শিক্ষার্থী আইডি নম্বর *</label>
+                    {isDuplicateId ? (
+                      <span className="text-[10px] font-black text-rose-600 bg-rose-50 border border-rose-300 px-1.5 py-0.2 rounded-md animate-pulse">
+                        Duplicate ID
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
+                        ইউনিক আইডি
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     required
+                    placeholder="যেমন: ২৫৯ বা 101"
                     value={formData.rollNo}
                     onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-800"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono font-bold text-slate-800 transition-all outline-none ${
+                      isDuplicateId
+                        ? 'border-rose-500 ring-2 ring-rose-200 bg-rose-50/50 text-rose-900'
+                        : 'border-slate-200 focus:border-emerald-500'
+                    }`}
                   />
+                  {isDuplicateId && (
+                    <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                      <span>⚠️ এই আইডি নম্বরটি অলরেডি ব্যবহার করা হয়েছে (Duplicate ID)! অন্য একটি ইউনিক আইডি দিন।</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
