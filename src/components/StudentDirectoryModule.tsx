@@ -1642,7 +1642,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">লিঙ্গ</label>
                   <select
@@ -1680,19 +1680,6 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     <option value="O-">O-</option>
                     <option value="AB+">AB+</option>
                     <option value="AB-">AB-</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">উপস্থিতি স্ট্যাটাস</label>
-                  <select
-                    value={formData.currentStatus}
-                    onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value as any })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold"
-                  >
-                    <option value="in_class">শ্রেণিকক্ষে উপস্থিত</option>
-                    <option value="picked_up">ছুটিপ্রাপ্ত (Picked Up)</option>
-                    <option value="absent">অনুপস্থিত</option>
                   </select>
                 </div>
               </div>
