@@ -1684,12 +1684,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-slate-700">শিফট (Shift) *</label>
-                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 border border-emerald-300 px-1.5 py-0.2 rounded-md">
-                      অটো-সিঙ্ক
-                    </span>
-                  </div>
+                  <label className="font-bold text-slate-700 block mb-1">শিফট (Shift) *</label>
                   <select
                     value={formData.shift}
                     onChange={(e) => setFormData({ ...formData, shift: e.target.value as SchoolShift })}
@@ -1703,13 +1698,9 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="font-bold text-slate-700">শিক্ষার্থী আইডি নম্বর *</label>
-                    {isDuplicateId ? (
+                    {isDuplicateId && (
                       <span className="text-[10px] font-black text-rose-600 bg-rose-50 border border-rose-300 px-1.5 py-0.2 rounded-md animate-pulse">
                         Duplicate ID
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
-                        ইউনিক আইডি
                       </span>
                     )}
                   </div>
