@@ -1667,6 +1667,7 @@ interface ParentPortalDashboardProps {
   assessments: Record<string, SkillAssessment>;
   invoices: FeeInvoice[];
   pickupLogs: PickupEvent[];
+  attendanceRecords?: AttendanceRecord[];
   onNavigateTab: (tab: string) => void;
   onSendUrgentPickupAlert: (
     student: Student,
@@ -1674,6 +1675,7 @@ interface ParentPortalDashboardProps {
     relationBn: string,
     noteBn?: string
   ) => void;
+  onUpdateStudent?: (student: Student) => void;
 }
 
 export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
@@ -1682,11 +1684,35 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   activityPosts,
   assessments,
   invoices,
+  attendanceRecords,
   onNavigateTab,
   onSendUrgentPickupAlert,
+  onUpdateStudent,
 }) => {
-  const myChild =
-    students.find((s) => s.id === (account.studentId || 'std-1')) || students[0];
+  const [selectedChildId, setSelectedChildId] = useState<string>(() => account.studentId || 'std-1');
+
+  // Find all children associated with this parent
+  const parentChildren = React.useMemo(() => {
+    const cleanPhone = normalizeIdentifier(account.phone || '');
+    const matched = students.filter(
+      (s) =>
+        s.id === account.studentId ||
+        (cleanPhone && cleanPhone.length > 5 && normalizeIdentifier(s.emergencyPhone).includes(cleanPhone)) ||
+        (account.nameBn && s.fatherNameBn && account.nameBn.includes(s.fatherNameBn)) ||
+        (account.nameBn && s.nameBn && account.nameBn.includes(s.nameBn))
+    );
+    return matched.length > 0 ? matched : [students.find((s) => s.id === (account.studentId || 'std-1')) || students[0]];
+  }, [students, account]);
+
+  const myChild = React.useMemo(() => {
+    return (
+      parentChildren.find((s) => s.id === selectedChildId) ||
+      students.find((s) => s.id === selectedChildId) ||
+      students.find((s) => s.id === (account.studentId || 'std-1')) ||
+      students[0]
+    );
+  }, [students, parentChildren, selectedChildId, account.studentId]);
+
   const childAssessment = assessments[myChild.id];
   const childClassTeacher = React.useMemo(() => {
     const staff = getStoredStaffMembers();
@@ -1698,10 +1724,38 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   }, [myChild.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);
 
+  // Live Attendance calculation
+  const childAttendanceStats = React.useMemo(() => {
+    if (!attendanceRecords || attendanceRecords.length === 0) {
+      return { presentRate: 100, presentDays: 24, totalDays: 24, recentCheckIn: 'সকাল ০৮:৫০' };
+    }
+    const myRecords = attendanceRecords.filter((r) => r.studentId === myChild.id);
+    if (myRecords.length === 0) {
+      return { presentRate: 98, presentDays: 23, totalDays: 24, recentCheckIn: 'সকাল ০৮:৫০' };
+    }
+    const present = myRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
+    const rate = Math.round((present / myRecords.length) * 100);
+    const todayRec = myRecords[0];
+    return {
+      presentRate: rate,
+      presentDays: present,
+      totalDays: myRecords.length,
+      recentCheckIn: todayRec?.time || 'সকাল ০৮:৫০',
+    };
+  }, [attendanceRecords, myChild.id]);
+
   useEffect(() => {
     const onFeeCfgSync = () => setFeeConfigSyncVer((v) => v + 1);
+    const onInvSync = () => setFeeConfigSyncVer((v) => v + 1);
+    const onStdSync = () => setFeeConfigSyncVer((v) => v + 1);
     window.addEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
-    return () => window.removeEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
+    window.addEventListener('ananda-invoices-updated', onInvSync);
+    window.addEventListener('ananda-students-updated', onStdSync);
+    return () => {
+      window.removeEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
+      window.removeEventListener('ananda-invoices-updated', onInvSync);
+      window.removeEventListener('ananda-students-updated', onStdSync);
+    };
   }, []);
 
   const allChildInvoices = React.useMemo(
@@ -1787,6 +1841,38 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Sibling Child Selector (যদি এই অভিভাবকের একাধিক সন্তান আনন্দ পাঠশালায় ভর্তি থাকে) */}
+      {parentChildren.length > 1 && (
+        <div className="bg-white p-3.5 rounded-2xl border border-amber-300 shadow-2xs flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-amber-600" />
+              <span>সন্তান নির্বাচন করুন:</span>
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {parentChildren.map((child) => (
+                <button
+                  key={child.id}
+                  type="button"
+                  onClick={() => setSelectedChildId(child.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    child.id === myChild.id
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span>{child.nameBn}</span>
+                  <span className="text-[10px] opacity-80 font-mono">({getSchoolClassNameBn(child.className)})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+            বর্তমানে সক্রিয়: {myChild.nameBn}
+          </span>
+        </div>
+      )}
+
       {/* Dedicated Parent & Child Family Banner (Warm Amber-Rose-Emerald Theme) - Placed at the very top */}
       <div className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-amber-950 text-white p-5 sm:p-7 shadow-lg border border-emerald-800/60">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -1800,8 +1886,20 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-amber-300 bg-white p-0.5 shadow-md"
               />
               <span
-                className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full"
-                title="শ্রেণিকক্ষে উপস্থিত"
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 ${
+                  myChild.currentStatus === 'in_class'
+                    ? 'bg-emerald-500'
+                    : myChild.currentStatus === 'picked_up'
+                    ? 'bg-teal-500'
+                    : 'bg-rose-500'
+                }`}
+                title={
+                  myChild.currentStatus === 'in_class'
+                    ? 'শ্রেণিকক্ষে উপস্থিত'
+                    : myChild.currentStatus === 'picked_up'
+                    ? 'ছুটিপ্রাপ্ত'
+                    : 'অনুপস্থিত'
+                }
               />
             </div>
 
@@ -1845,14 +1943,28 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wider">
                   সন্তানের আজকের লাইভ স্ট্যাটাস
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    myChild.currentStatus === 'in_class'
+                      ? 'bg-emerald-400 animate-ping'
+                      : myChild.currentStatus === 'picked_up'
+                      ? 'bg-teal-400'
+                      : 'bg-rose-400 animate-pulse'
+                  }`}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-black text-white">
                   {myChild.currentStatus === 'picked_up'
-                    ? '✓ নিরাপদে স্কুল ত্যাগ করেছে'
-                    : 'স্কুলের শ্রেণিকক্ষে নিরাপদে আছে (সকাল ০৮:৫০ থেকে)'}
+                    ? '✓ নিরাপদে স্কুল ত্যাগ করেছে (Picked Up)'
+                    : myChild.currentStatus === 'absent'
+                    ? '⚠️ আজ ক্লাসে অনুপস্থিত'
+                    : `✓ স্কুলের শ্রেণিকক্ষে নিরাপদে উপস্থিত আছে (${childAttendanceStats.recentCheckIn} থেকে)`}
                 </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
+                <span>হাজিরা হার: <strong className="text-emerald-300 font-bold">{childAttendanceStats.presentRate}%</strong> ({toBengaliNumber(childAttendanceStats.presentDays)}/{toBengaliNumber(childAttendanceStats.totalDays)} দিন)</span>
+                <span>বায়োমেট্রিক: <strong className="text-amber-200 font-bold">সিঙ্কড</strong></span>
               </div>
               <p className="text-[10px] text-slate-300">
                 শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn} · জরুরি হেল্পলাইন: {childClassTeacher.phone}

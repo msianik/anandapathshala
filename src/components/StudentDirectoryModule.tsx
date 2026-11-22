@@ -127,6 +127,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     (currentRole === 'director' && Boolean(dirPerm?.canManageStudentsAndAdmissions));
 
   const [selectedClass, setSelectedClass] = useState<SchoolClass | 'all'>('all');
+  const [shiftFilter, setShiftFilter] = useState<'all' | 'morning' | 'day'>('all');
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchAcrossAllClasses, setSearchAcrossAllClasses] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'in_class' | 'picked_up' | 'absent'>('all');
@@ -241,8 +243,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
         isSameSchoolClass(std.className, selectedClass);
 
       const matchesStatus = statusFilter === 'all' || std.currentStatus === statusFilter;
+      const matchesShift =
+        shiftFilter === 'all' || (std.shift ? std.shift === shiftFilter : shiftFilter === 'morning');
+      const matchesGender = genderFilter === 'all' || std.gender === genderFilter;
 
-      if (!hasQuery) return matchesClass && matchesStatus;
+      if (!hasQuery) return matchesClass && matchesStatus && matchesShift && matchesGender;
 
       // Smart comprehensive search fields
       const classNameBn = getSchoolClassNameBn(std.className).toLowerCase();
@@ -275,9 +280,9 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
         phone.includes(q) ||
         address.includes(q);
 
-      return matchesClass && matchesStatus && matchesSearch;
+      return matchesClass && matchesStatus && matchesShift && matchesGender && matchesSearch;
     });
-  }, [students, selectedClass, statusFilter, searchQuery, searchAcrossAllClasses]);
+  }, [students, selectedClass, statusFilter, shiftFilter, genderFilter, searchQuery, searchAcrossAllClasses]);
 
   // Export Current Filtered List as CSV
   const handleExportCsv = () => {
@@ -561,8 +566,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   // Confirm Delete
   const handleConfirmDelete = () => {
     if (!studentToDelete) return;
-    removePortalAccountByEntityId(studentToDelete.id);
-    onDeleteStudent(studentToDelete.id);
+    const deletedId = studentToDelete.id;
+    removePortalAccountByEntityId(deletedId);
+    onDeleteStudent(deletedId);
+    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { deletedId } }));
+    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     showToast(`🗑️ "${studentToDelete.nameBn}" এর রেকর্ড, পোর্টাল অ্যাকাউন্ট ও বায়োমেট্রিক মেশিন থেকে সম্পূর্ণ মুছে ফেলা হয়েছে।`);
     setStudentToDelete(null);
   };
@@ -829,7 +837,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
           )}
         </div>
 
-        {/* Status Filter & View Controls */}
+        {/* Status, Shift, Gender & View Controls */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
             <span className="text-slate-500 font-medium">অবস্থা:</span>
@@ -839,9 +847,35 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
               className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
             >
               <option value="all">সকল অবস্থা</option>
-              <option value="in_class">শ্রেণিকক্ষে উপস্থিত</option>
-              <option value="picked_up">ছুটিপ্রাপ্ত (Picked Up)</option>
+              <option value="in_class">উপস্থিত</option>
+              <option value="picked_up">ছুটিপ্রাপ্ত</option>
               <option value="absent">অনুপস্থিত</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <span className="text-slate-500 font-medium">শিফট:</span>
+            <select
+              value={shiftFilter}
+              onChange={(e) => setShiftFilter(e.target.value as any)}
+              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="all">সকল শিফট</option>
+              <option value="morning">মর্নিং শিফট</option>
+              <option value="day">ডে শিফট</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <span className="text-slate-500 font-medium">লিঙ্গ:</span>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value as any)}
+              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="all">উভয়</option>
+              <option value="male">ছেলে</option>
+              <option value="female">মেয়ে</option>
             </select>
           </div>
 
@@ -972,26 +1006,63 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       </div>
                     </div>
 
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                      isPresent
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : isPickedUp
-                        ? 'bg-teal-100 text-teal-800 border-teal-300'
-                        : 'bg-rose-100 text-rose-800 border-rose-300'
-                    }`}>
-                      {isPresent ? 'উপস্থিত' : isPickedUp ? 'ছুটিপ্রাপ্ত' : 'অনুপস্থিত'}
-                    </span>
+                    {canEditStudents ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextStatus: 'in_class' | 'picked_up' | 'absent' =
+                            std.currentStatus === 'in_class'
+                              ? 'picked_up'
+                              : std.currentStatus === 'picked_up'
+                              ? 'absent'
+                              : 'in_class';
+                          onUpdateStudent({ ...std, currentStatus: nextStatus });
+                          showToast(
+                            `✓ ${std.nameBn}-এর আজকের স্ট্যাটাস পরিবর্তিত হয়েছে (${
+                              nextStatus === 'in_class' ? 'উপস্থিত' : nextStatus === 'picked_up' ? 'ছুটিপ্রাপ্ত' : 'অনুপস্থিত'
+                            })`
+                          );
+                        }}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 transition-transform active:scale-95 cursor-pointer flex items-center gap-1 ${
+                          isPresent
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
+                            : isPickedUp
+                            ? 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200'
+                            : 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200'
+                        }`}
+                        title="স্ট্যাটাস পরিবর্তন করতে ক্লিক করুন (উপস্থিত ➔ ছুটিপ্রাপ্ত ➔ অনুপস্থিত)"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        <span>{isPresent ? 'উপস্থিত' : isPickedUp ? 'ছুটিপ্রাপ্ত' : 'অনুপস্থিত'}</span>
+                        <span className="text-[9px] opacity-70">⇄</span>
+                      </button>
+                    ) : (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                        isPresent
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : isPickedUp
+                          ? 'bg-teal-100 text-teal-800 border-teal-300'
+                          : 'bg-rose-100 text-rose-800 border-rose-300'
+                      }`}>
+                        {isPresent ? 'উপস্থিত' : isPickedUp ? 'ছুটিপ্রাপ্ত' : 'অনুপস্থিত'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Metadata Chips */}
                   <div className="grid grid-cols-2 gap-2 mt-3 text-xs bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">শ্রেণি ও শাখা:</span>
-                      <span className="font-bold text-slate-800">{getSchoolClassNameBn(std.className)} ({std.section})</span>
+                      <span className="text-[10px] text-slate-400 font-semibold block">শ্রেণি ও শিফট:</span>
+                      <span className="font-bold text-slate-800">
+                        {getSchoolClassNameBn(std.className)} ({std.section}) ·{' '}
+                        <strong className="text-amber-700 font-bold">{std.shift === 'day' ? 'ডে' : 'মর্নিং'}</strong>
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-semibold block">রক্তের গ্রুপ:</span>
-                      <span className="font-mono font-bold text-slate-800">{std.bloodGroup || 'জানা নেই'}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold block">রক্ত ও লিঙ্গ:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {std.bloodGroup || '—'} · {std.gender === 'female' ? 'মেয়ে' : 'ছেলে'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-semibold block">পিতা:</span>
@@ -1038,7 +1109,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
 
                 {/* Card Actions: ID Card, Edit, Delete, Attendance, Report */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 text-xs flex-wrap">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     <button
                       type="button"
                       onClick={() => handleOpenIdCardModal(std.id)}
@@ -1046,7 +1117,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       title="ডিজিটাল আইডি কার্ড ও পিকআপ QR কোড দেখুন বা প্রিন্ট করুন"
                     >
                       <QrCode className="w-3.5 h-3.5 text-teal-700" />
-                      <span>আইডি কার্ড</span>
+                      <span>আইডি</span>
                     </button>
                     {canEditStudents && (
                       <>
@@ -1071,7 +1142,19 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showToast(
+                          `🔐 "${std.nameBn}" এর লগইন তথ্য — ইউজার আইডি: ${std.username || std.rollNo} | পাসওয়ার্ড: ${std.password || '123456'} | রোল: ${getPortalRoleLabelBn(std.portalRole || 'parent')}`
+                        );
+                      }}
+                      className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] flex items-center gap-1 transition cursor-pointer border border-slate-200 shadow-2xs"
+                      title="শিক্ষার্থী/অভিভাবক লগইন আইডি ও পাসওয়ার্ড দেখুন"
+                    >
+                      <span>🔐 আইডি</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleOpenProgressCardModal(std.id)}

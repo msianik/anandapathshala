@@ -440,8 +440,17 @@ export default function App() {
 
   // Global Real-time Listener for Student Updates Across all Modules
   useEffect(() => {
-    const handleStudentsUpdated = () => {
+    const handleStudentsUpdated = (e?: Event) => {
       try {
+        const detail = (e as CustomEvent)?.detail;
+        if (detail?.students && Array.isArray(detail.students) && detail.students.length > 0) {
+          setStudents(detail.students);
+          return;
+        }
+        if (Array.isArray(detail) && detail.length > 0) {
+          setStudents(detail);
+          return;
+        }
         const stored = localStorage.getItem('ananda_students_v2') || localStorage.getItem('ananda_students_v1');
         if (stored) {
           const parsed: Student[] = JSON.parse(stored);
@@ -451,9 +460,66 @@ export default function App() {
         }
       } catch {}
     };
+
+    const handlePortalAccountsSync = () => {
+      if (!loggedInAccount) return;
+      try {
+        const allAccs = getAllPortalAccounts();
+        const updated = allAccs.find((a) => a.id === loggedInAccount.id);
+        if (updated) {
+          setLoggedInAccount(updated);
+          localStorage.setItem('ananda_session_account_v1', JSON.stringify(updated));
+        }
+      } catch {}
+    };
+
+    const handleInvoicesSync = (e?: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail;
+        if (Array.isArray(detail) && detail.length > 0) {
+          setInvoices(detail);
+          return;
+        }
+        const stored = localStorage.getItem('ananda_invoices_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setInvoices(parsed);
+          }
+        }
+      } catch {}
+    };
+
+    const handleAttendanceSync = (e?: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail;
+        if (Array.isArray(detail) && detail.length > 0) {
+          setAttendanceRecords(detail);
+          return;
+        }
+        const stored = localStorage.getItem('ananda_attendance_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAttendanceRecords(parsed);
+          }
+        }
+      } catch {}
+    };
+
     window.addEventListener('ananda-students-updated', handleStudentsUpdated);
-    return () => window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
-  }, []);
+    window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
+    window.addEventListener('ananda-invoices-updated', handleInvoicesSync);
+    window.addEventListener('ananda-attendance-updated', handleAttendanceSync);
+
+    return () => {
+      window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
+      window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
+      window.removeEventListener('ananda-invoices-updated', handleInvoicesSync);
+      window.removeEventListener('ananda-attendance-updated', handleAttendanceSync);
+    };
+  }, [loggedInAccount]);
+
   const [pickupLogs, setPickupLogs] = useState<PickupEvent[]>(INITIAL_PICKUP_LOGS);
   const [activityPosts, setActivityPosts] = useState<ActivityPost[]>(INITIAL_ACTIVITY_POSTS);
   const [assessments, setAssessments] =
@@ -470,8 +536,18 @@ export default function App() {
     } catch {}
     return INITIAL_INVOICES;
   });
-  const [attendanceRecords, setAttendanceRecords] =
-    useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
+    try {
+      const stored = localStorage.getItem('ananda_attendance_v1');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return INITIAL_ATTENDANCE;
+  });
   const [, setAdmissions] = useState<AdmissionApplication[]>(INITIAL_ADMISSIONS);
 
   // School Assets & Inventory Tracking State
@@ -1097,11 +1173,17 @@ export default function App() {
               status: 'paid' as const,
               paymentMethod: method,
               transactionId,
-              paidAt: 'আজ, ০৫ নভেম্বর ২০২৬',
+              paidAt: `আজ, ${new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })}`,
             }
           : inv
       );
       cloudSaveInvoices(updated);
+      try {
+        localStorage.setItem('ananda_invoices_v1', JSON.stringify(updated));
+      } catch {}
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ananda-invoices-updated', { detail: updated }));
+      }, 0);
       return updated;
     });
   };
@@ -1109,11 +1191,19 @@ export default function App() {
   const handleUpdateInvoices = (updatedInvoices: FeeInvoice[]) => {
     setInvoices(updatedInvoices);
     cloudSaveInvoices(updatedInvoices);
+    try {
+      localStorage.setItem('ananda_invoices_v1', JSON.stringify(updatedInvoices));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('ananda-invoices-updated', { detail: updatedInvoices }));
   };
 
   const handleUpdateAttendance = (records: AttendanceRecord[]) => {
     setAttendanceRecords(records);
     cloudSaveAttendance(records);
+    try {
+      localStorage.setItem('ananda_attendance_v1', JSON.stringify(records));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: records }));
   };
 
   const handleUpdateStaffAttendance = (records: any[]) => {
@@ -1145,11 +1235,12 @@ export default function App() {
         localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
         localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
       } catch {}
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
+      }, 0);
       return updated;
     });
-
-    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: enrichedStudent }));
-    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
@@ -1168,11 +1259,12 @@ export default function App() {
         localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
         localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
       } catch {}
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
+      }, 0);
       return updated;
     });
-
-    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: enrichedStudent }));
-    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleDeleteStudent = (studentId: string) => {
@@ -1190,11 +1282,12 @@ export default function App() {
         localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
         localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
       } catch {}
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { deletedId: studentId, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
+      }, 0);
       return updated;
     });
-
-    window.dispatchEvent(new CustomEvent('ananda-students-updated'));
-    window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
   };
 
   const handleAddAdmission = (newApp: AdmissionApplication) => {
@@ -1529,8 +1622,10 @@ export default function App() {
                           assessments={assessments}
                           invoices={invoices}
                           pickupLogs={pickupLogs}
+                          attendanceRecords={attendanceRecords}
                           onNavigateTab={setCurrentTab}
                           onSendUrgentPickupAlert={handleSendUrgentPickupAlert}
+                          onUpdateStudent={handleUpdateStudent}
                         />
                       ) : (
                         <OverviewDashboard

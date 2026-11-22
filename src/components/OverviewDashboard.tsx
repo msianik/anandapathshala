@@ -863,11 +863,33 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   const [selectedAchievementForModal, setSelectedAchievementForModal] =
     useState<Achievement | null>(null);
 
+  useEffect(() => {
+    const handleSyncAchievements = (e: Event) => {
+      try {
+        const customEv = e as CustomEvent<{ achievements?: Achievement[] }>;
+        if (customEv?.detail?.achievements && Array.isArray(customEv.detail.achievements)) {
+          setAchievements(customEv.detail.achievements);
+          return;
+        }
+        const saved = localStorage.getItem('ananda_pathshala_achievements_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) setAchievements(parsed);
+        }
+      } catch {}
+    };
+    window.addEventListener('ananda-achievements-updated', handleSyncAchievements);
+    return () => window.removeEventListener('ananda-achievements-updated', handleSyncAchievements);
+  }, []);
+
   const persistAchievements = (updated: Achievement[]) => {
     setAchievements(updated);
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('ananda_pathshala_achievements_v1', JSON.stringify(updated));
+        window.dispatchEvent(
+          new CustomEvent('ananda-achievements-updated', { detail: { achievements: updated } })
+        );
       } catch {}
     }
   };
@@ -1087,14 +1109,18 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div
+          onClick={() => onNavigateTab('students')}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+          title="শিক্ষার্থী তালিকা ও প্রোফাইল ডিরেক্টরি খুলুন"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-medium">নিবন্ধিত শিক্ষার্থী</span>
-            <Users className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-medium group-hover:text-amber-700 transition-colors">নিবন্ধিত শিক্ষার্থী</span>
+            <Users className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
           </div>
           <span className="text-2xl font-bold text-slate-900 font-mono">{students.length} জন</span>
-          <span className="text-[10px] text-slate-400 block mt-0.5">
-            {SCHOOL_PROFILE.classesBn ? SCHOOL_PROFILE.classesBn.replace(/\s*\(Pre-Play\)/gi, '') : ''}
+          <span className="text-[10px] text-amber-700 block mt-0.5 font-bold">
+            শিক্ষার্থী তালিকা ও ভর্তি →
           </span>
         </div>
 
@@ -1117,32 +1143,40 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               মাসিক CSV 📊
             </span>
           </div>
-          <span className="text-[10px] text-emerald-600 block mt-0.5">
-            সবাই আজ উপস্থিত · রিপোর্ট দেখুন
+          <span className="text-[10px] text-emerald-600 block mt-0.5 font-bold">
+            হাজিরা রিপোর্ট দেখুন →
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div
+          onClick={() => onNavigateTab('pickup')}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all cursor-pointer group"
+          title="গেট পাস ও পিকআপ ট্র্যাকিং খুলুন"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-medium">নিরাপদ গেট প্রস্থান</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-medium group-hover:text-emerald-700 transition-colors">নিরাপদ গেট প্রস্থান</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
           </div>
           <span className="text-2xl font-bold text-emerald-700 font-mono">{pickedUpCount} জন</span>
-          <span className="text-[10px] text-slate-400 block mt-0.5">
-            শ্রেণিকক্ষে আছে: {inClassCount} জন
+          <span className="text-[10px] text-emerald-700 block mt-0.5 font-bold">
+            শ্রেণিকক্ষে: {inClassCount} জন · পিকআপ →
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div
+          onClick={() => onNavigateTab('fees')}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-rose-400 hover:shadow-xs transition-all cursor-pointer group"
+          title="ফি ও হিসাবরক্ষণ মডিউল খুলুন"
+        >
           <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-medium">বিকাশ ফি কালেকশন</span>
-            <CreditCard className="w-4 h-4 text-rose-500" />
+            <span className="text-xs font-medium group-hover:text-rose-700 transition-colors">বিকাশ ফি কালেকশন</span>
+            <CreditCard className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
           </div>
           <span className="text-2xl font-bold text-slate-900 font-mono">
-            ৳ {feeSummary.totalCollected}
+            ৳ {feeSummary.totalCollected.toLocaleString('bn-BD')}
           </span>
-          <span className="text-[10px] text-rose-500 block mt-0.5">
-            বকেয়া: ৳ {feeSummary.totalOutstanding}
+          <span className="text-[10px] text-rose-600 block mt-0.5 font-bold">
+            বকেয়া: ৳ {feeSummary.totalOutstanding.toLocaleString('bn-BD')} · ফি হিসাব →
           </span>
         </div>
       </div>
@@ -1512,7 +1546,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
       {/* Inspected Student Detail Modal */}
       <StudentInspectModal
-        student={inspectedStudent}
+        student={inspectedStudent ? (students.find((s) => s.id === inspectedStudent.id) || inspectedStudent) : null}
         onClose={() => setInspectedStudent(null)}
         onNavigateTab={onNavigateTab}
       />
