@@ -117,7 +117,10 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   loggedInAccount,
   onNavigateTab,
   assessments,
+  academicYear: propAcademicYear,
 }) => {
+  const currentAcademicYear = propAcademicYear || getActiveAcademicYear();
+  const [isSectionManagerOpen, setIsSectionManagerOpen] = useState(false);
   // Access Guard: Super Admin, Admin, Directors, Principal, and Teachers can view all students
   const hasAccess =
     currentRole === 'super_admin' ||
@@ -626,6 +629,21 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
           </button>
         </div>
       )}
+
+      {/* Super Admin & Admin Academic Year & Section Management Bar */}
+      <AcademicYearSelector
+        variant="banner"
+        showManageSectionsButton
+        onOpenSectionManager={() => setIsSectionManagerOpen(true)}
+      />
+
+      {/* Class Section Manager Modal */}
+      <ClassSectionManagerModal
+        isOpen={isSectionManagerOpen}
+        onClose={() => setIsSectionManagerOpen(false)}
+        academicYear={currentAcademicYear}
+        initialClass={selectedClass !== 'all' ? selectedClass : 'Play'}
+      />
 
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 via-teal-800 to-amber-700 text-white p-6 sm:p-8 shadow-sm">
