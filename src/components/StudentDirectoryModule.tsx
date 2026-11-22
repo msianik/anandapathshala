@@ -731,9 +731,6 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
               শিক্ষার্থী তালিকা ও প্রোফাইল
             </h2>
-            <p className="text-xs sm:text-sm text-teal-100 max-w-2xl leading-relaxed">
-              শ্রেণিভিত্তিক শিক্ষার্থীদের তথ্য, প্রোফাইল ও অভিভাবক যোগাযোগ
-            </p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
