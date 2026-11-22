@@ -1580,16 +1580,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-slate-700">শাখা (Section) *</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsSectionManagerOpen(true)}
-                      className="text-[10px] text-emerald-700 hover:underline font-bold cursor-pointer"
-                    >
-                      + সেকশন পরিচালনা
-                    </button>
-                  </div>
+                  <label className="font-bold text-slate-700 block mb-1">শাখা (Section) *</label>
                   {(() => {
                     const classSections = getClassSectionsForYear(currentAcademicYear, formData.className);
                     return (
