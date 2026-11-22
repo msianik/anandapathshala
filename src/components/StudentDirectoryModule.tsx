@@ -183,6 +183,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedPhotoName, setUploadedPhotoName] = useState('');
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   const handleForceCloudSync = async () => {
@@ -204,11 +205,12 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadedPhotoName(file.name);
     try {
       const compressed = await compressImageToDataUrl(file, 360, 360, 0.75);
       if (compressed) {
         setFormData((prev) => ({ ...prev, photoUrl: compressed }));
-        showToast('📸 শিক্ষার্থীর ছবি সফলভাবে যুক্ত ও অপ্টিমাইজ হয়েছে!');
+        showToast(`📸 ${file.name} ছবি সফলভাবে লোড ও অপ্টিমাইজ হয়েছে!`);
       } else {
         showToast('⚠️ ছবি প্রসেস করা যায়নি।');
       }
@@ -351,12 +353,18 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       password: '123456',
       portalRole: 'parent',
     });
+    setUploadedPhotoName('');
     setIsAddModalOpen(true);
   };
 
   // Open Edit Modal
   const handleOpenEditModal = (student: Student) => {
     setEditingStudent(student);
+    if (student.photoUrl && student.photoUrl.startsWith('data:image')) {
+      setUploadedPhotoName('সংরক্ষিত প্রোফাইল ছবি');
+    } else {
+      setUploadedPhotoName('');
+    }
     setFormData({
       rollNo: student.rollNo,
       nameBn: student.nameBn,
@@ -1500,15 +1508,44 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       </span>
                     </div>
 
-                    {/* URL / Path Option */}
-                    <div>
-                      <input
-                        type="text"
-                        value={formData.photoUrl}
-                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                        placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন..."
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-700 focus:outline-none focus:border-emerald-500"
-                      />
+                    {/* URL / Path / File Display */}
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={
+                            formData.photoUrl.startsWith('data:image')
+                              ? (uploadedPhotoName ? `📁 ${uploadedPhotoName}` : '📁 কম্পিউটার থেকে আপলোডকৃত ছবি')
+                              : formData.photoUrl
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setUploadedPhotoName('');
+                            setFormData({ ...formData, photoUrl: val });
+                          }}
+                          placeholder="অথবা সরাসরি ছবির লিঙ্ক বা ফাইল পাথ দিন (যেমন: /assets/students/281.jpg)..."
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-850 font-medium focus:outline-none focus:border-emerald-500 pr-8"
+                        />
+                        {formData.photoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUploadedPhotoName('');
+                              setFormData((prev) => ({ ...prev, photoUrl: '' }));
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 text-xs font-bold cursor-pointer"
+                            title="ছবি বাদ দিন"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      {formData.photoUrl.startsWith('data:image') && (
+                        <p className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                          <span>✅ কম্পিউটারের ফাইল সংযুক্ত হয়েছে ({uploadedPhotoName || 'ইমেজ ফাইল'})</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
