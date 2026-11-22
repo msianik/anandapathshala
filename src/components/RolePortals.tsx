@@ -13,7 +13,7 @@ import {
   SchoolClass,
   WeeklyClassProgressRecord,
 } from '../types/school';
-import { calculateAttendanceStats, getSchoolClassNameBn, toBengaliNumber, isSameSchoolClass } from '../utils/schoolLogic';
+import { calculateAttendanceStats, getSchoolClassNameBn, toBengaliNumber, isSameSchoolClass, normalizeIdentifier } from '../utils/schoolLogic';
 import {
   getClassRoutines,
   getPeriodsForClass,
