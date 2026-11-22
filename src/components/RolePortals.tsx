@@ -1909,8 +1909,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-200 font-medium flex flex-wrap items-center gap-1.5">
-                <span>বিদ্যালয়: <strong className="text-emerald-300 font-bold">আনন্দ পাঠশালা (কুষ্টিয়া)</strong></span>
-                <span>·</span>
                 <span>
                   শ্রেণি: <strong className="text-amber-300 font-bold">{getSchoolClassNameBn(myChild.className)}</strong> ({myChild.section})
                 </span>
