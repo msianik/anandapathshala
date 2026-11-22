@@ -183,7 +183,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     homeAddressBn: 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
     allergies: 'নেই',
     guardianNameBn: '',
-    guardianRelationBn: 'বাবা',
+    guardianRelationBn: 'পিতা',
     currentStatus: 'in_class' as 'in_class' | 'picked_up' | 'absent',
     username: '',
     password: '123456',
@@ -353,7 +353,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       homeAddressBn: 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
       allergies: 'নেই',
       guardianNameBn: '',
-      guardianRelationBn: 'বাবা',
+      guardianRelationBn: 'পিতা',
       currentStatus: 'in_class',
       username: defaultUser,
       password: '123456',
@@ -382,8 +382,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       email: student.email || '',
       homeAddressBn: student.homeAddressBn || 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
       allergies: student.allergies || 'নেই',
-      guardianNameBn: student.authorizedPickups[0]?.nameBn || student.fatherNameBn || '',
-      guardianRelationBn: student.authorizedPickups[0]?.relationBn || 'বাবা',
+      guardianNameBn: student.guardianNameBn || student.authorizedPickups[0]?.nameBn || student.fatherNameBn || '',
+      guardianRelationBn: student.guardianRelationBn || student.authorizedPickups[0]?.relationBn || 'পিতা',
       currentStatus: student.currentStatus,
       username:
         student.username ||
@@ -420,8 +420,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       id: `p-${Date.now()}-1`,
       nameBn: formData.guardianNameBn.trim() || formData.fatherNameBn.trim() || 'অভিভাবক',
       nameEn: formData.nameEn.trim() || 'Guardian',
-      relationBn: formData.guardianRelationBn || 'বাবা',
-      relationEn: 'Father/Guardian',
+      relationBn: formData.guardianRelationBn || 'পিতা',
+      relationEn: 'Guardian',
       phone: formData.emergencyPhone.trim() || '০১৯১৪-০৫৭৫১১',
       nid: 'NID-VERIFIED-2026',
       avatarBg: 'bg-emerald-500',
@@ -446,6 +446,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       email: formData.email.trim() || undefined,
       fatherNameBn: formData.fatherNameBn.trim(),
       motherNameBn: formData.motherNameBn.trim(),
+      guardianNameBn: formData.guardianNameBn.trim() || formData.fatherNameBn.trim() || 'অভিভাবক',
+      guardianRelationBn: formData.guardianRelationBn || 'পিতা',
       homeAddressBn: formData.homeAddressBn.trim(),
       currentStatus: formData.currentStatus,
       authorizedPickups: [primaryPickup],
@@ -534,6 +536,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       email: formData.email.trim() || editingStudent.email,
       fatherNameBn: formData.fatherNameBn.trim(),
       motherNameBn: formData.motherNameBn.trim(),
+      guardianNameBn: formData.guardianNameBn.trim() || formData.fatherNameBn.trim(),
+      guardianRelationBn: formData.guardianRelationBn || 'পিতা',
       homeAddressBn: formData.homeAddressBn.trim(),
       currentStatus: formData.currentStatus,
       authorizedPickups: updatedPickups,
@@ -1696,7 +1700,15 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     <input
                       type="text"
                       value={formData.fatherNameBn}
-                      onChange={(e) => setFormData({ ...formData, fatherNameBn: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const shouldSync = formData.guardianRelationBn === 'পিতা' && (!formData.guardianNameBn || formData.guardianNameBn === formData.fatherNameBn);
+                        setFormData({
+                          ...formData,
+                          fatherNameBn: val,
+                          guardianNameBn: shouldSync ? val : formData.guardianNameBn,
+                        });
+                      }}
                       placeholder="যেমন: মো. রফিকুল ইসলাম"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
                     />
@@ -1707,10 +1719,62 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     <input
                       type="text"
                       value={formData.motherNameBn}
-                      onChange={(e) => setFormData({ ...formData, motherNameBn: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const shouldSync = formData.guardianRelationBn === 'মাতা' && (!formData.guardianNameBn || formData.guardianNameBn === formData.motherNameBn);
+                        setFormData({
+                          ...formData,
+                          motherNameBn: val,
+                          guardianNameBn: shouldSync ? val : formData.guardianNameBn,
+                        });
+                      }}
                       placeholder="যেমন: ফারহানা আফরোজ"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">অভিভাবকের নাম *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.guardianNameBn}
+                      onChange={(e) => setFormData({ ...formData, guardianNameBn: e.target.value })}
+                      placeholder="যেমন: মো. রফিকুল ইসলাম"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">অভিভাবকের সাথে সম্পর্ক *</label>
+                    <select
+                      value={formData.guardianRelationBn}
+                      onChange={(e) => {
+                        const rel = e.target.value;
+                        let autoName = formData.guardianNameBn;
+                        if (rel === 'পিতা' && (!autoName || autoName === formData.motherNameBn)) {
+                          autoName = formData.fatherNameBn;
+                        } else if (rel === 'মাতা' && (!autoName || autoName === formData.fatherNameBn)) {
+                          autoName = formData.motherNameBn;
+                        }
+                        setFormData({ ...formData, guardianRelationBn: rel, guardianNameBn: autoName });
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 font-bold cursor-pointer"
+                    >
+                      <option value="পিতা">পিতা</option>
+                      <option value="মাতা">মাতা</option>
+                      <option value="চাচা">চাচা</option>
+                      <option value="চাচি">চাচি</option>
+                      <option value="ফুফু">ফুফু</option>
+                      <option value="ফুফা">ফুফা</option>
+                      <option value="দাদা">দাদা</option>
+                      <option value="দাদি">দাদি</option>
+                      <option value="নানা">নানা</option>
+                      <option value="নানি">নানি</option>
+                      <option value="অন্যান্য">অন্যান্য</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1728,26 +1792,15 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1">প্রধান অভিভাবক সম্পর্ক</label>
+                    <label className="font-bold text-slate-700 block mb-1">বর্তমান ঠিকানা</label>
                     <input
                       type="text"
-                      value={formData.guardianRelationBn}
-                      onChange={(e) => setFormData({ ...formData, guardianRelationBn: e.target.value })}
-                      placeholder="যেমন: বাবা / মা / নানা"
+                      value={formData.homeAddressBn}
+                      onChange={(e) => setFormData({ ...formData, homeAddressBn: e.target.value })}
+                      placeholder="যেমন: ১৯/২২ পূর্ণ চন্দ্র লাহিড়ী লেন (গোশালা), কুষ্টিয়া"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">বর্তমান ঠিকানা</label>
-                  <input
-                    type="text"
-                    value={formData.homeAddressBn}
-                    onChange={(e) => setFormData({ ...formData, homeAddressBn: e.target.value })}
-                    placeholder="যেমন: ১৯/২২ পূর্ণ চন্দ্র লাহিড়ী লেন (গোশালা), কুষ্টিয়া"
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800"
-                  />
                 </div>
               </div>
 

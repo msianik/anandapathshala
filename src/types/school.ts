@@ -211,6 +211,8 @@ export interface Student {
   email?: string;
   fatherNameBn: string;
   motherNameBn: string;
+  guardianNameBn?: string;
+  guardianRelationBn?: string;
   homeAddressBn: string;
   currentStatus: 'in_class' | 'picked_up' | 'absent';
   lastPickupEvent?: PickupEvent;

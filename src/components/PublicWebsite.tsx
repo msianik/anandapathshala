@@ -1832,12 +1832,17 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
                     }}
                     className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50/70 hover:bg-slate-50 focus:bg-white text-slate-800 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all outline-none font-semibold cursor-pointer"
                   >
-                    <option value="পিতা">পিতা (Father)</option>
-                    <option value="মাতা">মাতা (Mother)</option>
-                    <option value="দাদা/দাদি">দাদা / দাদি</option>
-                    <option value="নানা/নানি">নানা / নানি</option>
-                    <option value="চাচা/মামা">চাচা / মামা</option>
-                    <option value="অন্যান্য অভিভাবক">অন্যান্য অভিভাবক</option>
+                    <option value="পিতা">পিতা</option>
+                    <option value="মাতা">মাতা</option>
+                    <option value="চাচা">চাচা</option>
+                    <option value="চাচি">চাচি</option>
+                    <option value="ফুফু">ফুফু</option>
+                    <option value="ফুফা">ফুফা</option>
+                    <option value="দাদা">দাদা</option>
+                    <option value="দাদি">দাদি</option>
+                    <option value="নানা">নানা</option>
+                    <option value="নানি">নানি</option>
+                    <option value="অন্যান্য">অন্যান্য</option>
                   </select>
                 </div>
 

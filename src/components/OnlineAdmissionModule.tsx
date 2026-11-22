@@ -88,6 +88,8 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
     motherNameBn: '',
     motherPhone: '',
     motherOccupation: '',
+    guardianNameBn: '',
+    guardianRelationBn: 'পিতা',
     presentAddressBn: '',
     previousSchoolBn: '',
     emergencyContact: '',
@@ -164,6 +166,8 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
       motherNameBn: '',
       motherPhone: '',
       motherOccupation: '',
+      guardianNameBn: '',
+      guardianRelationBn: 'পিতা',
       presentAddressBn: '',
       previousSchoolBn: '',
       emergencyContact: '',
@@ -852,6 +856,52 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                         onChange={(e) => setFormData({ ...formData, motherOccupation: e.target.value })}
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50"
                       />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        অভিভাবকের নাম
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: মো. রফিকুল ইসলাম"
+                        value={formData.guardianNameBn}
+                        onChange={(e) => setFormData({ ...formData, guardianNameBn: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        অভিভাবকের সাথে সম্পর্ক
+                      </label>
+                      <select
+                        value={formData.guardianRelationBn}
+                        onChange={(e) => {
+                          const rel = e.target.value;
+                          let autoName = formData.guardianNameBn;
+                          if (rel === 'পিতা' && (!autoName || autoName === formData.motherNameBn)) {
+                            autoName = formData.fatherNameBn;
+                          } else if (rel === 'মাতা' && (!autoName || autoName === formData.fatherNameBn)) {
+                            autoName = formData.motherNameBn;
+                          }
+                          setFormData({ ...formData, guardianRelationBn: rel, guardianNameBn: autoName });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50 font-bold cursor-pointer"
+                      >
+                        <option value="পিতা">পিতা</option>
+                        <option value="মাতা">মাতা</option>
+                        <option value="চাচা">চাচা</option>
+                        <option value="চাচি">চাচি</option>
+                        <option value="ফুফু">ফুফু</option>
+                        <option value="ফুফা">ফুফা</option>
+                        <option value="দাদা">দাদা</option>
+                        <option value="দাদি">দাদি</option>
+                        <option value="নানা">নানা</option>
+                        <option value="নানি">নানি</option>
+                        <option value="অন্যান্য">অন্যান্য</option>
+                      </select>
                     </div>
                   </div>
 
