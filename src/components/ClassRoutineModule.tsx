@@ -58,9 +58,19 @@ import { ExamScheduleTab } from './ExamScheduleTab';
 import { CulturalDayHubTab } from './CulturalDayHubTab';
 import { WeeklyTiffinMenuTab } from './WeeklyTiffinMenuTab';
 import { HomeworkChecklistModule } from './HomeworkChecklistModule';
+import { AcademicYearSelector } from './AcademicYearSelector';
+import { ClassSectionManagerModal } from './ClassSectionManagerModal';
+import {
+  getActiveAcademicYear,
+  copyRoutinesFromPreviousYear,
+  getClassSectionsForYear,
+  toBengaliNumber,
+  ACADEMIC_YEAR_CHANGE_EVENT,
+} from '../utils/academicYearLogic';
 import { cloudSaveRoutines } from '../lib/schoolCloudSync';
 import {
   Calendar,
+  CalendarDays,
   Clock,
   BookOpen,
   UserCheck,
@@ -92,6 +102,8 @@ import {
   Palette,
   Award,
   Cloud,
+  Copy,
+  Layers,
 } from 'lucide-react';
 
 /**
@@ -118,6 +130,7 @@ interface ClassRoutineModuleProps {
   currentRole: UserRole;
   initialClass?: SchoolClass;
   readOnly?: boolean;
+  academicYear?: string;
 }
 
 const CLASS_OPTIONS: { id: SchoolClass; nameBn: string; color: string; badge: string }[] = [
@@ -133,7 +146,11 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   currentRole,
   initialClass = 'Nursery',
   readOnly = false,
+  academicYear: propAcademicYear,
 }) => {
+  const currentAcademicYear = propAcademicYear || getActiveAcademicYear();
+  const [isSectionManagerOpen, setIsSectionManagerOpen] = useState(false);
+
   const isAdmin =
     !readOnly &&
     (currentRole === 'super_admin' ||
@@ -144,7 +161,18 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
   const isTeacher = !readOnly && currentRole === 'teacher';
   const canEditLessonPlan = isAdmin || isTeacher;
 
-  const [routines, setRoutines] = useState<ClassRoutinePeriod[]>(() => getClassRoutines());
+  const [routines, setRoutines] = useState<ClassRoutinePeriod[]>(() => getClassRoutines(currentAcademicYear));
+
+  // Sync routines when academic year changes globally
+  useEffect(() => {
+    const handleYearChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const targetYear = detail?.year || getActiveAcademicYear();
+      setRoutines(getClassRoutines(targetYear));
+    };
+    window.addEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleYearChange);
+    return () => window.removeEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleYearChange);
+  }, []);
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(initialClass);
   const [shiftFilter, setShiftFilter] = useState<SchoolShift | 'all'>('all');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
@@ -939,6 +967,77 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
         </div>
       )}
 
+      {/* Super Admin & Admin Academic Year & Section Management Bar */}
+      <AcademicYearSelector
+        variant="banner"
+        showManageSectionsButton
+        onOpenSectionManager={() => setIsSectionManagerOpen(true)}
+      />
+
+      {/* Class Section Manager Modal */}
+      <ClassSectionManagerModal
+        isOpen={isSectionManagerOpen}
+        onClose={() => setIsSectionManagerOpen(false)}
+        academicYear={currentAcademicYear}
+        initialClass={selectedClass}
+      />
+
+      {/* Empty Routine Banner for New Academic Year */}
+      {routines.length === 0 && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-amber-500/15 border-2 border-dashed border-amber-400 text-amber-950 space-y-3 print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0">
+              <CalendarDays className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-black">
+                {toBengaliNumber(currentAcademicYear)} শিক্ষাবর্ষের ক্লাস রুটিন ডাটাবেজ বর্তমানে সম্পূর্ণ শূন্য ও প্রস্তুত
+              </h4>
+              <p className="text-xs text-amber-900/80">
+                আপনি এই শিক্ষাবর্ষের প্রতিটি শ্রেণির জন্য নতুন রুটিন তৈরি করতে পারেন অথবা পূর্ববর্তী ২০২৬ শিক্ষাবর্ষ থেকে রুটিন স্ট্রাকচার এক ক্লিকে কপি করতে পারেন।
+              </p>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('আপনি কি পূর্ববর্তী ২০২৬ শিক্ষাবর্ষের সম্পূর্ণ রুটিন এই নতুন শিক্ষাবর্ষে কপি করতে চান?')) {
+                    const cloned = copyRoutinesFromPreviousYear('2026', currentAcademicYear);
+                    setRoutines(cloned);
+                    setToastMessage('✅ ২০২৬ শিক্ষাবর্ষের রুটিন স্ট্রাকচার সফলভাবে কপি করা হয়েছে!');
+                  }
+                }}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md"
+              >
+                <Copy className="w-4 h-4 text-amber-300" />
+                <span>📋 ২০২৬ শিক্ষাবর্ষ থেকে রুটিন স্ট্রাকচার কপি করুন</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ সম্পূর্ণ নতুন পিরিয়ড তৈরি করুন</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSectionManagerOpen(true)}
+                className="px-4 py-2 bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Layers className="w-4 h-4 text-amber-700" />
+                <span>শ্রেণি ও সেকশন পরিচালনা</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Routine & Daily Lesson Plan Header Banner */}
       <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-sm border border-emerald-500/30 flex flex-col lg:flex-row lg:items-center justify-between gap-5 print:hidden">
         <div className="space-y-2">
@@ -1143,7 +1242,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
             >
               সকল শাখা
             </button>
-            {STANDARD_SECTIONS.map((sec) => {
+            {getClassSectionsForYear(currentAcademicYear, selectedClass).map((sec) => {
               const isSelected = sectionFilter === sec.id;
               return (
                 <button
@@ -1156,11 +1255,22 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                       : 'bg-white hover:bg-emerald-50 text-emerald-950 border border-emerald-200'
                   }`}
                 >
-                  <span>{sec.icon}</span>
+                  <span>{sec.icon || '🌸'}</span>
                   <span>{sec.nameBn}</span>
                 </button>
               );
             })}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsSectionManagerOpen(true)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-black text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-all flex items-center gap-1 cursor-pointer ml-1"
+                title="শ্রেণি অনুযায়ী নতুন সেকশন তৈরি বা রিনেম করুন"
+              >
+                <Layers className="w-3 h-3 text-amber-700" />
+                <span>+ সেকশন পরিচালনা</span>
+              </button>
+            )}
           </div>
 
           <div className="text-[11px] font-bold text-slate-600 shrink-0">
@@ -3372,9 +3482,9 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
                     }}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   >
-                    {STANDARD_SECTIONS.map((sec) => (
+                    {getClassSectionsForYear(currentAcademicYear, selectedClass).map((sec) => (
                       <option key={sec.id} value={sec.id}>
-                        {sec.icon} {sec.nameBn}
+                        {sec.icon || '🌸'} {sec.nameBn}
                       </option>
                     ))}
                   </select>
