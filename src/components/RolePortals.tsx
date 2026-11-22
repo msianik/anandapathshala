@@ -2159,7 +2159,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
-                <span>হাজিরা হার: <strong className="text-emerald-300 font-bold">{childAttendanceStats.presentRate}%</strong> ({toBengaliNumber(childAttendanceStats.presentDays)}/{toBengaliNumber(childAttendanceStats.totalDays)} দিন)</span>
                 <span className="flex items-center gap-1">
                   <span>বায়োমেট্রিক:</span>
                   <strong className="text-amber-200 font-bold">

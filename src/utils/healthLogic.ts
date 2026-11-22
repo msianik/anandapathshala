@@ -1,11 +1,13 @@
 import {
   SchoolClass,
+  Student,
   StudentHealthProfile,
   StudentAllergyItem,
   VaccinationRecord,
   ChildGrowthEntry,
 } from '../types/school';
 import { toBengaliNumber } from './schoolLogic';
+import { getActiveAcademicYear } from './academicYearLogic';
 
 export const HEALTH_PROFILES_STORAGE_KEY = 'ananda_health_profiles_v1';
 export const HEALTH_PROFILES_UPDATE_EVENT = 'ananda-health-profiles-updated';
@@ -446,32 +448,169 @@ export const INITIAL_STUDENT_HEALTH_PROFILES: StudentHealthProfile[] = [
 ];
 
 /**
- * Retrieves student health profiles from localStorage or falls back to defaults
+ * Create a default synthetic health profile for any student
  */
-export function getStoredHealthProfiles(): StudentHealthProfile[] {
-  if (typeof window === 'undefined') return INITIAL_STUDENT_HEALTH_PROFILES;
-  try {
-    const raw = localStorage.getItem(HEALTH_PROFILES_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to parse stored health profiles:', err);
+export function createDefaultHealthProfileForStudent(std: Student): StudentHealthProfile {
+  const heightCm =
+    std.className === 'HateKhori'
+      ? 88
+      : std.className === 'Play'
+      ? 95
+      : std.className === 'Nursery'
+      ? 102
+      : std.className === 'KG'
+      ? 108
+      : std.className === 'Class-1'
+      ? 114
+      : 120;
+  const weightKg =
+    std.className === 'HateKhori'
+      ? 12.5
+      : std.className === 'Play'
+      ? 14.5
+      : std.className === 'Nursery'
+      ? 16.5
+      : std.className === 'KG'
+      ? 18.5
+      : std.className === 'Class-1'
+      ? 20.5
+      : 23.0;
+  const bmiCalc = calculateBmi(heightCm, weightKg);
+
+  const allergiesList: StudentAllergyItem[] = [];
+  if (
+    std.allergies &&
+    std.allergies !== 'নেই' &&
+    std.allergies !== 'None' &&
+    std.allergies.trim()
+  ) {
+    allergiesList.push({
+      id: `allg-${std.id}-1`,
+      allergenBn: std.allergies,
+      severity:
+        std.allergies.includes('শ্বাসকষ্ট') || std.allergies.includes('চিংড়ি')
+          ? 'high'
+          : 'medium',
+      symptomsBn: 'চুলকানি বা অস্বস্তি দেখা দিতে পারে',
+      precautionsBn: 'টিফিন বা পরিবেশিত খাদ্যে এটি সম্পূর্ণ এড়িয়ে চলুন',
+    });
   }
-  return INITIAL_STUDENT_HEALTH_PROFILES;
+
+  return {
+    studentId: std.id,
+    studentNameBn: std.nameBn,
+    studentNameEn: std.nameEn,
+    rollNo: std.rollNo,
+    className: std.className,
+    sectionBn: std.section || 'গোলাপ শাখা (ক)',
+    bloodGroup: std.bloodGroup || 'A+',
+    heightCm,
+    weightKg,
+    bmi: bmiCalc.bmi,
+    bmiStatusBn: bmiCalc.statusBn,
+    growthMilestoneBn: 'শারীরিক বৃদ্ধি ও বিকাশ স্বাভাবিক ও সন্তোষজনক গতিতে রয়েছে।',
+    allergiesList,
+    criticalHealthAlertBn: allergiesList.some((a) => a.severity === 'high')
+      ? 'খাদ্য ও অ্যালার্জেন উপাদানে বিশেষ সতর্কতা আবশ্যক'
+      : undefined,
+    vaccinations: DEFAULT_VACCINATION_SCHEDULE,
+    growthHistory: [
+      {
+        monthBn: 'চলতি মাস',
+        heightCm,
+        weightKg,
+        bmi: bmiCalc.bmi,
+        recordedDateBn: '০১ তারিখ',
+      },
+    ],
+    lastCheckedDateBn: 'চলতি মাস',
+    updatedByTeacherBn: 'শ্রেণি শিক্ষক',
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 /**
- * Saves student health profiles
+ * Synchronizes health profiles strictly with the active student list and academic year.
+ * If students is empty, returns empty list.
+ * Sequences health profiles in the EXACT order of students.
  */
-export function saveHealthProfiles(profiles: StudentHealthProfile[]): void {
+export function syncHealthProfilesWithStudents(
+  students: Student[],
+  year?: string
+): StudentHealthProfile[] {
+  if (!students || students.length === 0) {
+    return [];
+  }
+  const targetYear = year || getActiveAcademicYear();
+  const storedProfiles = getStoredHealthProfiles(targetYear);
+
+  return students.map((std) => {
+    const existing = storedProfiles.find((p) => p.studentId === std.id);
+    if (existing) {
+      return {
+        ...existing,
+        studentNameBn: std.nameBn,
+        studentNameEn: std.nameEn || existing.studentNameEn,
+        rollNo: std.rollNo,
+        className: std.className,
+        sectionBn: std.section || existing.sectionBn,
+        bloodGroup: std.bloodGroup || existing.bloodGroup,
+      };
+    }
+    return createDefaultHealthProfileForStudent(std);
+  });
+}
+
+/**
+ * Retrieves student health profiles from localStorage or falls back to defaults (scoped by year)
+ */
+export function getStoredHealthProfiles(year?: string): StudentHealthProfile[] {
+  if (typeof window === 'undefined') return INITIAL_STUDENT_HEALTH_PROFILES;
+  try {
+    const targetYear = year || getActiveAcademicYear();
+    const key = `ananda_health_profiles_v1_year_${targetYear}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+    // Fallback for 2026: master key
+    if (targetYear === '2026') {
+      const legacyRaw = localStorage.getItem(HEALTH_PROFILES_STORAGE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localStorage.setItem(key, JSON.stringify(parsed));
+          return parsed;
+        }
+      }
+      return INITIAL_STUDENT_HEALTH_PROFILES;
+    }
+    // Any other year starts empty
+    return [];
+  } catch (err) {
+    console.error('Failed to parse stored health profiles:', err);
+  }
+  return [];
+}
+
+/**
+ * Saves student health profiles (scoped by year)
+ */
+export function saveHealthProfiles(profiles: StudentHealthProfile[], year?: string): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(HEALTH_PROFILES_STORAGE_KEY, JSON.stringify(profiles));
-    window.dispatchEvent(new CustomEvent(HEALTH_PROFILES_UPDATE_EVENT, { detail: profiles }));
+    const targetYear = year || getActiveAcademicYear();
+    const key = `ananda_health_profiles_v1_year_${targetYear}`;
+    localStorage.setItem(key, JSON.stringify(profiles));
+    if (targetYear === '2026') {
+      localStorage.setItem(HEALTH_PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+    }
+    window.dispatchEvent(
+      new CustomEvent(HEALTH_PROFILES_UPDATE_EVENT, { detail: { profiles, year: targetYear } })
+    );
   } catch (err) {
     console.error('Failed to save health profiles:', err);
   }
@@ -482,18 +621,32 @@ export function saveHealthProfiles(profiles: StudentHealthProfile[]): void {
  */
 export function updateStudentHealthProfile(
   studentId: string,
-  updates: Partial<StudentHealthProfile>
-): StudentHealthProfile | null {
-  const all = getStoredHealthProfiles();
+  updates: Partial<StudentHealthProfile>,
+  year?: string
+): StudentHealthProfile {
+  const targetYear = year || getActiveAcademicYear();
+  const all = getStoredHealthProfiles(targetYear);
   const idx = all.findIndex((p) => p.studentId === studentId);
-  if (idx === -1) return null;
 
-  const current = all[idx];
-  const heightCm = updates.heightCm !== undefined ? updates.heightCm : current.heightCm;
-  const weightKg = updates.weightKg !== undefined ? updates.weightKg : current.weightKg;
+  const current = idx >= 0 ? all[idx] : ({} as Partial<StudentHealthProfile>);
+  const heightCm = updates.heightCm !== undefined ? updates.heightCm : (current.heightCm || 95);
+  const weightKg = updates.weightKg !== undefined ? updates.weightKg : (current.weightKg || 14.5);
   const bmiCalc = calculateBmi(heightCm, weightKg);
 
   const updatedProfile: StudentHealthProfile = {
+    studentId,
+    studentNameBn: updates.studentNameBn || current.studentNameBn || 'শিক্ষার্থী',
+    studentNameEn: updates.studentNameEn || current.studentNameEn,
+    rollNo: updates.rollNo || current.rollNo || '১',
+    className: updates.className || current.className || 'Play',
+    sectionBn: updates.sectionBn || current.sectionBn || 'গোলাপ শাখা (ক)',
+    bloodGroup: updates.bloodGroup || current.bloodGroup || 'A+',
+    growthMilestoneBn: updates.growthMilestoneBn || current.growthMilestoneBn || 'শারীরিক বৃদ্ধি স্বাভাবিক',
+    allergiesList: updates.allergiesList || current.allergiesList || [],
+    vaccinations: updates.vaccinations || current.vaccinations || DEFAULT_VACCINATION_SCHEDULE,
+    growthHistory: updates.growthHistory || current.growthHistory || [],
+    lastCheckedDateBn: updates.lastCheckedDateBn || current.lastCheckedDateBn || 'চলতি মাস',
+    updatedByTeacherBn: updates.updatedByTeacherBn || current.updatedByTeacherBn || 'শ্রেণি শিক্ষক',
     ...current,
     ...updates,
     heightCm,
@@ -503,8 +656,12 @@ export function updateStudentHealthProfile(
     updatedAt: new Date().toISOString(),
   };
 
-  all[idx] = updatedProfile;
-  saveHealthProfiles(all);
+  if (idx >= 0) {
+    all[idx] = updatedProfile;
+  } else {
+    all.push(updatedProfile);
+  }
+  saveHealthProfiles(all, targetYear);
   return updatedProfile;
 }
 
