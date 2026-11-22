@@ -2036,9 +2036,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
               <BellRing className="w-5 h-5 text-rose-600" />
               <span>🚗 স্কুল গেটে পৌঁছেছেন? শ্রেণি শিক্ষককে তাৎক্ষণিক পিক-আপ মেসেজ পাঠান</span>
             </h3>
-            <p className="text-xs text-slate-600 mt-0.5">
-              এখানে ক্লিক করলে শ্রেণি শিক্ষকের মোবাইলে ও ড্যাশবোর্ডে সাথে সাথে FCM পুশ অ্যালার্ট যাবে এবং আপনার সন্তানকে গেটে প্রস্তুত করে পাঠানো হবে।
-            </p>
           </div>
           <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full shrink-0 self-start">
             ইনস্ট্যান্ট শিক্ষক নোটিফিকেশন
