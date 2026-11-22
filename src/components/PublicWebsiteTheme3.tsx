@@ -22,6 +22,14 @@ import {
   Sun,
   Palette,
   ArrowRight,
+  BookOpen,
+  Sparkles,
+  Users,
+  Award,
+  Image as ImageIcon,
+  Bell,
+  MapPin,
+  Mail,
 } from 'lucide-react';
 
 const OnlineAdmissionModule = lazy(() =>
@@ -53,6 +61,8 @@ type InteractiveModalType =
   | 'cultural'
   | 'admission'
   | 'gate'
+  | 'school_info'
+  | 'contact'
   | null;
 
 /**
@@ -134,6 +144,73 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
     playChimeSound();
     setActiveModal(spotId);
   };
+
+  const themeNavLinks = [
+    {
+      id: 'about',
+      modalId: 'gate' as InteractiveModalType,
+      label: 'আমাদের সম্পর্কে',
+      icon: <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />,
+      colorClass: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/90 hover:border-emerald-300 shadow-2xs',
+      description: 'আনন্দ পাঠশালার মূল লক্ষ্য ও পরিচিতি',
+    },
+    {
+      id: 'governing-body',
+      modalId: 'mastermashai' as InteractiveModalType,
+      label: 'পরিচালনা পর্ষদ',
+      icon: <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />,
+      colorClass: 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200/90 hover:border-amber-300 shadow-2xs',
+      description: 'সম্মানিত পরিচালনা পর্ষদ ও পরিচালকবৃন্দ',
+    },
+    {
+      id: 'teachers',
+      modalId: 'cottage' as InteractiveModalType,
+      label: 'শিক্ষকবৃন্দ',
+      icon: <GraduationCap className="w-3.5 h-3.5 text-sky-600 shrink-0" />,
+      colorClass: 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200/90 hover:border-sky-300 shadow-2xs',
+      description: 'প্রিন্সিপাল, প্রধান শিক্ষক ও শিক্ষক মণ্ডলী',
+    },
+    {
+      id: 'students',
+      modalId: 'students' as InteractiveModalType,
+      label: 'শিক্ষার্থী',
+      icon: <Award className="w-3.5 h-3.5 text-purple-600 shrink-0" />,
+      colorClass: 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-200/90 hover:border-purple-300 shadow-2xs',
+      description: 'কৃতি ও প্রিয় শিক্ষার্থীবৃন্দ',
+    },
+    {
+      id: 'gallery',
+      modalId: 'cultural' as InteractiveModalType,
+      label: 'গ্যালারি',
+      icon: <ImageIcon className="w-3.5 h-3.5 text-pink-600 shrink-0" />,
+      colorClass: 'bg-pink-50 hover:bg-pink-100 text-pink-800 border-pink-200/90 hover:border-pink-300 shadow-2xs',
+      description: 'আনন্দমুখর স্মৃতি ও উৎসবের রঙিন অ্যালবাম',
+    },
+    {
+      id: 'curriculum',
+      modalId: 'blackboard' as InteractiveModalType,
+      label: 'পাঠ্যক্রম',
+      icon: <BookOpen className="w-3.5 h-3.5 text-teal-600 shrink-0" />,
+      colorClass: 'bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-200/90 hover:border-teal-300 shadow-2xs',
+      description: 'শ্রেণিভিত্তিক পাঠ্যক্রম ও বয়সসীমা',
+    },
+    {
+      id: 'notice-board',
+      modalId: 'calendar' as InteractiveModalType,
+      label: 'নোটিশ বোর্ড',
+      icon: <Bell className="w-3.5 h-3.5 text-rose-600 shrink-0" />,
+      colorClass: 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200/90 hover:border-rose-300 shadow-2xs',
+      description: 'ডিজিটাল নোটিশ ও প্রাতিষ্ঠানিক বার্তা',
+    },
+    {
+      id: 'contact',
+      modalId: 'contact' as InteractiveModalType,
+      label: 'যোগাযোগ করুন',
+      icon: <Phone className="w-3.5 h-3.5 text-indigo-600 shrink-0" />,
+      colorClass: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-200/90 hover:border-indigo-300 shadow-2xs',
+      description: 'ক্যাম্পাস ঠিকানা ও জরুরি হেল্পলাইন',
+    },
+  ];
 
   /**
    * SIMPLE INTERACTIVE HOTSPOTS:
@@ -337,71 +414,19 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
         </button>
       </div>
 
-      {/* Desktop Bottom Floating Quick Dock */}
-      <footer className="hidden lg:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] px-4 py-2 rounded-2xl bg-slate-950/80 border border-slate-700/60 backdrop-blur-md shadow-2xl items-center gap-2 justify-center">
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('gate')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>🚪 ফটক</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('calendar')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>📅 ক্যালেন্ডার</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('blackboard')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>📋 চক-বোর্ড</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('mastermashai')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>👨‍🏫 মাস্টার মশাই</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('students')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>🎒 শিক্ষার্থী</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('cottage')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>🏡 শিক্ষক কুটির</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenSpot('cultural')}
-          className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-amber-400 text-slate-200 hover:text-slate-950 border border-slate-700/80 hover:border-amber-300 text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
-        >
-          <span>🌸 কালচারাল ডে</span>
-        </button>
-
-        <a
-          href={`tel:${schoolProfile.phone || '01712-000000'}`}
-          className="flex items-center gap-1 text-xs text-amber-300 hover:underline font-semibold ml-2 pl-2 border-l border-slate-700/80"
-        >
-          <Phone className="w-3 h-3" />
-          <span>{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
-        </a>
+      {/* Desktop Bottom Floating Quick Dock (Theme 1 Navigation Bar) */}
+      <footer className="hidden lg:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] px-4 py-2 rounded-2xl bg-white/95 border border-amber-200/80 backdrop-blur-md shadow-2xl items-center gap-1.5 sm:gap-2 justify-center">
+        {themeNavLinks.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => handleOpenSpot(item.modalId)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-150 whitespace-nowrap flex items-center gap-1.5 shadow-2xs hover:shadow-xs hover:-translate-y-0.5 group active:scale-95 shrink-0 cursor-pointer ${item.colorClass}`}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
       </footer>
 
       {/* ========================================================================= */}
@@ -410,97 +435,27 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
       <div className="lg:hidden flex-1 overflow-y-auto px-3.5 py-4 space-y-3 bg-slate-950">
         <div className="flex items-center justify-between text-xs font-bold text-amber-300/90 px-1">
           <span>✨ ক্যাম্পাসের যেকোনো অংশে ট্যাপ করুন:</span>
-          <span className="text-[10px] text-slate-400">৭টি ইন্টারঅ্যাক্টিভ স্পট</span>
+          <span className="text-[10px] text-slate-400">৮টি ইন্টারঅ্যাক্টিভ মেনু</span>
         </div>
 
         {/* 2-Column Mobile Touch Cards Grid */}
         <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('gate')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-amber-500/30 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🚪</span>
-              <span className="text-xs font-bold text-amber-300">ফটক ও তোরণ</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">বিদ্যালয় পরিচিতি ও বার্তা</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('calendar')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📅</span>
-              <span className="text-xs font-bold text-slate-200">ক্যালেন্ডার</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">ছুটির তালিকা ও সময়সূচী</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('blackboard')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
-              <span className="text-xs font-bold text-slate-200">চক-বোর্ড</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">আজকের পাঠ ও নোটিশ</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('mastermashai')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">👨‍🏫</span>
-              <span className="text-xs font-bold text-slate-200">মাস্টার মশাই</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">অধ্যক্ষ ও পরিচালনা পর্ষদ</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('students')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🎒</span>
-              <span className="text-xs font-bold text-slate-200">ছোট্ট সোনামণি</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">৫টি শ্রেণী ও ৩ ঘণ্টার শিফট</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('cottage')}
-            className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition shadow-md flex flex-col justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🏡</span>
-              <span className="text-xs font-bold text-slate-200">শিক্ষক কুটির</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">শিক্ষকমণ্ডলী ও স্টাফ</p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOpenSpot('cultural')}
-            className="col-span-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900 via-rose-950/40 to-slate-900 border border-rose-900/40 text-left transition shadow-md flex items-center justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="text-2xl">🌸</span>
-              <div>
-                <span className="text-xs font-bold text-rose-300 block">ফুলের বাগান ও কালচারাল ডে</span>
-                <span className="text-[10px] text-slate-400">প্রতি মঙ্গলবারের সঙ্গীত, আর্ট ও নৃত্য উৎসব</span>
+          {themeNavLinks.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleOpenSpot(item.modalId)}
+              className={`p-3 rounded-2xl border text-left transition shadow-md flex flex-col justify-between cursor-pointer ${item.colorClass}`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-white/90 shadow-2xs flex items-center justify-center shrink-0">
+                  {item.icon}
+                </div>
+                <span className="text-xs font-bold leading-tight">{item.label}</span>
               </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-rose-400" />
-          </button>
+              <p className="text-[10px] opacity-80 mt-1 line-clamp-1">{item.description}</p>
+            </button>
+          ))}
         </div>
 
         {/* Mobile Full-Width Admission Action Button */}
@@ -1061,6 +1016,70 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
                 onClosePublicModal={() => setActiveModal(null)}
               />
             </Suspense>
+          </div>
+        </div>
+      )}
+      {/* MODAL 8: CONTACT US (যোগাযোগ করুন) */}
+      {activeModal === 'contact' && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white text-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border-4 border-indigo-500 space-y-5 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 text-slate-700 hover:bg-rose-500 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-indigo-100 pb-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shadow-inner shrink-0">
+                <Phone className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">
+                  যোগাযোগ ও ক্যাম্পাস হেল্পলাইন
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  {schoolProfile.nameBn || 'আনন্দ পাঠশালা'} • কুষ্টিয়া, বাংলাদেশ
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-slate-700">
+              <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="font-bold text-slate-800">ক্যাম্পাস ঠিকানা:</span>
+                  <span>{schoolProfile.addressBn || 'কুষ্টিয়া সদর, কুষ্টিয়া'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="font-bold text-slate-800">মোবাইল হেল্পলাইন:</span>
+                  <a href={`tel:${schoolProfile.phoneBn || '01914-057512'}`} className="text-indigo-600 font-black hover:underline">
+                    {schoolProfile.phoneBn || '০১৯১৪-০৫৭৫১২'}
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="font-bold text-slate-800">অফিসিয়াল ইমেইল:</span>
+                  <span>{schoolProfile.email || 'info@anandapathshala.edu.bd'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModal(null);
+                  handleOpenSpot('admission');
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-lg hover:from-emerald-600 hover:to-teal-700 transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <GraduationCap className="w-4 h-4 text-white" />
+                <span>অনলাইন ভর্তি আবেদন করুন</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
