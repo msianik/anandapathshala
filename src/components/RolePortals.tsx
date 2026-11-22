@@ -1934,7 +1934,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
             <div className="space-y-1.5 min-w-0">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white truncate">
-                আপনার সন্তান: {myChild.nameBn} ({myChild.nameEn})
+                {myChild.nameBn} {myChild.nameEn ? `(${myChild.nameEn})` : ''}
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-200 font-medium flex flex-wrap items-center gap-1.5">
