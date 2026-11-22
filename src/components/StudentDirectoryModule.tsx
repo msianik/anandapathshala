@@ -67,7 +67,6 @@ import { cloudSaveStudents } from '../lib/schoolCloudSync';
 import {
   getActiveAcademicYear,
   getClassSectionsForYear,
-  toBengaliNumber,
 } from '../utils/academicYearLogic';
 
 interface StudentDirectoryModuleProps {
