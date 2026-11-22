@@ -205,6 +205,16 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const MAX_SIZE = 1 * 1024 * 1024; // 1 MB limit
+    if (file.size > MAX_SIZE) {
+      const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+      alert(`⚠️ ছবিটি ১ মেগাবাইটের বেশি হয়ে গেছে! (ফাইলের সাইজ: ${sizeInMB} MB)। অনুগ্রহ করে ১ মেগাবাইট বা তার চেয়ে কম সাইজের ছবি নির্বাচন করুন।`);
+      showToast('⚠️ ছবিটি ১ মেগাবাইটের বেশি হয়ে গেছে! (সর্বোচ্চ ১ MB)');
+      e.target.value = '';
+      return;
+    }
+
     setUploadedPhotoName(file.name);
     try {
       const compressed = await compressImageToDataUrl(file, 360, 360, 0.75);
@@ -1503,8 +1513,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                         <Upload className="w-3.5 h-3.5" />
                         <span>ডিভাইস থেকে ছবি নির্বাচন করুন</span>
                       </button>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        (সর্বোচ্চ ৫ মেগাবাইট)
+                      <span className="text-[10px] text-slate-500 font-bold">
+                        (সর্বোচ্চ ১ মেগাবাইট)
                       </span>
                     </div>
 

@@ -99,8 +99,11 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।');
+    const MAX_SIZE = 1 * 1024 * 1024; // 1 MB limit
+    if (file.size > MAX_SIZE) {
+      const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+      alert(`⚠️ ছবিটি ১ মেগাবাইটের বেশি হয়ে গেছে! (ফাইলের সাইজ: ${sizeInMB} MB)। অনুগ্রহ করে ১ মেগাবাইট বা তার চেয়ে কম সাইজের ছবি নির্বাচন করুন।`);
+      e.target.value = '';
       return;
     }
     const reader = new FileReader();
