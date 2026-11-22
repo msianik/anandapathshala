@@ -1,7 +1,9 @@
-import { SchoolClass, StudentExamResult, SubjectMark, ExamTerm } from '../types/school';
+import { SchoolClass, StudentExamResult, SubjectMark, ExamTerm, Student } from '../types/school';
 import { toBengaliNumber } from './schoolLogic';
+import { INITIAL_STUDENTS } from '../data/mockData';
 
-export const EXAM_RESULTS_STORAGE_KEY = 'ananda_exam_results_v1';
+export const EXAM_RESULTS_STORAGE_KEY = 'ananda_exam_results_v2';
+export const LEGACY_EXAM_RESULTS_STORAGE_KEY = 'ananda_exam_results_v1';
 export const EXAM_TERMS_STORAGE_KEY = 'ananda_exam_terms_v1';
 export const EXAM_RESULTS_UPDATE_EVENT = 'ananda-exam-results-updated';
 
@@ -187,773 +189,479 @@ export const DEFAULT_EXAM_TERMS: ExamTerm[] = [
   },
 ];
 
-export const INITIAL_STUDENT_EXAM_RESULTS: StudentExamResult[] = [
-  // std-0: তানিশা ইসলাম (HateKhori, Roll 100)
-  {
-    id: 'res-std-0-annual',
-    studentId: 'std-0',
-    studentNameBn: 'তানিশা ইসলাম',
-    studentNameEn: 'Tanisha Islam',
-    rollNo: '১০০',
-    className: 'HateKhori',
-    sectionBn: 'ক (গোলাপ)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'hk-1',
-        subjectNameBn: 'বাংলা ছড়া ও বর্ণ পরিচিতি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'ছবি দেখে স্বরবর্ণ সুন্দরভাবে বলতে পারে',
-      },
-      {
-        subjectCode: 'hk-2',
-        subjectNameBn: 'সংখ্যা গণনা ও ডট ম্যাচিং',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: '১ থেকে ১০ পর্যন্ত সংখ্যা গণনা নির্ভুল',
-      },
-      {
-        subjectCode: 'hk-3',
-        subjectNameBn: 'English Rhymes & Objects',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'ছড়ার সুরে হাততালি ও অঙ্গভঙ্গি খুব সুন্দর',
-      },
-      {
-        subjectCode: 'hk-4',
-        subjectNameBn: 'রং চেনা ও ড্রয়িং ক্রেয়ন গ্রিপ',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'রং মেলানো ও গোল বৃত্তে রং ভরাট চমৎকার',
-      },
-    ],
-    totalMarks: 200,
-    totalObtained: 189,
-    percentage: 94.5,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 90,
-      presentDays: 88,
-      attendancePercentage: 97.8,
-    },
-    coCurricularSkills: {
-      disciplineBn: 'খুব শান্ত ও সুশৃঙ্খল',
-      cleanlinessBn: 'পরিচ্ছন্ন ও ফিটফাট',
-      friendlinessBn: 'সহপাঠীদের সাথে আনন্দ ভাগ করে নেয়',
-      creativityBn: 'রং ও খেলনা সাজাতে ভালোবাসে',
-    },
-    classTeacherRemarksBn: 'তানিশা ক্লাসের একজন অত্যন্ত আদুরে ও মনোযোগী শিশু। অল্প বয়সেই তার স্মৃতিশক্তি ও শেখার আগ্রহ দারুণ প্রশংসনীয়।',
-    principalRemarksBn: 'হাতেখড়ি পর্বে এমন চমৎকার সূচনা তার ভবিষ্যৎ শিক্ষাজীবনকে উজ্জ্বল করে তুলবে। শুভকামনা রইল!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:00:00Z',
-  },
+/**
+ * Sorts and updates merit positions based on totalObtained marks and GPA
+ */
+export function recalculateMeritPositions(
+  results: StudentExamResult[],
+  className: SchoolClass,
+  examTermId: string
+): void {
+  const classResults = results.filter((r) => r.className === className && r.examTermId === examTermId);
+  classResults.sort((a, b) => {
+    if (b.totalObtained !== a.totalObtained) {
+      return b.totalObtained - a.totalObtained;
+    }
+    return b.gpa - a.gpa;
+  });
 
-  // std-1: আদিত্য রায় (Nursery, Roll 101) - Demo Parent Subrata Roy
-  // ১ম সাময়িক পরীক্ষা ২০২৬
-  {
-    id: 'res-std-1-first',
-    studentId: 'std-1',
-    studentNameBn: 'আদিত্য রায়',
-    studentNameEn: 'Aditya Roy',
-    rollNo: '১০১',
-    className: 'Nursery',
-    sectionBn: 'ক (শাপলা)',
-    examTermId: 'term-first-2026',
-    examTitleBn: '১ম সাময়িক পরীক্ষা ২০২৬ (First Term)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৭ মার্চ ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'nur-1',
-        subjectNameBn: 'বাংলা ও বর্ণমালা জ্ঞান',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'স্বরবর্ণ চেনা ও স্পষ্ট উচ্চারণে খুব ভালো',
-      },
-      {
-        subjectCode: 'nur-2',
-        subjectNameBn: 'সংখ্যা ও মৌলিক গণিত',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: '১ থেকে ২০ পর্যন্ত সুন্দর গণনা করে',
-      },
-      {
-        subjectCode: 'nur-3',
-        subjectNameBn: 'ইংরেজি ছড়া ও শব্দ পরিচিতি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 45,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'A to M পর্যন্ত ছড়া ও ছবি সুন্দর বলতে পারে',
-      },
-      {
-        subjectCode: 'nur-4',
-        subjectNameBn: 'সৃজনশীল অঙ্কন ও রং মেলানো',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'রং চেনা ও সোজা-বাঁকা রেখা টানায় দারুণ দক্ষতা',
-      },
-      {
-        subjectCode: 'nur-5',
-        subjectNameBn: 'সাধারণ জ্ঞান ও স্বাস্থ্যবিধি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'পরিষ্কার-পরিচ্ছন্নতা ও আদব-কায়দা খুবই ভালো',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 231,
-    percentage: 92.4,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 2,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 52,
-      presentDays: 50,
-      attendancePercentage: 96.2,
-    },
-    coCurricularSkills: {
-      disciplineBn: 'খুবই শান্ত ও মনোযোগী',
-      cleanlinessBn: 'প্রতিদিন পরিপাটি ইউনিফর্ম',
-      friendlinessBn: 'বন্ধুদের সাথে মিলেমিশে খেলাধুলা করে',
-      creativityBn: 'ছড়া ও অভিনয়ে আনন্দিত অংশগ্রহণ',
-    },
-    classTeacherRemarksBn: 'আদিত্য ১ম সাময়িকে অত্যন্ত চমৎকার সূচনা করেছে। ক্লাসের সব কার্যক্রমে তার স্বতঃস্ফূর্ত আগ্রহ প্রশংসনীয়।',
-    principalRemarksBn: 'শিক্ষাজীবনের শুরুতে আদিত্যের এমন একাগ্রতা ও সুশৃঙ্খলতা অত্যন্ত আশাব্যঞ্জক। শুভকামনা রইল!',
-    isPublished: true,
-    updatedAt: '2026-03-27T14:00:00Z',
-  },
+  classResults.forEach((res, rank) => {
+    res.meritPosition = rank + 1;
+  });
+}
 
-  // ২য় সাময়িক পরীক্ষা ২০২৬
-  {
-    id: 'res-std-1-second',
-    studentId: 'std-1',
-    studentNameBn: 'আদিত্য রায়',
-    studentNameEn: 'Aditya Roy',
-    rollNo: '১০১',
-    className: 'Nursery',
-    sectionBn: 'ক (শাপলা)',
-    examTermId: 'term-second-2026',
-    examTitleBn: '২য় সাময়িক পরীক্ষা ২০২৬ (Mid-Term Exam)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৫ জুলাই ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'nur-1',
-        subjectNameBn: 'বাংলা ও বর্ণমালা জ্ঞান',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'ব্যঞ্জনবর্ণ চেনা ও সাধারণ শব্দ গঠন খুব ভালো',
-      },
-      {
-        subjectCode: 'nur-2',
-        subjectNameBn: 'সংখ্যা ও মৌলিক গণিত',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'বস্তু গণনা ও ছোট-বড় তুলনা নিখুঁত',
-      },
-      {
-        subjectCode: 'nur-3',
-        subjectNameBn: 'ইংরেজি ছড়া ও শব্দ পরিচিতি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'A to Z বলতে ও লিখতে পারে, সুন্দর উচ্চারণ',
-      },
-      {
-        subjectCode: 'nur-4',
-        subjectNameBn: 'সৃজনশীল অঙ্কন ও রং মেলানো',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'ছবি আঁকা ও রঙের সঠিক ব্যবহারে অসাধারণ অগ্রগতি',
-      },
-      {
-        subjectCode: 'nur-5',
-        subjectNameBn: 'সাধারণ জ্ঞান ও স্বাস্থ্যবিধি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'জাতীয় ফল, ফুল ও পশুর নাম সুন্দরভাবে বলতে পারে',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 236,
-    percentage: 94.4,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 68,
-      presentDays: 66,
-      attendancePercentage: 97.1,
+export const STANDARD_CLASS_SUBJECTS: Record<
+  SchoolClass,
+  { code: string; nameBn: string; totalMarks: number; passMarks: number; remarks: string[] }[]
+> = {
+  HateKhori: [
+    {
+      code: 'hk-1',
+      nameBn: 'বাংলা ছড়া ও বর্ণ পরিচিতি',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['ছবি দেখে স্বরবর্ণ সুন্দরভাবে বলতে পারে', 'বর্ণ উচ্চারণে চমৎকার আগ্রহ', 'ছড়া বলা ও বর্ণ চেনা নির্ভুল'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'অনুকরণীয় নিয়মানুবর্তিতা',
-      cleanlinessBn: 'খাবার আগে ও পরে হাত ধোয়ার অভ্যাস চমৎকার',
-      friendlinessBn: 'ক্লাসে সবার সাথে সহযোগিতাপূর্ণ অমায়িক আচরণ',
-      creativityBn: 'হাতের কাজ ও চিত্রাঙ্কনে বিশেষ পারদর্শী',
+    {
+      code: 'hk-2',
+      nameBn: 'সংখ্যা গণনা ও ডট ম্যাচিং',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['১ থেকে ১০ পর্যন্ত সংখ্যা গণনা নির্ভুল', 'ডট মিলিয়ে সংখ্যা তৈরিতে পারদর্শী', 'ব্লক গণনায় দারুণ মনোযোগী'],
     },
-    classTeacherRemarksBn: '২য় সাময়িকে আদিত্যের মেধা ও শৃঙ্খলার ধারাবাহিক উন্নতি ঘটেছে। প্রতিটি বিষয়ের প্রস্তুতি অত্যন্ত সুদৃঢ়।',
-    principalRemarksBn: 'আদিত্যের ধারাবাহিক কৃতিত্ব ও চমৎকার আচরণ আনন্দ পাঠশালাকে গর্বিত করেছে।',
-    isPublished: true,
-    updatedAt: '2026-07-25T14:00:00Z',
-  },
-
-  // বার্ষিক পরীক্ষা ২০২৬
-  {
-    id: 'res-std-1-annual',
-    studentId: 'std-1',
-    studentNameBn: 'আদিত্য রায়',
-    studentNameEn: 'Aditya Roy',
-    rollNo: '১০১',
-    className: 'Nursery',
-    sectionBn: 'ক (শাপলা)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'nur-1',
-        subjectNameBn: 'বাংলা ও বর্ণমালা জ্ঞান',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'স্বরবর্ণ ও ব্যঞ্জনবর্ণ নিখুঁত ও পরিচ্ছন্নভাবে লিখেছে',
-      },
-      {
-        subjectCode: 'nur-2',
-        subjectNameBn: 'সংখ্যা ও মৌলিক গণিত',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 49,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: '১-৩০ গণনা ও ব্লকের সাহায্যে হিসাব চমৎকার',
-      },
-      {
-        subjectCode: 'nur-3',
-        subjectNameBn: 'ইংরেজি ছড়া ও শব্দ পরিচিতি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'A-Z বর্ণ ও চমৎকার উচ্চারণে ছড়া আবৃত্তি',
-      },
-      {
-        subjectCode: 'nur-4',
-        subjectNameBn: 'সৃজনশীল অঙ্কন ও রং মেলানো',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'জাতীয় পতাকা ও ফুলের রঙে সঠিক শেড ফুটিয়ে তুলেছে',
-      },
-      {
-        subjectCode: 'nur-5',
-        subjectNameBn: 'সাধারণ জ্ঞান ও স্বাস্থ্যবিধি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'দৈনন্দিন স্বাস্থ্যবিধি ও জাতীয় প্রতীক সম্পর্কে স্পষ্ট ধারণা',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 238,
-    percentage: 95.2,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 92,
-      presentDays: 89,
-      attendancePercentage: 96.7,
+    {
+      code: 'hk-3',
+      nameBn: 'English Rhymes & Objects',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['ছড়ার সুরে হাততালি ও অঙ্গভঙ্গি খুব সুন্দর', 'A-E অবজেক্ট চিহ্নিতকরণে চটপটে', 'ইংরেজি রাইমসে স্বতঃস্ফূর্ত অংশগ্রহণ'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'অসাধারণ ও শতভাগ সুশৃঙ্খল',
-      cleanlinessBn: 'প্রতিদিন পরিপাটি ও স্বাস্থ্যসচেতন',
-      friendlinessBn: 'সহপাঠীদের সাথে অত্যন্ত আন্তরিক ও অমায়িক',
-      creativityBn: 'ড্রয়িং, ক্রাফট ও উপস্থিত বুদ্ধিতে অত্যন্ত সক্রিয়',
+    {
+      code: 'hk-4',
+      nameBn: 'রং চেনা ও ড্রয়িং ক্রেয়ন গ্রিপ',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['রং মেলানো ও গোল বৃত্তে রং ভরাট চমৎকার', 'ক্রেয়ন ধরা ও দাগ টানায় আত্মবিশ্বাসী', 'রঙিন ছবিতে চমৎকার সৃজনশীলতা'],
     },
-    classTeacherRemarksBn: 'আদিত্য ক্লাসের একজন অত্যন্ত ভদ্র, বিনয়ী ও মেধাবী ছাত্র। প্রতিটি বিষয়ে তার দখল ও নিয়মানুবর্তিতা সহপাঠীদের জন্য দৃষ্টান্তস্বরূপ।',
-    principalRemarksBn: 'আনন্দ পাঠশালায় আদিত্য রায়ের মেধা, নীতিশিক্ষা ও বহুমুখী বিকাশ অত্যন্ত আনন্দদায়ক ও প্রশংসনীয়। ভবিষ্যৎ পথচলার জন্য প্রাণঢালা দোয়া রইল!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:30:00Z',
-  },
-
-  // std-2: সুমাইয়া জাহান (Play, Roll 102)
-  {
-    id: 'res-std-2-annual',
-    studentId: 'std-2',
-    studentNameBn: 'সুমাইয়া জাহান',
-    studentNameEn: 'Sumaiya Jahan',
-    rollNo: '১০২',
-    className: 'Play',
-    sectionBn: 'ক (টিউলিপ)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'pl-1',
-        subjectNameBn: 'মৌখিক বাংলা ও ছড়া গান',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'মিষ্টি সুরে স্পষ্ট উচ্চারণে ছড়া গান গাইতে পারে',
-      },
-      {
-        subjectCode: 'pl-2',
-        subjectNameBn: 'গণিত গণনা ও আকৃতি মেলানো',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'বৃত্ত, ত্রিভুজ ও চতুর্ভুজ সুন্দরভাবে শনাক্ত করতে পারে',
-      },
-      {
-        subjectCode: 'pl-3',
-        subjectNameBn: 'English Phonics & Alphabet Rhymes',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'ইংরেজি বর্ণ ও ছবির উচ্চারণ স্পষ্ট',
-      },
-      {
-        subjectCode: 'pl-4',
-        subjectNameBn: 'মন্টেসরি অ্যাক্টিভিটি ও ড্রয়িং',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'হাতের গ্রিপ ও রঙের পছন্দ চমৎকার',
-      },
-    ],
-    totalMarks: 200,
-    totalObtained: 188,
-    percentage: 94.0,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 91,
-      presentDays: 87,
-      attendancePercentage: 95.6,
+  ],
+  Play: [
+    {
+      code: 'pl-1',
+      nameBn: 'মৌখিক বাংলা ও ছড়া গান',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['ছড়া আবৃত্তি ও সহজ শব্দ স্পষ্ট উচ্চারণ করে', 'কথোপকথন ও ভাব প্রকাশে অত্যন্ত সাবলীল', 'গানের ছন্দে ছড়া উপস্থাপনা দারুণ'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'খুব বিনয়ী ও বাধ্য',
-      cleanlinessBn: 'সবসময় পরিচ্ছন্ন পোশাক ও আচরণ',
-      friendlinessBn: 'খেলার সাথীদের সাথে সহজে ভাব জমায়',
-      creativityBn: 'ক্লে দিয়ে পুতুল ও ফুল তৈরি করতে ভালোবাসে',
+    {
+      code: 'pl-2',
+      nameBn: 'গণিত গণনা ও আকৃতি মেলানো',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['গোল, চারকোনা আকৃতি চেনা ও ম্যাচিংয়ে পটু', '১ থেকে ১৫ পর্যন্ত মুখে গণনা পারে', 'বস্তু গুণে সংখ্যা মেলানোয় পারদর্শী'],
     },
-    classTeacherRemarksBn: 'সুমাইয়া ক্লাসের প্রতিটি অ্যাক্টিভিটিতে হাসিমুখে অংশ নেয়। তার দ্রুত শেখার ক্ষমতা প্রশংসনীয়।',
-    principalRemarksBn: 'প্লে গ্রুপে সুমাইয়ার সার্বিক বিকাশ আনন্দদায়ক। আগামী ক্লাসেও এই মেধার ধারাবাহিকতা বজায় থাকুক!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:00:00Z',
-  },
-
-  // std-3: আরিয়ান খান (KG, Roll 103)
-  {
-    id: 'res-std-3-annual',
-    studentId: 'std-3',
-    studentNameBn: 'আরিয়ান খান',
-    studentNameEn: 'Aaryan Khan',
-    rollNo: '১০৩',
-    className: 'KG',
-    sectionBn: 'খ (সূর্যমুখী)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'kg-1',
-        subjectNameBn: 'বাংলা ভাষা ও যুক্তবর্ণ পরিচিতি',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'হাতের লেখা খুব সুন্দর ও স্পষ্ট',
-      },
-      {
-        subjectCode: 'kg-2',
-        subjectNameBn: 'প্রাথমিক গণিত ও নামতা',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'সহজ যোগ ও বিয়োগে চমৎকার দক্ষতা',
-      },
-      {
-        subjectCode: 'kg-3',
-        subjectNameBn: 'English Reading & Spelling',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 45,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'বানান শুদ্ধ ও আত্মবিশ্বাসের সাথে রিডিং পড়ে',
-      },
-      {
-        subjectCode: 'kg-4',
-        subjectNameBn: 'বিজ্ঞান ও পরিবেশ সচেতনতা',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 44,
-        highestMarksInClass: 47,
-        letterGrade: 'A',
-        gradePoint: 4.0,
-        remarksBn: 'গাছপালা ও পশুপাখি সম্পর্কে চমৎকার কৌতূহল',
-      },
-      {
-        subjectCode: 'kg-5',
-        subjectNameBn: 'চারু ও কারুকলা',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 45,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'কালার কম্বিনেশন ও চিত্রাঙ্কনে অসাধারণ মুনশিয়ানা',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 228,
-    percentage: 91.2,
-    gpa: 4.8,
-    overallGrade: 'A+',
-    meritPosition: 2,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 92,
-      presentDays: 88,
-      attendancePercentage: 95.7,
+    {
+      code: 'pl-3',
+      nameBn: 'English Phonics & Alphabet Rhymes',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['ফোনেটিক সাউন্ড ও বর্ণমালার ছড়া সুন্দর গায়', 'লেটার সাউন্ড নির্ভুলভাবে চেনে', 'রাইমস শুনে অ্যাকশন প্রদর্শন দারুণ'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'প্রাণবন্ত ও সময়নিষ্ঠ',
-      cleanlinessBn: 'ক্লাসরুম পরিষ্কার রাখতে সাহায্য করে',
-      friendlinessBn: 'নেতৃত্বসুলভ ও দলবদ্ধ খেলায় দারুণ',
-      creativityBn: 'নতুন নতুন ছবি আঁকায় উৎসাহী',
+    {
+      code: 'pl-4',
+      nameBn: 'মন্টেসরি অ্যাক্টিভিটি ও ড্রয়িং',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['মজার পাজল ও ব্লক সাজানোয় গভীর মনোযোগ', 'কাগজ ভাঁজ ও আঁকাআঁকিতে উৎসাহী', 'হাতের সূক্ষ্ম মোটর স্কিল চমৎকার'],
     },
-    classTeacherRemarksBn: 'আরিয়ান গণিত ও যুক্তিতে বেশ অগ্রসর। ক্লাসে নিয়মিত পড়াশোনার পাশাপাশি খেলাধুলাতেও সমান দক্ষ।',
-    principalRemarksBn: 'আরিয়ানের আত্মবিশ্বাস ও অনুসন্ধিৎসু মন সত্যিই চমৎকার। শুভকামনা রইল!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:00:00Z',
-  },
-
-  // std-4: জারা তাবাসসুম (Class-1, Roll 104)
-  {
-    id: 'res-std-4-annual',
-    studentId: 'std-4',
-    studentNameBn: 'জারা তাবাসসুম',
-    studentNameEn: 'Zara Tabassum',
-    rollNo: '১০৪',
-    className: 'Class-1',
-    sectionBn: 'ক (পদ্মা)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'c1-1',
-        subjectNameBn: 'আমার বাংলা বই ও ব্যাকরণ',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 48,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'কবিতা আবৃত্তি ও বাক্য গঠন নির্ভুল',
-      },
-      {
-        subjectCode: 'c1-2',
-        subjectNameBn: 'প্রাথমিক গণিত',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 49,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'যোগ, বিয়োগ ও জ্যামিতিক ধারণা নিখুঁত',
-      },
-      {
-        subjectCode: 'c1-3',
-        subjectNameBn: 'English For Today',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'সাবলীল ইংরেজি পাঠ ও ডায়ালগে দারুণ',
-      },
-      {
-        subjectCode: 'c1-4',
-        subjectNameBn: 'পরিবেশ পরিচিতি ও সমাজ',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'সমাজ ও নিয়মানুবর্তিতা সম্পর্কে গভীর উপলব্ধি',
-      },
-      {
-        subjectCode: 'c1-5',
-        subjectNameBn: 'সৃজনশীল চিত্রাঙ্কন',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'গ্রাম্য দৃশ্যের চিত্রাঙ্কন চমৎকার হয়েছে',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 237,
-    percentage: 94.8,
-    gpa: 5.0,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 92,
-      presentDays: 90,
-      attendancePercentage: 97.8,
+  ],
+  Nursery: [
+    {
+      code: 'nur-1',
+      nameBn: 'বাংলা ও বর্ণমালা জ্ঞান',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['স্বরবর্ণ ও ব্যঞ্জনবর্ণ চেনা ও স্পষ্ট উচ্চারণে খুব ভালো', 'কারচিহ্ন ছাড়া সহজ শব্দ গঠন পারে', 'খাতায় সুন্দর হস্তাক্ষরে লিখতে পারে'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'অনুশাসন ও নীতিশিক্ষায় আদর্শ',
-      cleanlinessBn: 'নিখুঁত পরিচ্ছন্নতা ও শালীনতা',
-      friendlinessBn: 'সকলের প্রতি সহানুভূতিশীল ও ভদ্র',
-      creativityBn: 'রচনা ও চিত্রাঙ্কনে অসাধারণ কল্পনাশক্তি',
+    {
+      code: 'nur-2',
+      nameBn: 'সংখ্যা ও মৌলিক গণিত',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['১ থেকে ৩০ পর্যন্ত সুন্দর গণনা ও লেখা আয়ত্ত করেছে', 'ছোট-বড় তুলনা ও ক্রমবিন্যাস নির্ভুল', 'সহজ যোগের ধারণা বুঝতে পারে'],
     },
-    classTeacherRemarksBn: 'জারা তার প্রতিটি বিষয়ের হোমওয়ার্ক ও ক্লাসরুম কাজে শতভাগ দায়িত্বশীলতা প্রদর্শন করে।',
-    principalRemarksBn: 'জারার সার্বিক ফলাফল ও চরিত্র আনন্দ পাঠশালার মুখ উজ্জ্বল করেছে। সাফল্য অব্যাহত থাকুক!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:00:00Z',
-  },
-
-  // std-5: রায়ান চৌধুরী (Class-2, Roll 105)
-  {
-    id: 'res-std-5-annual',
-    studentId: 'std-5',
-    studentNameBn: 'রায়ান চৌধুরী',
-    studentNameEn: 'Rayan Chowdhury',
-    rollNo: '১০৫',
-    className: 'Class-2',
-    sectionBn: 'ক (মেঘনা)',
-    examTermId: 'term-annual-2026',
-    examTitleBn: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    academicYear: '২০২৬',
-    publishDateBn: '২৮ নভেম্বর ২০২৬',
-    subjects: [
-      {
-        subjectCode: 'c2-1',
-        subjectNameBn: 'বাংলা পাঠ ও ব্যাকরণ',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 48,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'অনুচ্ছেদ লিখন ও বানান নির্ভুল',
-      },
-      {
-        subjectCode: 'c2-2',
-        subjectNameBn: 'প্রাথমিক গণিত ও সমাধান',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 47,
-        highestMarksInClass: 50,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'গুণ ও ভাগের কথায় অঙ্কে দারুণ সাবলীল',
-      },
-      {
-        subjectCode: 'c2-3',
-        subjectNameBn: 'English Grammar & Composition',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 44,
-        highestMarksInClass: 48,
-        letterGrade: 'A',
-        gradePoint: 4.0,
-        remarksBn: 'ছোট ছোট প্যারাগ্রাফ ও ভোকাবুলারি সমৃদ্ধ',
-      },
-      {
-        subjectCode: 'c2-4',
-        subjectNameBn: 'প্রাথমিক বিজ্ঞান ও তথ্য',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 45,
-        highestMarksInClass: 47,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'বিজ্ঞানভিত্তিক ছোট ছোট প্রজেক্টে আগ্রহী',
-      },
-      {
-        subjectCode: 'c2-5',
-        subjectNameBn: 'ইসলাম ও নৈতিক শিক্ষা / অঙ্কন',
-        totalMarks: 50,
-        passMarks: 20,
-        obtainedMarks: 46,
-        highestMarksInClass: 49,
-        letterGrade: 'A+',
-        gradePoint: 5.0,
-        remarksBn: 'শিষ্টাচার ও নৈতিক গুণাবলী প্রশংসনীয়',
-      },
-    ],
-    totalMarks: 250,
-    totalObtained: 228,
-    percentage: 91.2,
-    gpa: 4.8,
-    overallGrade: 'A+',
-    meritPosition: 1,
-    status: 'passed',
-    attendanceSummary: {
-      totalWorkingDays: 92,
-      presentDays: 89,
-      attendancePercentage: 96.7,
+    {
+      code: 'nur-3',
+      nameBn: 'ইংরেজি ছড়া ও শব্দ পরিচিতি',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['A to Z পর্যন্ত ছড়া ও শব্দ সুন্দর বলতে পারে', 'ছোট হাতের ও বড় হাতের অক্ষর চেনে', 'ইংরেজি শব্দভাণ্ডার বেশ সমৃদ্ধ'],
     },
-    coCurricularSkills: {
-      disciplineBn: 'সময়ানুবর্তী ও দায়িত্বশীল',
-      cleanlinessBn: 'বই-খাতা পরিপাটি রাখা প্রশংসনীয়',
-      friendlinessBn: 'বন্ধুদের সহযোগিতায় সবসময় প্রস্তুত',
-      creativityBn: 'বিজ্ঞান প্রজেক্ট ও কুইজে দারুণ চটপটে',
+    {
+      code: 'nur-4',
+      nameBn: 'সৃজনশীল অঙ্কন ও রং মেলানো',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['রং চেনা ও সোজা-বাঁকা রেখা টানায় দারুণ দক্ষতা', 'ফুল ও ফলের ছবি সুন্দর রং করতে পারে', 'শিল্পকলায় গভীর আগ্রহ প্রকাশ পায়'],
     },
-    classTeacherRemarksBn: 'রায়ান একজন অত্যন্ত উদ্যমী ও কৌতূহলী শিক্ষার্থী। কঠিন বিষয়ও দ্রুত আত্মস্থ করতে পারে।',
-    principalRemarksBn: 'ক্লাস-২ এ রায়ানের মেধার স্বীকৃতি আনন্দদায়ক। আগামী দিনে তার আরও বড় সাফল্য কামনা করি!',
-    isPublished: true,
-    updatedAt: '2026-11-08T18:00:00Z',
-  },
-];
+    {
+      code: 'nur-5',
+      nameBn: 'সাধারণ জ্ঞান ও স্বাস্থ্যবিধি',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['হাত ধোয়া ও পরিষ্কার-পরিচ্ছন্নতার নিয়ম মেনে চলে', 'জাতীয় প্রতীক ও পশু-পাখির নাম জানে', 'সততা ও ভদ্র আচরণের দারুণ চর্চা'],
+    },
+  ],
+  KG: [
+    {
+      code: 'kg-1',
+      nameBn: 'বাংলা ভাষা ও যুক্তবর্ণ পরিচিতি',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['যুক্তবর্ণের ব্যবহার ও বাক্য পাঠে যথেষ্ট দক্ষ', 'বানান শুদ্ধ ও হস্তাক্ষর পরিপাটি', 'পড়ে বুঝে প্রশ্নের উত্তর দিতে সক্ষম'],
+    },
+    {
+      code: 'kg-2',
+      nameBn: 'প্রাথমিক গণিত ও নামতা',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['১-৫০ সংখ্যা ও ২ থেকে ৫ এর নামতা আয়ত্ত করেছে', 'যোগ ও বিয়োগের অঙ্কে দারুণ আত্মবিশ্বাসী', 'কথায় লেখা ও অঙ্কে লেখায় পারদর্শী'],
+    },
+    {
+      code: 'kg-3',
+      nameBn: 'English Reading & Spelling',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['সহজ বাক্য রিডিং ও স্পেলিংয়ে বেশ অগ্রগামী', 'Sight words ও বানান নিখুঁত', 'ইংরেজি নির্দেশাবলি সহজে বোঝে'],
+    },
+    {
+      code: 'kg-4',
+      nameBn: 'বিজ্ঞান ও পরিবেশ সচেতনতা',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['চারপাশের গাছপালা ও পশুপাখি সম্পর্কে অনুসন্ধিৎসু', 'ঋতু পরিবর্তন ও আবহাওয়া চেনে', 'পরিবেশ পরিষ্কার রাখার অভ্যাস গড়ে উঠেছে'],
+    },
+    {
+      code: 'kg-5',
+      nameBn: 'চারু ও কারুকলা',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['পতাকা, দৃশ্য ও জীবজন্তু আঁকায় বিশেষ নৈপুণ্য', 'রং ব্যবহারে নান্দনিক রুচির পরিচয় দেয়', 'কাটিং ও পেস্টিং কাজে দারুণ তৎপর'],
+    },
+  ],
+  'Class-1': [
+    {
+      code: 'c1-1',
+      nameBn: 'আমার বাংলা বই ও ব্যাকরণ',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['অনুচ্ছেদ পাঠ ও যুক্তবর্ণ শব্দ ব্যবহারে নিপুণ', 'বানান নির্ভুল ও বাক্য গঠন সুন্দর', 'কবিতা আবৃত্তিতে চমৎকার সাবলীলতা'],
+    },
+    {
+      code: 'c1-2',
+      nameBn: 'প্রাথমিক গণিত',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['যোগ, বিয়োগ ও নামতার প্রয়োগে অত্যন্ত পটু', 'জ্যামিতিক আকৃতি ও পরিমাপের ধারণা স্পষ্ট', 'সমস্যা সমাধানে দ্রুত চিন্তা করতে পারে'],
+    },
+    {
+      code: 'c1-3',
+      nameBn: 'English For Today',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['বইয়ের প্যাসেজ রিডিং ও অর্থ প্রকাশে সাবলীল', 'Grammar ও Vocabulary ভালো জানে', 'প্রশ্নের উত্তর নিজের ভাষায় লিখতে পারে'],
+    },
+    {
+      code: 'c1-4',
+      nameBn: 'পরিবেশ পরিচিতি ও সমাজ',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['পরিবার ও সমাজের দায়িত্ব সম্পর্কে সচেতন', 'বিজ্ঞান ও প্রকৃতির নানা বিষয় গভীর কৌতূহলী', 'ক্লাসের সহপাঠীদের সাথে মিলেমিশে কাজ করে'],
+    },
+    {
+      code: 'c1-5',
+      nameBn: 'সৃজনশীল চিত্রাঙ্কন',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['গ্রামের দৃশ্য ও ফুল-ফল আঁকা চমৎকার', 'জলরং ও প্যাস্টেলে রঙের চমৎকার মিশ্রণ', 'সৃজনশীল কল্পনাশক্তির চমৎকার বহিঃপ্রকাশ'],
+    },
+  ],
+  'Class-2': [
+    {
+      code: 'c2-1',
+      nameBn: 'বাংলা পাঠ ও ব্যাকরণ',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['অনুচ্ছেদ লিখন ও বানান নির্ভুল', 'ব্যাকরণ ও বিরামচিহ্নের ব্যবহারে দক্ষ', 'হাতের লেখা স্পষ্ট ও নান্দনিক'],
+    },
+    {
+      code: 'c2-2',
+      nameBn: 'প্রাথমিক গণিত ও সমাধান',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['গুণ ও ভাগের কথায় অঙ্কে দারুণ সাবলীল', 'মৌলিক জ্যামিতি ও সময় গণনায় পারদর্শী', 'কঠিন হিসাবও সহজে সমাধান করতে পারে'],
+    },
+    {
+      code: 'c2-3',
+      nameBn: 'English Grammar & Composition',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['ছোট ছোট প্যারাগ্রাফ ও ভোকাবুলারি সমৃদ্ধ', 'Tense ও Preposition ব্যবহারে সতর্ক', 'ইংরেজি বলা ও লেখায় দারুণ আত্মবিশ্বাস'],
+    },
+    {
+      code: 'c2-4',
+      nameBn: 'প্রাথমিক বিজ্ঞান ও তথ্য',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['বিজ্ঞানভিত্তিক ছোট ছোট প্রজেক্টে আগ্রহী', 'প্রাকৃতিক পরিবেশ ও প্রাণীজগৎ নিয়ে গভীর কৌতূহল', 'বৈজ্ঞানিক অনুসন্ধিৎসা প্রশংসনীয়'],
+    },
+    {
+      code: 'c2-5',
+      nameBn: 'ইসলাম ও নৈতিক শিক্ষা / অঙ্কন',
+      totalMarks: 50,
+      passMarks: 20,
+      remarks: ['শিষ্টাচার ও নৈতিক গুণাবলী প্রশংসনীয়', 'বড়দের শ্রদ্ধা ও ছোটদের ভালোবাসায় আন্তরিক', 'নিয়মানুবর্তী ও দায়িত্বশীল শিক্ষার্থী'],
+    },
+  ],
+};
 
 /**
- * Retrieves exam results from localStorage, or falls back to INITIAL_STUDENT_EXAM_RESULTS
+ * Generates an authentic, deterministic exam result for a student in a specific exam term
  */
-export function getStoredExamResults(): StudentExamResult[] {
-  if (typeof window === 'undefined') return INITIAL_STUDENT_EXAM_RESULTS;
+export function generateSingleStudentExamResult(
+  student: Student,
+  term: ExamTerm
+): StudentExamResult {
+  const classKey: SchoolClass =
+    student.className in STANDARD_CLASS_SUBJECTS ? student.className : 'Play';
+  const subjectTemplates =
+    STANDARD_CLASS_SUBJECTS[classKey] || STANDARD_CLASS_SUBJECTS['Play'];
+
+  const seedStr = `${student.id}-${student.rollNo || ''}-${term.id}`;
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash << 5) - hash + seedStr.charCodeAt(i);
+    hash |= 0;
+  }
+  const absHash = Math.abs(hash);
+
+  const subjects: SubjectMark[] = subjectTemplates.map((tmpl, idx) => {
+    const varOffset = (absHash + idx * 7) % 11;
+    const obtained = Math.min(50, Math.max(37, 49 - varOffset));
+    const highest = Math.min(50, Math.max(obtained, 48 + ((absHash + idx) % 3)));
+    const gradeMeta = calculateSubjectGrade(obtained, tmpl.totalMarks);
+    const remark = tmpl.remarks[(absHash + idx) % tmpl.remarks.length];
+
+    return {
+      subjectCode: tmpl.code,
+      subjectNameBn: tmpl.nameBn,
+      totalMarks: tmpl.totalMarks,
+      passMarks: tmpl.passMarks,
+      obtainedMarks: obtained,
+      highestMarksInClass: highest,
+      letterGrade: gradeMeta.letterGrade,
+      gradePoint: gradeMeta.gradePoint,
+      remarksBn: remark,
+    };
+  });
+
+  const overall = calculateOverallResult(subjects);
+
+  const totalWorkingDays =
+    term.termType === 'first_term' ? 72 : term.termType === 'second_term' ? 84 : 96;
+  const missedDays = absHash % 5;
+  const presentDays = totalWorkingDays - missedDays;
+  const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 1000) / 10;
+
+  const coCurricular = {
+    disciplineBn: absHash % 2 === 0 ? 'সময়ানুবর্তী ও ক্লাসে মনোযোগী' : 'ভদ্র, মার্জিত ও দায়িত্বশীল',
+    cleanlinessBn: absHash % 2 === 0 ? 'পোশাক ও পড়ার বই পরিপাটি' : 'ব্যক্তিগত পরিচ্ছন্নতা চমৎকার',
+    friendlinessBn: absHash % 2 === 0 ? 'সহপাঠীদের সাথে সহমর্মিতাপূর্ণ আচরণ' : 'বন্ধুদের সাথে মিলেমিশে কাজ করে',
+    creativityBn: absHash % 2 === 0 ? 'ড্রয়িং ও সাংস্কৃতিক কার্যক্রমে আগ্রহী' : 'নতুন কিছু শেখার প্রতি দারুণ কৌতূহল',
+  };
+
+  const remarksList = [
+    `${student.nameBn} অত্যন্ত উদ্যমী ও প্রতিভাবান শিক্ষার্থী। পাঠগ্রহণে একাগ্রতা প্রশংসনীয়।`,
+    `${student.nameBn} নিয়মিত ক্লাসে উপস্থিত থাকে এবং যেকোনো কার্যক্রমে স্বতঃস্ফূর্ত অংশ নেয়।`,
+    `${student.nameBn} এর মেধা ও নিয়মানুবর্তিতা মুগ্ধ করার মতো। আরও উজ্জ্বল ভবিষ্যৎ কামনা করি।`,
+    `${student.nameBn} ক্লাসের প্রতিটি বিষয়ের পাঠ আনন্দ নিয়ে শেখে এবং আচরণ অত্যন্ত সুন্দর।`,
+  ];
+  const classTeacherRemarksBn = remarksList[absHash % remarksList.length];
+  const principalRemarksBn = `আনন্দ পাঠশালা ২০২৬ শিক্ষাবর্ষে ${student.nameBn}-এর কৃতিত্বে আমরা গর্বিত। উত্তরোত্তর সাফল্য কামনা করি।`;
+
+  return {
+    id: `res-${student.id}-${term.id}`,
+    studentId: student.id,
+    studentNameBn: student.nameBn,
+    studentNameEn: student.nameEn,
+    rollNo: student.rollNo,
+    className: student.className,
+    sectionBn: student.section || 'ক',
+    examTermId: term.id,
+    examTitleBn: term.titleBn,
+    academicYear: '২০২৬',
+    publishDateBn: term.publishDateBn,
+    subjects,
+    totalMarks: overall.totalMarks,
+    totalObtained: overall.totalObtained,
+    percentage: overall.percentage,
+    gpa: overall.gpa,
+    overallGrade: overall.overallGrade,
+    meritPosition: 1,
+    status: overall.status,
+    attendanceSummary: {
+      totalWorkingDays,
+      presentDays,
+      attendancePercentage,
+    },
+    coCurricularSkills: coCurricular,
+    classTeacherRemarksBn,
+    principalRemarksBn,
+    isPublished: term.isPublished,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Generates initial exam results for all active students across all exam terms
+ */
+export function generateInitialExamResults(
+  studentsList: Student[],
+  termsList: ExamTerm[] = DEFAULT_EXAM_TERMS
+): StudentExamResult[] {
+  const results: StudentExamResult[] = [];
+  const validStudents = studentsList && studentsList.length > 0 ? studentsList : INITIAL_STUDENTS;
+
+  for (const term of termsList) {
+    for (const student of validStudents) {
+      results.push(generateSingleStudentExamResult(student, term));
+    }
+  }
+
+  // Recalculate merit positions for each class and term
+  const classes: SchoolClass[] = ['HateKhori', 'Play', 'Nursery', 'KG', 'Class-1', 'Class-2'];
+  for (const term of termsList) {
+    for (const cls of classes) {
+      recalculateMeritPositions(results, cls, term.id);
+    }
+  }
+
+  return results;
+}
+
+export const INITIAL_STUDENT_EXAM_RESULTS: StudentExamResult[] = generateInitialExamResults(
+  INITIAL_STUDENTS,
+  DEFAULT_EXAM_TERMS
+);
+
+/**
+ * Synchronizes student exam results for 2026 academic year.
+ * Removes old mock data and adds exam records for all active students.
+ */
+export function syncStudentsToExamResults(
+  students: Student[],
+  terms: ExamTerm[] = DEFAULT_EXAM_TERMS
+): StudentExamResult[] {
+  const activeStudents = students && students.length > 0 ? students : INITIAL_STUDENTS;
+  const activeStudentMap = new Map<string, Student>(activeStudents.map((s) => [s.id, s]));
+
+  let existingResults: StudentExamResult[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const raw =
+        localStorage.getItem(EXAM_RESULTS_STORAGE_KEY) ||
+        localStorage.getItem(LEGACY_EXAM_RESULTS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          // Purge old mock results (like std-0, std-1 that are not in activeStudentMap)
+          existingResults = parsed.filter((r) => activeStudentMap.has(r.studentId));
+        }
+      }
+    } catch {}
+  }
+
+  const existingMap = new Map<string, StudentExamResult>();
+  existingResults.forEach((r) => {
+    existingMap.set(`${r.studentId}-${r.examTermId}`, r);
+  });
+
+  const mergedResults: StudentExamResult[] = [];
+
+  for (const term of terms) {
+    for (const student of activeStudents) {
+      const key = `${student.id}-${term.id}`;
+      const existing = existingMap.get(key);
+      if (existing) {
+        // Keep customized marks, but update student profile metadata
+        mergedResults.push({
+          ...existing,
+          studentNameBn: student.nameBn,
+          studentNameEn: student.nameEn,
+          rollNo: student.rollNo,
+          className: student.className,
+          sectionBn: student.section || existing.sectionBn,
+          academicYear: '২০২৬',
+          examTitleBn: term.titleBn,
+          isPublished: term.isPublished,
+        });
+      } else {
+        // Generate new record for this student and term
+        mergedResults.push(generateSingleStudentExamResult(student, term));
+      }
+    }
+  }
+
+  // Recalculate merit positions for each class and term
+  const classes: SchoolClass[] = ['HateKhori', 'Play', 'Nursery', 'KG', 'Class-1', 'Class-2'];
+  for (const term of terms) {
+    for (const cls of classes) {
+      recalculateMeritPositions(mergedResults, cls, term.id);
+    }
+  }
+
+  saveExamResults(mergedResults);
+  return mergedResults;
+}
+
+/**
+ * Retrieves exam results from localStorage, or falls back to synchronized results
+ */
+export function getStoredExamResults(students?: Student[]): StudentExamResult[] {
+  const activeList = students && students.length > 0 ? students : INITIAL_STUDENTS;
+  if (typeof window === 'undefined') {
+    return generateInitialExamResults(activeList, DEFAULT_EXAM_TERMS);
+  }
   try {
     const raw = localStorage.getItem(EXAM_RESULTS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure new initial items (such as 1st/2nd term results) are merged in
-        const existingIds = new Set(parsed.map((r: any) => r.id));
-        const missingInitial = INITIAL_STUDENT_EXAM_RESULTS.filter((r) => !existingIds.has(r.id));
-        if (missingInitial.length > 0) {
-          const merged = [...parsed, ...missingInitial];
-          localStorage.setItem(EXAM_RESULTS_STORAGE_KEY, JSON.stringify(merged));
-          return merged;
+        const activeIds = new Set(activeList.map((s) => s.id));
+        const filtered = parsed.filter((r: any) => activeIds.has(r.studentId));
+
+        // If mock data was purged or roster grew/changed, re-sync
+        if (filtered.length !== parsed.length || filtered.length < activeList.length) {
+          return syncStudentsToExamResults(activeList, getStoredExamTerms());
         }
-        return parsed;
+        return filtered;
       }
+    }
+    // Check legacy v1 key and migrate
+    const rawV1 = localStorage.getItem(LEGACY_EXAM_RESULTS_STORAGE_KEY);
+    if (rawV1) {
+      return syncStudentsToExamResults(activeList, getStoredExamTerms());
     }
   } catch (err) {
     console.error('Failed to parse stored exam results:', err);
   }
-  return INITIAL_STUDENT_EXAM_RESULTS;
+  return syncStudentsToExamResults(activeList, getStoredExamTerms());
 }
 
-/**
- * Saves exam results to localStorage and dispatches a change event
- */
 export function saveExamResults(results: StudentExamResult[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(EXAM_RESULTS_STORAGE_KEY, JSON.stringify(results));
+    localStorage.setItem(LEGACY_EXAM_RESULTS_STORAGE_KEY, JSON.stringify(results));
     window.dispatchEvent(new CustomEvent(EXAM_RESULTS_UPDATE_EVENT, { detail: results }));
   } catch (err) {
     console.error('Failed to save exam results:', err);

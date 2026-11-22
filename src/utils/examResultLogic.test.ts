@@ -102,12 +102,11 @@ describe('examResultLogic tests', () => {
     expect(overall.status).toBe('needs_improvement');
   });
 
-  test('INITIAL_STUDENT_EXAM_RESULTS contains comprehensive results for demo students', () => {
-    expect(INITIAL_STUDENT_EXAM_RESULTS.length).toBeGreaterThanOrEqual(6);
-    const adityaResult = INITIAL_STUDENT_EXAM_RESULTS.find((r) => r.studentId === 'std-1');
-    expect(adityaResult).toBeDefined();
-    expect(adityaResult?.className).toBe('Nursery');
-    expect(adityaResult?.overallGrade).toBe('A+');
-    expect(adityaResult?.subjects.length).toBe(5);
+  test('INITIAL_STUDENT_EXAM_RESULTS contains comprehensive results for 2026 students', () => {
+    expect(INITIAL_STUDENT_EXAM_RESULTS.length).toBeGreaterThanOrEqual(90);
+    const nurseryResult = INITIAL_STUDENT_EXAM_RESULTS.find((r) => r.className === 'Nursery');
+    expect(nurseryResult).toBeDefined();
+    expect(nurseryResult?.overallGrade).toBe('A+');
+    expect(nurseryResult?.subjects.length).toBe(5);
   });
 });

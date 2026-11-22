@@ -21,6 +21,7 @@ import {
   exportClassResultsCsv,
   calculateSubjectGrade,
   calculateOverallResult,
+  syncStudentsToExamResults,
   EXAM_RESULTS_UPDATE_EVENT,
 } from '../utils/examResultLogic';
 import { StudentReportCardModal } from './StudentReportCardModal';
@@ -52,6 +53,7 @@ interface ExamResultsModuleProps {
   students: Student[];
   currentRole: UserRole;
   schoolProfile?: SchoolProfile;
+  academicYear?: string;
   initialClass?: SchoolClass;
   loggedInStudentId?: string; // If parent is logged in
 }
@@ -69,14 +71,15 @@ export const ExamResultsModule: React.FC<ExamResultsModuleProps> = ({
   students,
   currentRole,
   schoolProfile,
-  initialClass = 'Nursery',
+  academicYear = '২০২৬',
+  initialClass = 'Play',
   loggedInStudentId,
 }) => {
   // Main Data States
-  const [examResults, setExamResults] = useState<StudentExamResult[]>(() => getStoredExamResults());
+  const [examResults, setExamResults] = useState<StudentExamResult[]>(() => getStoredExamResults(students));
   const [examTerms, setExamTerms] = useState<ExamTerm[]>(() => getStoredExamTerms());
   const [selectedTermId, setSelectedTermId] = useState<string>(
-    examTerms[0]?.id || 'term-annual-2026'
+    examTerms[0]?.id || 'term-first-2026'
   );
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(initialClass);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -92,15 +95,27 @@ export const ExamResultsModule: React.FC<ExamResultsModuleProps> = ({
 
   const isParent = currentRole === 'parent';
 
-  // Listen to Storage Updates
+  // Listen to Storage Updates & Student Updates
   useEffect(() => {
     const handleUpdate = () => {
-      setExamResults(getStoredExamResults());
+      setExamResults(getStoredExamResults(students));
       setExamTerms(getStoredExamTerms());
     };
     window.addEventListener(EXAM_RESULTS_UPDATE_EVENT, handleUpdate);
-    return () => window.removeEventListener(EXAM_RESULTS_UPDATE_EVENT, handleUpdate);
-  }, []);
+    window.addEventListener('ananda-students-updated', handleUpdate);
+    return () => {
+      window.removeEventListener(EXAM_RESULTS_UPDATE_EVENT, handleUpdate);
+      window.removeEventListener('ananda-students-updated', handleUpdate);
+    };
+  }, [students]);
+
+  // Automatically sync 2026 students to exam results
+  useEffect(() => {
+    if (students && students.length > 0) {
+      const synced = syncStudentsToExamResults(students, examTerms);
+      setExamResults(synced);
+    }
+  }, [students, examTerms]);
 
   // Show toast notification
   const showToast = (msg: string) => {
