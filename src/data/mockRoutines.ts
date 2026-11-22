@@ -73,12 +73,12 @@ export interface SectionConfig {
  * আনন্দ পাঠশালা প্রি-স্কুল ক্লাসের ফুলভিত্তিক নান্দনিক শাখাসমূহ
  */
 export const STANDARD_SECTIONS: SectionConfig[] = [
-  { id: 'golap', nameBn: 'গোলাপ শাখা (ক)', codeBn: 'ক', flowerNameBn: 'গোলাপ', icon: '🌹' },
-  { id: 'shapla', nameBn: 'শাপলা শাখা (খ)', codeBn: 'খ', flowerNameBn: 'শাপলা', icon: '🪷' },
-  { id: 'padma', nameBn: 'পদ্ম শাখা (গ)', codeBn: 'গ', flowerNameBn: 'পদ্ম', icon: '🌸' },
-  { id: 'tulip', nameBn: 'টিউলিপ শাখা (ঘ)', codeBn: 'ঘ', flowerNameBn: 'টিউলিপ', icon: '🌷' },
-  { id: 'surjamukhi', nameBn: 'সূর্যমুখী শাখা', codeBn: 'ঙ', flowerNameBn: 'সূর্যমুখী', icon: '🌻' },
-  { id: 'beli', nameBn: 'বেলি শাখা', codeBn: 'চ', flowerNameBn: 'বেলি', icon: '🌼' },
+  { id: 'golap', nameBn: 'গোলাপ শাখা (ক)', codeBn: 'ক', flowerNameBn: 'গোলাপ', icon: '🌹', shift: 'morning', shiftBn: 'মর্নিং শিফট' },
+  { id: 'shapla', nameBn: 'শাপলা শাখা (খ)', codeBn: 'খ', flowerNameBn: 'শাপলা', icon: '🪷', shift: 'day', shiftBn: 'দিবা শিফট' },
+  { id: 'padma', nameBn: 'পদ্ম শাখা (গ)', codeBn: 'গ', flowerNameBn: 'পদ্ম', icon: '🌸', shift: 'morning', shiftBn: 'মর্নিং শিফট' },
+  { id: 'tulip', nameBn: 'টিউলিপ শাখা (ঘ)', codeBn: 'ঘ', flowerNameBn: 'টিউলিপ', icon: '🌷', shift: 'day', shiftBn: 'দিবা শিফট' },
+  { id: 'surjamukhi', nameBn: 'সূর্যমুখী শাখা', codeBn: 'ঙ', flowerNameBn: 'সূর্যমুখী', icon: '🌻', shift: 'morning', shiftBn: 'মর্নিং শিফট' },
+  { id: 'beli', nameBn: 'বেলি শাখা', codeBn: 'চ', flowerNameBn: 'বেলি', icon: '🌼', shift: 'day', shiftBn: 'দিবা শিফট' },
 ];
 
 export function getSectionNameBn(sectionIdOrName?: string): string {

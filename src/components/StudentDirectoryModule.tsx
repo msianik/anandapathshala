@@ -339,13 +339,18 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     const nextRoll = String(existingInClass.length + 1).padStart(2, '0');
     const defaultUser = `std_${targetClass.toLowerCase().replace(/[^a-z0-9]/g, '')}_${nextRoll}`;
 
+    const initialClassSecs = getClassSectionsForYear(currentAcademicYear, targetClass);
+    const firstSec = initialClassSecs[0];
+    const initialSection = firstSec ? (firstSec.codeBn || firstSec.nameBn) : 'ক';
+    const initialShift = firstSec?.shift || 'morning';
+
     setFormData({
       rollNo: nextRoll,
       nameBn: '',
       nameEn: '',
       className: targetClass,
-      section: 'A',
-      shift: 'morning',
+      section: initialSection,
+      shift: initialShift,
       gender: 'male',
       birthDate: '2022-05-15',
       bloodGroup: 'B+',
@@ -1567,7 +1572,19 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                   <label className="font-bold text-slate-700 block mb-1">শ্রেণি *</label>
                   <select
                     value={formData.className}
-                    onChange={(e) => setFormData({ ...formData, className: e.target.value as SchoolClass })}
+                    onChange={(e) => {
+                      const newClass = e.target.value as SchoolClass;
+                      const secs = getClassSectionsForYear(currentAcademicYear, newClass);
+                      const matched = secs.find(
+                        (s) => s.codeBn === formData.section || s.nameBn === formData.section || s.id === formData.section
+                      ) || secs[0];
+                      setFormData((prev) => ({
+                        ...prev,
+                        className: newClass,
+                        section: matched ? (matched.codeBn || matched.nameBn) : prev.section,
+                        shift: matched?.shift || prev.shift,
+                      }));
+                    }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
                   >
                     <option value="HateKhori">১. হাতেখড়ি (Pre-Play) — ২.৫+ বছর</option>
@@ -1586,31 +1603,43 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     return (
                       <select
                         value={formData.section}
-                        onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                        onChange={(e) => {
+                          const chosen = e.target.value;
+                          const matchedSec = classSections.find(
+                            (s) => s.codeBn === chosen || s.nameBn === chosen || s.id === chosen
+                          );
+                          setFormData((prev) => ({
+                            ...prev,
+                            section: chosen,
+                            shift: matchedSec?.shift || prev.shift,
+                          }));
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 cursor-pointer"
                       >
                         {classSections.map((sec) => (
                           <option key={sec.id} value={sec.codeBn || sec.nameBn}>
-                            {sec.icon ? `${sec.icon} ` : ''}{sec.nameBn}
+                            {sec.icon ? `${sec.icon} ` : ''}{sec.nameBn} {sec.shift === 'day' ? '(🌤️ দিবা শিফট)' : '(☀️ মর্নিং শিফট)'}
                           </option>
                         ))}
-                        <option value="ক">ক শাখা (Section A)</option>
-                        <option value="খ">খ শাখা (Section B)</option>
-                        <option value="গ">গ শাখা (Section C)</option>
                       </select>
                     );
                   })()}
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">শিফট (Shift)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700">শিফট (Shift) *</label>
+                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 border border-emerald-300 px-1.5 py-0.2 rounded-md">
+                      অটো-সিঙ্ক
+                    </span>
+                  </div>
                   <select
                     value={formData.shift}
                     onChange={(e) => setFormData({ ...formData, shift: e.target.value as SchoolShift })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
                   >
-                    <option value="morning">মর্নিং শিফট (০৮:০০ - ১১:০০)</option>
-                    <option value="day">ডে শিফট (১১:০০ - ০২:০০)</option>
+                    <option value="morning">☀️ মর্নিং শিফট (০৮:০০ - ১১:০০)</option>
+                    <option value="day">🌤️ দিবা শিফট (১১:০০ - ০২:০০)</option>
                   </select>
                 </div>
 
