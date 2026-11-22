@@ -86,6 +86,8 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
       code = name.includes('(') ? name.split('(')[1].replace(')', '').trim() : name.slice(0, 2);
     }
 
+    const shiftBn = formShift === 'day' ? 'দিবা শিফট' : 'মর্নিং শিফট';
+
     let updated: SectionConfig[];
     if (editingSectionId) {
       updated = sections.map((s) =>
@@ -96,6 +98,8 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
               codeBn: code,
               flowerNameBn: name.replace('শাখা', '').trim(),
               icon: formFlowerIcon,
+              shift: formShift,
+              shiftBn: shiftBn,
             }
           : s
       );
@@ -107,6 +111,8 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
         codeBn: code,
         flowerNameBn: name.replace('শাখা', '').trim(),
         icon: formFlowerIcon,
+        shift: formShift,
+        shiftBn: shiftBn,
       };
       updated = [...sections, newSec];
     }
@@ -123,6 +129,7 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
     setFormNameBn(sec.nameBn);
     setFormCodeBn(sec.codeBn || '');
     setFormFlowerIcon(sec.icon || '🌹');
+    setFormShift(sec.shift || 'morning');
     setIsAddingSection(true);
   };
 
@@ -302,6 +309,36 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  শিফট নির্বাচন (Shift) *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormShift('morning')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      formShift === 'morning'
+                        ? 'bg-amber-100 border-amber-500 text-amber-950 font-black shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>☀️ মর্নিং শিফট</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormShift('day')}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      formShift === 'day'
+                        ? 'bg-sky-100 border-sky-500 text-sky-950 font-black shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>🌤️ দিবা শিফট</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
                   শাখার প্রতীক বা ফুল নির্বাচন করুন
                 </label>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -364,9 +401,16 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">
-                      শিক্ষাবর্ষ: {toBengaliNumber(currentYear)}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                        sec.shift === 'day' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {sec.shift === 'day' ? '🌤️ দিবা শিফট' : '☀️ মর্নিং শিফট'}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        শিক্ষাবর্ষ: {toBengaliNumber(currentYear)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

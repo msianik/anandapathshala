@@ -413,8 +413,8 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                   }
                 }}
               >
-                {/* Soft yellow glow over object on hover (only object illuminates softly, no extra borders or text badges) */}
-                <div className="absolute inset-0 rounded-2xl transition-all duration-200 pointer-events-none group-hover:bg-amber-300/25 group-hover:ring-1 group-hover:ring-amber-300/50 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]" />
+                {/* Soft golden tint over object on hover (only object illuminates softly, zero rectangular borders or text badges) */}
+                <div className="absolute inset-0 rounded-2xl transition-colors duration-200 pointer-events-none group-hover:bg-amber-400/25" />
               </div>
             );
           })}

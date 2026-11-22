@@ -65,6 +65,8 @@ export interface SectionConfig {
   codeBn: string;
   flowerNameBn: string;
   icon: string;
+  shift?: SchoolShift;
+  shiftBn?: string;
 }
 
 /**

@@ -253,12 +253,12 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
   const hotspots = [
     {
       id: 'gate',
-      nameBn: '✨ আমাদের সম্পর্কে (আনন্দ পাঠশালা সাইনবোর্ড ও তোরণ)',
+      nameBn: '✨ আমাদের সম্পর্কে (আনন্দ পাঠশালা সাইনবোর্ড)',
       modalId: 'gate' as InteractiveModalType,
-      leftPercent: 69.8,
-      topPercent: 2.6,
-      widthPercent: 29.1,
-      heightPercent: 26.7,
+      leftPercent: 74.1,
+      topPercent: 8.5,
+      widthPercent: 21.4,
+      heightPercent: 23.4,
     },
     {
       id: 'calendar',
@@ -422,8 +422,8 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
                   }
                 }}
               >
-                {/* Soft yellow glow over object on hover (only object illuminates softly, no extra borders or text badges) */}
-                <div className="absolute inset-0 rounded-2xl transition-all duration-200 pointer-events-none group-hover:bg-amber-300/25 group-hover:ring-1 group-hover:ring-amber-300/50 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]" />
+                {/* Soft golden tint over object on hover (only object illuminates softly, zero rectangular borders or text badges) */}
+                <div className="absolute inset-0 rounded-2xl transition-colors duration-200 pointer-events-none group-hover:bg-amber-400/25" />
               </div>
             );
           })}
