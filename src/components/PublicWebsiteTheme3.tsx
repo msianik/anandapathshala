@@ -316,8 +316,8 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
       {/* ========================================================================= */}
       {/* 3. DESKTOP FLOATING CONTROLS (Only on screens >= lg)                      */}
       {/* ========================================================================= */}
-      {/* Desktop Top-Right Floating Action Buttons */}
-      <div className="hidden lg:flex absolute top-5 right-6 z-40 items-center gap-2">
+      {/* Desktop Top-Left Floating Action Buttons */}
+      <div className="hidden lg:flex absolute top-5 left-6 z-40 items-center gap-2">
         <button
           type="button"
           onClick={() => handleOpenSpot('admission')}
