@@ -370,7 +370,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   const handleOpenAddModal = (presetClass?: SchoolClass) => {
     const targetClass = presetClass ? presetClass : (selectedClass !== 'all' ? selectedClass : 'HateKhori');
     const nextUniqueId = getNextUniqueStudentId(students);
-    const defaultUser = `std_${nextUniqueId}`;
+    const defaultUser = nextUniqueId;
 
     const initialClassSecs = getClassSectionsForYear(currentAcademicYear, targetClass);
     const firstSec = initialClassSecs[0];
@@ -470,7 +470,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     const newId = `std-${Date.now()}`;
     const cleanUsername =
       formData.username.trim() ||
-      formData.nameEn.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) ||
+      formData.rollNo.trim() ||
       `std${Date.now().toString().slice(-4)}`;
     const cleanPassword = formData.password.trim() || '123456';
     const assignedRole: PortalAccountRole = formData.portalRole || 'parent';
@@ -576,8 +576,8 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
 
     const cleanUsername =
       formData.username.trim() ||
+      formData.rollNo.trim() ||
       editingStudent.username ||
-      formData.nameEn.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) ||
       editingStudent.id;
     const cleanPassword = formData.password.trim() || editingStudent.password || '123456';
     const assignedRole: PortalAccountRole = formData.portalRole || editingStudent.portalRole || 'parent';
@@ -1706,7 +1706,14 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     required
                     placeholder="যেমন: ২৫৯ বা 101"
                     value={formData.rollNo}
-                    onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        rollNo: newId,
+                        username: newId,
+                      }));
+                    }}
                     className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono font-bold text-slate-800 transition-all outline-none ${
                       isDuplicateId
                         ? 'border-rose-500 ring-2 ring-rose-200 bg-rose-50/50 text-rose-900'
@@ -1927,8 +1934,15 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       type="text"
                       required
                       value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      placeholder="যেমন: std_01 / parent1"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          username: val,
+                          rollNo: val,
+                        }));
+                      }}
+                      placeholder={formData.rollNo || "যেমন: ২৫৯ বা 101"}
                       className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-mono font-bold text-slate-900"
                     />
                   </div>

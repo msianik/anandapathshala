@@ -209,9 +209,7 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
     const sectionCode = assignedSection ? (assignedSection.codeBn || assignedSection.nameBn) : 'ক';
     const assignedShift = app.preferredShift || assignedSection?.shift || 'morning';
 
-    const cleanUsername =
-      app.studentNameEn?.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) ||
-      `std_${nextStudentId}`;
+    const cleanUsername = nextStudentId;
 
     const newStudent: Student = {
       id: newId,
