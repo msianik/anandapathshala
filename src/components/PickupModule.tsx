@@ -108,9 +108,25 @@ export const PickupModule: React.FC<PickupModuleProps> = ({
           (currentStudent.rollNo && (l.rollNo === currentStudent.rollNo || l.enrollId === currentStudent.rollNo)) ||
           (currentStudent.biometricEnrollId && l.enrollId === currentStudent.biometricEnrollId))
     );
-    studentBioPunches.sort((a, b) => a.timestamp - b.timestamp);
-    const entryPunch = studentBioPunches.find((p) => p.punchType === 'entry') || studentBioPunches[0];
-    const realCheckInTime = entryPunch?.punchTimeStr || (currentStudent.currentStatus === 'in_class' ? 'বায়োমেট্রিক পাঞ্চ সম্পন্ন' : 'পাঞ্চ তথ্য অপেক্ষমাণ');
+    const now = new Date();
+    const isTodayLog = (timestamp?: number, dateStr?: string) => {
+      if (!timestamp && !dateStr) return false;
+      if (timestamp) {
+        const d = new Date(timestamp);
+        if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()) return true;
+      }
+      if (dateStr) {
+        if (dateStr.includes('আজ')) return true;
+        const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
+        if (dateStr.includes(todayBn)) return true;
+      }
+      return false;
+    };
+
+    const todayBioPunches = studentBioPunches.filter((l) => isTodayLog(l.timestamp, l.dateStr));
+    todayBioPunches.sort((a, b) => a.timestamp - b.timestamp);
+    const entryPunch = todayBioPunches.find((p) => p.punchType === 'entry') || (todayBioPunches.length > 0 ? todayBioPunches[0] : null);
+    const realCheckInTime = entryPunch?.punchTimeStr || (currentStudent.currentStatus === 'in_class' ? 'ক্লাসে উপস্থিত' : 'আজকের পাঞ্চ অপেক্ষমাণ');
 
     const todayLiveLog = studentPickupLogs.find((l) => l.timestamp.includes('আজ') || l.id.startsWith('pke-'));
     const isPickedUpToday = currentStudent.currentStatus === 'picked_up' || Boolean(todayLiveLog);

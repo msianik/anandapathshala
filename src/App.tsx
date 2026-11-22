@@ -511,12 +511,16 @@ export default function App() {
     window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
     window.addEventListener('ananda-invoices-updated', handleInvoicesSync);
     window.addEventListener('ananda-attendance-updated', handleAttendanceSync);
+    window.addEventListener('ananda_biometric_synced', handleAttendanceSync);
+    window.addEventListener('ananda-biometric-logs-updated', handleAttendanceSync);
 
     return () => {
       window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
       window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
       window.removeEventListener('ananda-invoices-updated', handleInvoicesSync);
       window.removeEventListener('ananda-attendance-updated', handleAttendanceSync);
+      window.removeEventListener('ananda_biometric_synced', handleAttendanceSync);
+      window.removeEventListener('ananda-biometric-logs-updated', handleAttendanceSync);
     };
   }, [loggedInAccount]);
 

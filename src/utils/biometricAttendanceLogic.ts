@@ -224,6 +224,7 @@ export function saveBiometricLogs(logs: BiometricPunchLog[]): void {
     safeSetItem('ananda_biometric_punch_logs_v1', json);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs } }));
+      window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
     }
   } catch (err) {
     console.error('Failed to save biometric punch logs:', err);
@@ -450,13 +451,31 @@ export function syncBiometricAttendanceData({
     const pLogs = studentLogsMap.get(student.id);
     if (!pLogs || pLogs.length === 0) return;
 
-    // Sort by timestamp
-    pLogs.sort((a, b) => a.timestamp - b.timestamp);
+    const now = new Date();
+    const isToday = (ts?: number, dateStr?: string) => {
+      if (!ts && !dateStr) return false;
+      if (ts) {
+        const d = new Date(ts);
+        if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()) return true;
+      }
+      if (dateStr) {
+        if (dateStr.includes('আজ')) return true;
+        const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
+        if (dateStr.includes(todayBn)) return true;
+      }
+      return false;
+    };
 
-    // Find earliest entry punch (কখন ঢুকছে)
-    const entryPunch = pLogs.find((p) => p.punchType === 'entry') || pLogs[0];
-    // Find latest exit punch (কখন বের হচ্ছে)
-    const exitPunch = pLogs.slice().reverse().find((p) => p.punchType === 'exit');
+    const todayPLogs = pLogs.filter((p) => isToday(p.timestamp, p.dateStr));
+    if (todayPLogs.length === 0) return;
+
+    // Sort today's punches by timestamp
+    todayPLogs.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Find earliest entry punch today (কখন ঢুকছে)
+    const entryPunch = todayPLogs.find((p) => p.punchType === 'entry') || todayPLogs[0];
+    // Find latest exit punch today (কখন বের হচ্ছে)
+    const exitPunch = todayPLogs.slice().reverse().find((p) => p.punchType === 'exit');
 
     const inTimeStr = entryPunch?.punchTimeStr;
     const outTimeStr = exitPunch?.punchTimeStr;

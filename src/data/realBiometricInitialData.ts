@@ -15223,15 +15223,8 @@ export const REAL_DEVICE_STUDENT_ATTENDANCE: AttendanceRecord[] = [
     "rollNo": "২৮৭",
     "className": "Nursery",
     "status": "present",
-    "checkInTime": "সকাল ০৭:৫৩",
-    "checkOutTime": "সকাল ০৭:৫৩",
-    "biometricSynced": true,
-    "checkInMethod": "biometric",
-    "checkOutMethod": "biometric",
-    "entryTimestamp": 1794189193000,
-    "exitTimestamp": 1794189193000,
     "dateStr": "আজ, ১৯ নভেম্বর, ২০২৬",
-    "remarks": "বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (পাঞ্চ: সকাল ০৭:৫৩)"
+    "remarks": "আজ এখনও বায়োমেট্রিক পাঞ্চ করেননি (অপেক্ষমাণ)"
   },
   {
     "studentId": "std-zk-285",

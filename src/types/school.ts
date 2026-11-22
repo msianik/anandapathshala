@@ -222,6 +222,7 @@ export interface Student {
   portalRole?: PortalAccountRole;
   admissionDate?: string; // যেমন: '2026-05-01'
   admissionDateBn?: string; // যেমন: '০১ মে ২০২৬'
+  academicYear?: string; // যেমন: '2026' বা '2027'
   admissionFee?: number; // যেমন: 5000
   monthlyFee?: number; // যেমন: 4000
   biometricEnrollId?: string; // ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিনে এনরোল আইডি (যেমন: 100, 101, বা রোল নম্বর)

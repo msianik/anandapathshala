@@ -73,6 +73,7 @@ import {
   FileSpreadsheet,
   Calendar,
   Printer,
+  RefreshCw,
   Eye,
   Coffee,
   X,
@@ -1725,8 +1726,29 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   }, [myChild.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);
 
-  // Live Attendance calculation from Physical Biometric Fingerprint Machine & Attendance Records
+  // Live Attendance calculation strictly from Real Biometric Machine Punches (No Mock Data)
   const childAttendanceStats = React.useMemo(() => {
+    const now = new Date();
+    const isTodayLog = (timestamp?: number, dateStr?: string) => {
+      if (!timestamp && !dateStr) return false;
+      if (timestamp) {
+        const d = new Date(timestamp);
+        if (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth() &&
+          d.getDate() === now.getDate()
+        ) {
+          return true;
+        }
+      }
+      if (dateStr) {
+        if (dateStr.includes('আজ')) return true;
+        const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
+        if (dateStr.includes(todayBn)) return true;
+      }
+      return false;
+    };
+
     // 1. First look for real physical biometric machine punches
     const bioLogs = getBiometricLogs();
     const myBioPunches = bioLogs.filter(
@@ -1734,22 +1756,27 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
         l &&
         l.personType === 'student' &&
         (l.personId === myChild.id ||
-          (myChild.rollNo && (l.rollNo === myChild.rollNo || l.enrollId === myChild.rollNo)) ||
-          (myChild.biometricEnrollId && l.enrollId === myChild.biometricEnrollId))
+          (myChild.rollNo && (normalizeIdentifier(l.rollNo || '') === normalizeIdentifier(myChild.rollNo) || normalizeIdentifier(l.enrollId || '') === normalizeIdentifier(myChild.rollNo))) ||
+          (myChild.biometricEnrollId && normalizeIdentifier(l.enrollId || '') === normalizeIdentifier(myChild.biometricEnrollId)) ||
+          (l.nameBn && myChild.nameBn && l.nameBn.trim() === myChild.nameBn.trim()))
     );
-    myBioPunches.sort((a, b) => a.timestamp - b.timestamp);
-    const entryPunch = myBioPunches.find((p) => p.punchType === 'entry') || myBioPunches[0];
-    const exitPunch = myBioPunches.slice().reverse().find((p) => p.punchType === 'exit');
 
-    // 2. Look in attendanceRecords
+    // Filter punches strictly for TODAY (never pull old punches from weeks ago as today's live status)
+    const todayPunches = myBioPunches.filter((l) => isTodayLog(l.timestamp, l.dateStr));
+    todayPunches.sort((a, b) => a.timestamp - b.timestamp);
+
+    const todayEntry = todayPunches.find((p) => p.punchType === 'entry') || (todayPunches.length > 0 ? todayPunches[0] : null);
+    const todayExit = todayPunches.slice().reverse().find((p) => p.punchType === 'exit');
+
+    // 2. Look in attendanceRecords for today
     const myRecords = (attendanceRecords || []).filter(
-      (r) => r.studentId === myChild.id || (myChild.rollNo && r.rollNo === myChild.rollNo)
+      (r) => r.studentId === myChild.id || (myChild.rollNo && normalizeIdentifier(r.rollNo) === normalizeIdentifier(myChild.rollNo))
     );
-    const todayRec = myRecords.find((r) => r.checkInTime) || myRecords[0];
+    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr));
 
-    // Real check-in time directly from biometric device
-    const realCheckInTime = entryPunch?.punchTimeStr || todayRec?.checkInTime;
-    const realCheckOutTime = exitPunch?.punchTimeStr || todayRec?.checkOutTime;
+    // Real check-in time strictly from biometric punch of today (no mock fallbacks!)
+    const realCheckInTime = todayEntry?.punchTimeStr || (todayRec?.biometricSynced && isTodayLog(todayRec.entryTimestamp, todayRec.dateStr) ? todayRec.checkInTime : null);
+    const realCheckOutTime = todayExit?.punchTimeStr || (todayRec?.biometricSynced && isTodayLog(todayRec.exitTimestamp, todayRec.dateStr) ? todayRec.checkOutTime : null);
 
     const present = myRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
     const totalDays = myRecords.length > 0 ? myRecords.length : 24;
@@ -1761,10 +1788,11 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       totalDays,
       recentCheckIn: realCheckInTime,
       checkOutTime: realCheckOutTime,
-      isBiometricSynced: Boolean(entryPunch || todayRec?.biometricSynced),
-      punchDate: entryPunch?.dateStr || todayRec?.dateStr,
+      isBiometricSynced: Boolean(todayEntry || (todayRec?.biometricSynced && realCheckInTime)),
+      punchDate: todayEntry?.dateStr || todayRec?.dateStr,
+      hasPunchedToday: Boolean(realCheckInTime),
     };
-  }, [attendanceRecords, myChild.id, myChild.rollNo, myChild.biometricEnrollId, feeConfigSyncVer]);
+  }, [attendanceRecords, myChild.id, myChild.rollNo, myChild.biometricEnrollId, myChild.nameBn, feeConfigSyncVer]);
 
   useEffect(() => {
     const onFeeCfgSync = () => setFeeConfigSyncVer((v) => v + 1);
@@ -1777,6 +1805,8 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     window.addEventListener('ananda_biometric_synced', onBioSync);
     window.addEventListener('ananda-attendance-updated', onBioSync);
     window.addEventListener('ananda_biometric_device_updated', onBioSync);
+    window.addEventListener('ananda-biometric-logs-updated', onBioSync);
+    window.addEventListener('storage', onBioSync);
     return () => {
       window.removeEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
       window.removeEventListener('ananda-invoices-updated', onInvSync);
@@ -1784,6 +1814,8 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       window.removeEventListener('ananda_biometric_synced', onBioSync);
       window.removeEventListener('ananda-attendance-updated', onBioSync);
       window.removeEventListener('ananda_biometric_device_updated', onBioSync);
+      window.removeEventListener('ananda-biometric-logs-updated', onBioSync);
+      window.removeEventListener('storage', onBioSync);
     };
   }, []);
 
@@ -1982,7 +2014,25 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
                 <span>হাজিরা হার: <strong className="text-emerald-300 font-bold">{childAttendanceStats.presentRate}%</strong> ({toBengaliNumber(childAttendanceStats.presentDays)}/{toBengaliNumber(childAttendanceStats.totalDays)} দিন)</span>
-                <span>বায়োমেট্রিক: <strong className="text-amber-200 font-bold">{childAttendanceStats.recentCheckIn ? `চেক-ইন ${childAttendanceStats.recentCheckIn}` : 'ডিভাইস সিঙ্কড'}</strong></span>
+                <span className="flex items-center gap-1">
+                  <span>বায়োমেট্রিক:</span>
+                  <strong className="text-amber-200 font-bold">
+                    {childAttendanceStats.recentCheckIn ? `চেক-ইন ${childAttendanceStats.recentCheckIn}` : 'আজকের পাঞ্চ অপেক্ষমাণ'}
+                  </strong>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFeeConfigSyncVer((v) => v + 1);
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
+                      }
+                    }}
+                    title="বায়োমেট্রিক মেশিন থেকে ইনস্ট্যান্ট লাইভ সিঙ্ক করুন"
+                    className="ml-1 p-0.5 rounded text-amber-200 hover:text-white hover:bg-white/10 cursor-pointer transition active:scale-90 inline-flex items-center"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" />
+                  </button>
+                </span>
               </div>
               <p className="text-[10px] text-slate-300">
                 শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn} · জরুরি হেল্পলাইন: {childClassTeacher.phone}
