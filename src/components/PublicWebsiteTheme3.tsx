@@ -221,12 +221,12 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
   const hotspots = [
     {
       id: 'gate',
-      nameBn: '🚪 আনন্দ পাঠশালা ফটক (বিদ্যালয় পরিচিতি)',
+      nameBn: '✨ আমাদের সম্পর্কে (আনন্দ পাঠশালা সাইনবোর্ড ও তোরণ)',
       modalId: 'gate' as InteractiveModalType,
-      leftPercent: 71.0,
-      topPercent: 8.5,
-      widthPercent: 27.5,
-      heightPercent: 68.0,
+      leftPercent: 69.5,
+      topPercent: 2.5,
+      widthPercent: 29.0,
+      heightPercent: 27.0,
     },
     {
       id: 'calendar',
@@ -393,7 +393,9 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
 
               {/* Floating Menu Name Badge appearing directly on hover/tap */}
               {isHovered && (
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                <div className={`absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 ${
+                  spot.topPercent < 10 ? 'top-full mt-2.5' : '-top-10'
+                }`}>
                   {spot.nameBn}
                 </div>
               )}

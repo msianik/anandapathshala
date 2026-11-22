@@ -282,15 +282,6 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       widthPercent: 18.0,
       heightPercent: 30.0,
     },
-    {
-      id: 'school_info',
-      nameBn: '🌿 আনন্দ পাঠশালা উন্মুক্ত ক্যাম্পাস পরিচিতি',
-      modalId: 'school_info' as InteractiveModalType,
-      leftPercent: 2.0,
-      topPercent: 62.0,
-      widthPercent: 22.0,
-      heightPercent: 35.0,
-    },
   ];
 
   return (
@@ -393,7 +384,9 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
 
               {/* Floating Menu Name Badge appearing directly on hover/tap */}
               {isHovered && (
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-emerald-400 text-emerald-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+                <div className={`absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-emerald-400 text-emerald-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 ${
+                  spot.topPercent < 10 ? 'top-full mt-2.5' : '-top-10'
+                }`}>
                   {spot.nameBn}
                 </div>
               )}
