@@ -6,6 +6,7 @@ import {
   calculateStudentExpectedArrival,
   toBengaliNumber,
 } from '../utils/schoolLogic';
+import { getBiometricLogs } from '../utils/biometricAttendanceLogic';
 import { 
   ShieldCheck, 
   QrCode, 
@@ -98,16 +99,29 @@ export const PickupModule: React.FC<PickupModuleProps> = ({
   const dailyGateHistory = useMemo(() => {
     if (!currentStudent) return [];
 
+    const bioLogs = getBiometricLogs();
+    const studentBioPunches = bioLogs.filter(
+      (l) =>
+        l &&
+        l.personType === 'student' &&
+        (l.personId === currentStudent.id ||
+          (currentStudent.rollNo && (l.rollNo === currentStudent.rollNo || l.enrollId === currentStudent.rollNo)) ||
+          (currentStudent.biometricEnrollId && l.enrollId === currentStudent.biometricEnrollId))
+    );
+    studentBioPunches.sort((a, b) => a.timestamp - b.timestamp);
+    const entryPunch = studentBioPunches.find((p) => p.punchType === 'entry') || studentBioPunches[0];
+    const realCheckInTime = entryPunch?.punchTimeStr || (currentStudent.currentStatus === 'in_class' ? 'বায়োমেট্রিক পাঞ্চ সম্পন্ন' : 'পাঞ্চ তথ্য অপেক্ষমাণ');
+
     const todayLiveLog = studentPickupLogs.find((l) => l.timestamp.includes('আজ') || l.id.startsWith('pke-'));
     const isPickedUpToday = currentStudent.currentStatus === 'picked_up' || Boolean(todayLiveLog);
 
     return [
       {
         id: 'gate-rec-today',
-        dateBn: 'আজ, ০৬ নভেম্বর ২০২৬',
-        dayLabelBn: 'আজ (শুক্রবার)',
-        checkInTimeBn: 'সকাল ০৮:৫০',
-        checkInStatusBn: 'সঠিক সময়ে উপস্থিত',
+        dateBn: 'আজ, ২০২৬',
+        dayLabelBn: 'আজকের গেট লগ',
+        checkInTimeBn: realCheckInTime,
+        checkInStatusBn: currentStudent.currentStatus === 'absent' ? 'অনুপস্থিত' : 'সঠিক সময়ে উপস্থিত',
         checkInMethodBn: 'ডিজিটাল বায়োমেট্রিক গেট স্ক্যান',
         checkOutTimeBn: isPickedUpToday
           ? (todayLiveLog?.timestamp.replace('আজ ', '') || 'দুপুর ১২:১০')
@@ -392,8 +406,7 @@ export const PickupModule: React.FC<PickupModuleProps> = ({
                   আজকের স্কুলে প্রবেশের সময় (In-Time)
                 </span>
                 <div className="text-2xl font-black text-slate-900 mt-0.5 flex items-baseline gap-2">
-                  <span>{dailyGateHistory[0]?.checkInTimeBn || 'সকাল ০৮:৫০'}</span>
-                  <span className="text-xs font-medium text-emerald-700 font-sans">মিনিট</span>
+                  <span>{dailyGateHistory[0]?.checkInTimeBn || 'পাঞ্চ তথ্য অপেক্ষমাণ'}</span>
                 </div>
                 <div className="mt-2 text-xs text-slate-600 bg-emerald-50/70 p-2 rounded-lg border border-emerald-100/60 flex items-center gap-1.5">
                   <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
