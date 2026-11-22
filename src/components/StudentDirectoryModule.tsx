@@ -60,8 +60,15 @@ import {
 } from 'lucide-react';
 import { StudentIdCardModal } from './StudentIdCardModal';
 import { StudentProgressCardModal } from './StudentProgressCardModal';
+import { AcademicYearSelector } from './AcademicYearSelector';
+import { ClassSectionManagerModal } from './ClassSectionManagerModal';
 import { compressImageToDataUrl } from '../utils/imageCompressor';
 import { cloudSaveStudents } from '../lib/schoolCloudSync';
+import {
+  getActiveAcademicYear,
+  getClassSectionsForYear,
+  toBengaliNumber,
+} from '../utils/academicYearLogic';
 
 interface StudentDirectoryModuleProps {
   students: Student[];
@@ -72,6 +79,7 @@ interface StudentDirectoryModuleProps {
   loggedInAccount?: PortalAccount | null;
   onNavigateTab: (tab: string) => void;
   assessments?: Record<string, SkillAssessment>;
+  academicYear?: string;
 }
 
 const CLASS_CONFIGS: { id: SchoolClass; nameBn: string; ageRangeBn: string; color: string; badgeBg: string }[] = [

@@ -19,6 +19,11 @@ import {
   STANDARD_SUBJECTS,
 } from '../data/mockRoutines';
 import { getSchoolClassNameBn, isSameSchoolClass } from './schoolLogic';
+import {
+  getActiveAcademicYear,
+  getRoutinesForYear,
+  saveRoutinesForYear,
+} from './academicYearLogic';
 
 export { DAYS_OF_WEEK_CONFIG, SCHOOL_RESOURCES, STANDARD_SECTIONS, getSectionNameBn, AVAILABLE_SHIFTS_PER_CLASS, STANDARD_SUBJECTS };
 export type { DayConfig, SchoolResourceItem, SectionConfig };
@@ -681,35 +686,47 @@ export function normalizeRoutinePeriod(period: ClassRoutinePeriod): ClassRoutine
 }
 
 /**
- * Retrieve class routines from local storage or fallback to mock data
+ * Retrieve class routines from local storage or fallback to mock data (scoped by academic year)
  */
-export function getClassRoutines(): ClassRoutinePeriod[] {
+export function getClassRoutines(year?: string): ClassRoutinePeriod[] {
   if (typeof window === 'undefined') {
     return INITIAL_CLASS_ROUTINES.map(normalizeRoutinePeriod);
   }
   try {
-    const stored = localStorage.getItem(ROUTINES_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map(normalizeRoutinePeriod);
-      }
+    const targetYear = year || getActiveAcademicYear();
+    const list = getRoutinesForYear(targetYear);
+    if (list && list.length > 0) {
+      return list.map(normalizeRoutinePeriod);
     }
+    // If year is 2026 and list was not yet separated, fallback to master key or initial mock
+    if (targetYear === '2026') {
+      const stored = localStorage.getItem(ROUTINES_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(normalizeRoutinePeriod);
+        }
+      }
+      return INITIAL_CLASS_ROUTINES.map(normalizeRoutinePeriod);
+    }
+    // Any new year (e.g. 2027) starts empty
+    return [];
   } catch (err) {
     console.error('Failed to read routines from localStorage:', err);
   }
-  return INITIAL_CLASS_ROUTINES.map(normalizeRoutinePeriod);
+  return [];
 }
 
 /**
- * Save class routines to localStorage and broadcast real-time event
+ * Save class routines to localStorage and broadcast real-time event (scoped by academic year)
  */
-export function saveClassRoutines(routines: ClassRoutinePeriod[]): void {
+export function saveClassRoutines(routines: ClassRoutinePeriod[], year?: string): void {
   if (typeof window === 'undefined') return;
   try {
+    const targetYear = year || getActiveAcademicYear();
     const normalized = routines.map(normalizeRoutinePeriod);
-    localStorage.setItem(ROUTINES_STORAGE_KEY, JSON.stringify(normalized));
-    window.dispatchEvent(new CustomEvent(ROUTINE_UPDATE_EVENT, { detail: { routines: normalized } }));
+    saveRoutinesForYear(targetYear, normalized);
+    window.dispatchEvent(new CustomEvent(ROUTINE_UPDATE_EVENT, { detail: { routines: normalized, year: targetYear } }));
   } catch (err) {
     console.error('Failed to save routines to localStorage:', err);
   }

@@ -65,6 +65,12 @@ import {
   cloudSavePublicWebsiteTheme,
   enrichStudentsWithPortalAccounts,
 } from './lib/schoolCloudSync';
+import {
+  getActiveAcademicYear,
+  getStudentsForYear,
+  saveStudentsForYear,
+  ACADEMIC_YEAR_CHANGE_EVENT,
+} from './utils/academicYearLogic';
 import { TopNavigation } from './components/TopNavigation';
 import { PublicWebsite } from './components/PublicWebsite';
 import { PublicWebsiteTheme2 } from './components/PublicWebsiteTheme2';
@@ -419,23 +425,31 @@ export default function App() {
     return () => window.removeEventListener('school-profile-updated', handleSync);
   }, []);
 
-  // Application Data States (Single Source of Truth for Students)
+  // Active Academic Year State
+  const [activeAcademicYear, setActiveAcademicYearState] = useState<string>(() => {
+    return getActiveAcademicYear();
+  });
+
+  // Application Data States (Single Source of Truth for Students, Scoped by Academic Year)
   const [students, setStudents] = useState<Student[]>(() => {
-    try {
-      const stored = localStorage.getItem('ananda_students_v2');
-      if (stored) {
-        const parsed: Student[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fatherNameBn !== 'অভিভাবক') {
-          return parsed;
+    const currentYear = getActiveAcademicYear();
+    const yearStudents = getStudentsForYear(currentYear);
+    if (currentYear === '2026' && yearStudents.length === 0) {
+      try {
+        const stored = localStorage.getItem('ananda_students_v2');
+        if (stored) {
+          const parsed: Student[] = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fatherNameBn !== 'অভিভাবক') {
+            saveStudentsForYear('2026', parsed);
+            return parsed;
+          }
         }
-      }
-    } catch {}
-    const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
-    try {
-      localStorage.setItem('ananda_students_v2', JSON.stringify(initialEnriched));
-      localStorage.setItem('ananda_students_v1', JSON.stringify(initialEnriched));
-    } catch {}
-    return initialEnriched;
+      } catch {}
+      const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
+      saveStudentsForYear('2026', initialEnriched);
+      return initialEnriched;
+    }
+    return yearStudents;
   });
 
   // Global Real-time Listener for Student Updates Across all Modules
@@ -507,7 +521,16 @@ export default function App() {
       } catch {}
     };
 
+    const handleAcademicYearChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const newYear = detail?.year || getActiveAcademicYear();
+      setActiveAcademicYearState(newYear);
+      const loadedStudents = getStudentsForYear(newYear);
+      setStudents(loadedStudents);
+    };
+
     window.addEventListener('ananda-students-updated', handleStudentsUpdated);
+    window.addEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleAcademicYearChange);
     window.addEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
     window.addEventListener('ananda-invoices-updated', handleInvoicesSync);
     window.addEventListener('ananda-attendance-updated', handleAttendanceSync);
@@ -516,6 +539,7 @@ export default function App() {
 
     return () => {
       window.removeEventListener('ananda-students-updated', handleStudentsUpdated);
+      window.removeEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleAcademicYearChange);
       window.removeEventListener('ananda-portal-accounts-updated', handlePortalAccountsSync);
       window.removeEventListener('ananda-invoices-updated', handleInvoicesSync);
       window.removeEventListener('ananda-attendance-updated', handleAttendanceSync);
@@ -1234,13 +1258,10 @@ export default function App() {
 
     setStudents((prev) => {
       const updated = [enrichedStudent, ...prev.filter((s) => s.id !== enrichedStudent.id)];
+      saveStudentsForYear(activeAcademicYear, updated);
       cloudSaveStudents(updated);
-      try {
-        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated, year: activeAcademicYear } }));
         window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
       }, 0);
       return updated;
@@ -1258,13 +1279,10 @@ export default function App() {
 
     setStudents((prev) => {
       const updated = prev.map((s) => (s.id === enrichedStudent.id ? enrichedStudent : s));
+      saveStudentsForYear(activeAcademicYear, updated);
       cloudSaveStudents(updated);
-      try {
-        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { student: enrichedStudent, students: updated, year: activeAcademicYear } }));
         window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
       }, 0);
       return updated;
@@ -1281,13 +1299,10 @@ export default function App() {
     // 3. Remove from students state, localStorage & cloud
     setStudents((prev) => {
       const updated = prev.filter((s) => s.id !== studentId);
+      saveStudentsForYear(activeAcademicYear, updated);
       cloudSaveStudents(updated);
-      try {
-        localStorage.setItem('ananda_students_v2', JSON.stringify(updated));
-        localStorage.setItem('ananda_students_v1', JSON.stringify(updated));
-      } catch {}
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { deletedId: studentId, students: updated } }));
+        window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: { deletedId: studentId, students: updated, year: activeAcademicYear } }));
         window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
       }, 0);
       return updated;
@@ -1668,6 +1683,7 @@ export default function App() {
                       currentRole={currentRole}
                       loggedInAccount={loggedInAccount}
                       onNavigateTab={setCurrentTab}
+                      academicYear={activeAcademicYear}
                     />
                   )}
 
@@ -1710,6 +1726,7 @@ export default function App() {
                     ) : (
                       <ClassRoutineModule
                         currentRole={currentRole}
+                        academicYear={activeAcademicYear}
                       />
                     )
                   )}
