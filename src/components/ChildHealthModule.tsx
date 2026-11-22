@@ -18,8 +18,11 @@ import {
   resetHealthProfilesToDefault,
   exportHealthProfilesCsv,
   calculateBmi,
+  syncHealthProfilesWithStudents,
   HEALTH_PROFILES_UPDATE_EVENT,
 } from '../utils/healthLogic';
+import { AcademicYearSelector } from './AcademicYearSelector';
+import { getActiveAcademicYear, ACADEMIC_YEAR_CHANGE_EVENT } from '../utils/academicYearLogic';
 import { SCHOOL_PROFILE } from '../data/mockData';
 import {
   Heart,
@@ -53,6 +56,7 @@ interface ChildHealthModuleProps {
   schoolProfile?: SchoolProfile;
   initialClass?: SchoolClass;
   loggedInStudentId?: string;
+  academicYear?: string;
 }
 
 const CLASS_ITEMS: { id: SchoolClass; nameBn: string; color: string }[] = [
@@ -70,10 +74,18 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
   schoolProfile = SCHOOL_PROFILE,
   initialClass = 'Nursery',
   loggedInStudentId,
+  academicYear: propAcademicYear,
 }) => {
-  const [healthProfiles, setHealthProfiles] = useState<StudentHealthProfile[]>(() =>
-    getStoredHealthProfiles()
+  const currentAcademicYear = propAcademicYear || getActiveAcademicYear();
+  const [storedHealthProfiles, setStoredHealthProfiles] = useState<StudentHealthProfile[]>(() =>
+    getStoredHealthProfiles(currentAcademicYear)
   );
+
+  // Sync health profiles strictly in sequence with active students
+  const healthProfiles = useMemo(() => {
+    return syncHealthProfilesWithStudents(students, currentAcademicYear);
+  }, [students, currentAcademicYear, storedHealthProfiles]);
+
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(initialClass);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterAllergyOnly, setFilterAllergyOnly] = useState<boolean>(false);
@@ -108,12 +120,24 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
     );
   }, [isParent, childStudent, effectiveStudentId, healthProfiles]);
 
-  // Reactive listener
+  // Reactive listener for health updates & academic year changes
   useEffect(() => {
-    const handleSync = () => setHealthProfiles(getStoredHealthProfiles());
+    const handleSync = () => {
+      setStoredHealthProfiles(getStoredHealthProfiles(currentAcademicYear));
+    };
+    const handleYearChange = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const targetYear = detail?.year || getActiveAcademicYear();
+      setStoredHealthProfiles(getStoredHealthProfiles(targetYear));
+    };
+
     window.addEventListener(HEALTH_PROFILES_UPDATE_EVENT, handleSync);
-    return () => window.removeEventListener(HEALTH_PROFILES_UPDATE_EVENT, handleSync);
-  }, []);
+    window.addEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleYearChange);
+    return () => {
+      window.removeEventListener(HEALTH_PROFILES_UPDATE_EVENT, handleSync);
+      window.removeEventListener(ACADEMIC_YEAR_CHANGE_EVENT, handleYearChange);
+    };
+  }, [currentAcademicYear]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -450,7 +474,30 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
            TEACHER / ADMIN VIEW: Multi-Student Selector, KPI Cards, Allergies & Full Table
            ========================================================================= */
         <div className="space-y-6">
-          {/* Header Banner */}
+          {/* Academic Year Banner */}
+          <AcademicYearSelector variant="banner" />
+
+          {/* If no students in this academic year */}
+          {students.length === 0 ? (
+            <div className="bg-white rounded-3xl border-2 border-dashed border-rose-300 p-8 sm:p-12 text-center space-y-4 max-w-lg mx-auto shadow-sm">
+              <div className="w-16 h-16 rounded-3xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto shadow-xs">
+                <Heart className="w-8 h-8 text-rose-600" />
+              </div>
+              <div className="space-y-2">
+                <span className="px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
+                  {toBengaliNumber(currentAcademicYear)} শিক্ষাবর্ষ
+                </span>
+                <h4 className="text-lg sm:text-xl font-black text-slate-900">
+                  এই শিক্ষাবর্ষের স্বাস্থ্য ও অ্যালার্জি ডাটাবেজ সম্পূর্ণ শূন্য
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  নতুন শিক্ষাবর্ষে এখনও কোনো শিক্ষার্থী ডাটাবেসে নেই। শিক্ষার্থী ভর্তি করা হলে তাঁদের স্বাস্থ্য, রক্তের গ্রুপ ও অ্যালার্জি তথ্য স্বয়ংক্রিয়ভাবে শিক্ষার্থীদের সিকুয়েন্স অনুযায়ী এখানে তালিকাভুক্ত হবে।
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Header Banner */}
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-700 via-pink-700 to-rose-800 text-white p-6 sm:p-8 shadow-xl">
             <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -820,6 +867,8 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
               </table>
             </div>
           </div>
+            </>
+          )}
         </div>
       )}
 
@@ -828,9 +877,10 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
         <EditStudentHealthModal
           isOpen={Boolean(editingProfile)}
           profile={editingProfile}
+          academicYear={currentAcademicYear}
           onClose={() => setEditingProfile(null)}
           onSave={(updated) => {
-            setHealthProfiles(getStoredHealthProfiles());
+            setStoredHealthProfiles(getStoredHealthProfiles(currentAcademicYear));
             setEditingProfile(null);
             showToast(`✓ ${updated.studentNameBn}-এর স্বাস্থ্য তথ্য সংরক্ষিত হয়েছে!`);
           }}
@@ -854,6 +904,7 @@ export const ChildHealthModule: React.FC<ChildHealthModuleProps> = ({
 interface EditStudentHealthModalProps {
   isOpen: boolean;
   profile: StudentHealthProfile;
+  academicYear?: string;
   onClose: () => void;
   onSave: (updated: StudentHealthProfile) => void;
 }
@@ -861,6 +912,7 @@ interface EditStudentHealthModalProps {
 const EditStudentHealthModal: React.FC<EditStudentHealthModalProps> = ({
   isOpen,
   profile,
+  academicYear,
   onClose,
   onSave,
 }) => {
@@ -896,7 +948,7 @@ const EditStudentHealthModal: React.FC<EditStudentHealthModalProps> = ({
       allergiesList: allergyList,
       regularMedicationsBn: medications,
       emergencyDoctorPhone: doctorPhone,
-    });
+    }, academicYear);
 
     if (updated) onSave(updated);
     else onClose();

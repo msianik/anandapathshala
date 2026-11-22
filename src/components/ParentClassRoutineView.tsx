@@ -40,6 +40,7 @@ import {
   Smartphone,
   Table as TableIcon,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 
 interface ParentClassRoutineViewProps {
@@ -260,38 +261,44 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
         {/* 1. Mobile-Optimized Day-by-Day View (Fits 100% Mobile Screen Width, No Side Overflow) */}
         {mobileViewMode === 'day' && (
           <div className="block md:hidden p-3.5 sm:p-4 space-y-3.5 bg-slate-50/40">
-            {/* Day Selector Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {schoolDays.map((d) => {
-                const isActive = selectedMobileDay === d.id;
-                const isToday = currentDayOfWeek === d.id;
-                const isCultural = d.id === 'tuesday';
+            {/* Day Selector Dropdown Menu (ড্রপডাউন মেনু) */}
+            <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="day-selector-dropdown"
+                  className="text-xs font-black text-slate-800 flex items-center gap-1.5"
+                >
+                  <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>ক্লাস রুটিনের বার / দিন নির্বাচন করুন:</span>
+                </label>
+                {selectedMobileDay === currentDayOfWeek && (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    আজকের রুটিন
+                  </span>
+                )}
+              </div>
 
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => setSelectedMobileDay(d.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isActive
-                        ? isCultural
-                          ? 'bg-rose-600 text-white shadow-xs'
-                          : 'bg-indigo-600 text-white shadow-xs'
-                        : isCultural
-                        ? 'bg-rose-50 text-rose-900 border border-rose-200'
-                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>{d.nameBn}</span>
-                    {isCultural && <span className="text-[10px]">🎨</span>}
-                    {isToday && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black">
-                        আজ
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+              <div className="relative">
+                <select
+                  id="day-selector-dropdown"
+                  value={selectedMobileDay}
+                  onChange={(e) => setSelectedMobileDay(e.target.value as DayOfWeek)}
+                  className="w-full appearance-none pl-3.5 pr-10 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs font-black text-slate-900 border-2 border-indigo-400 focus:border-indigo-600 rounded-xl outline-none transition shadow-2xs cursor-pointer"
+                >
+                  {schoolDays.map((d) => {
+                    const isToday = currentDayOfWeek === d.id;
+                    const isCultural = d.id === 'tuesday';
+                    return (
+                      <option key={d.id} value={d.id}>
+                        {d.nameBn} {isCultural ? '🎨 (সাংস্কৃতিক দিন)' : ''} {isToday ? '⭐ (আজ)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-indigo-600">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
             </div>
 
             {/* Selected Day's Class Cards */}

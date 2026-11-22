@@ -1788,6 +1788,7 @@ export default function App() {
                       students={students}
                       currentRole={currentRole}
                       schoolProfile={schoolProfile}
+                      academicYear={activeAcademicYear}
                       initialClass={
                         loggedInAccount?.assignedClass
                           ? (loggedInAccount.assignedClass as any)
