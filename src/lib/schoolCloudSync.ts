@@ -683,6 +683,7 @@ export async function cloudSaveHomeworkChecklists(checklists: DailyClassHomework
   const isoTime = new Date(now).toISOString();
   const sanitized = sanitizeForFirestore(checklists);
 
+  safeLocalSet('ananda_homework_checklists_v2', sanitized);
   safeLocalSet('ananda_homework_checklist_v1', sanitized);
   setLocalTimestamp('homework_checklist', now);
 
@@ -1112,7 +1113,10 @@ export async function syncAllPortalDataToCloud(): Promise<{
   const examTerms = safeLocalGet<ExamTerm[]>('ananda_exam_terms_v1') || DEFAULT_EXAM_TERMS;
   const examSchedules = safeLocalGet<ExamScheduleItem[]>('ananda_exam_schedules_v1') || INITIAL_EXAM_SCHEDULES;
   const health = safeLocalGet<StudentHealthProfile[]>('ananda_health_profiles_v1') || INITIAL_STUDENT_HEALTH_PROFILES;
-  const homework = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1') || loadAllHomeworkChecklists();
+  const homework =
+    safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklists_v2') ||
+    safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1') ||
+    loadAllHomeworkChecklists();
   const academic = safeLocalGet<AcademicCalendarEvent[]>('ananda_academic_calendar_events_v2') || INITIAL_ACADEMIC_EVENTS;
   const feeConfigs = safeLocalGet<Record<string, StudentFeeConfig>>('ananda_student_fee_configs_v1') || getAllStudentFeeConfigs();
   const leaves = safeLocalGet<TeacherLeaveApplication[]>('ananda_staff_leaves_v1') || INITIAL_STAFF_LEAVES;
@@ -1842,13 +1846,16 @@ export function subscribeToSchoolCloud(
           const data = snap.data();
           if (Array.isArray(data?.items)) {
             safeProcessCloudUpdate(() => {
+              safeLocalSet('ananda_homework_checklists_v2', data.items);
               safeLocalSet('ananda_homework_checklist_v1', data.items);
               listeners.onHomeworkChecklistChange?.(data.items);
               window.dispatchEvent(new CustomEvent('ananda-homework-checklist-updated', { detail: data.items }));
             });
           }
         } else {
-          const existingLocal = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
+          const existingLocal =
+            safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklists_v2') ||
+            safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
           const toSeed = existingLocal && existingLocal.length > 0 ? existingLocal : loadAllHomeworkChecklists();
           cloudSaveHomeworkChecklists(toSeed);
         }
@@ -2427,7 +2434,9 @@ export function subscribeToSchoolCloud(
 
   const handleHomeworkChecklistUpdated = () => {
     if (isReceivingCloudUpdate) return;
-    const list = safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
+    const list =
+      safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklists_v2') ||
+      safeLocalGet<DailyClassHomeworkChecklist[]>('ananda_homework_checklist_v1');
     if (list) cloudSaveHomeworkChecklists(list);
   };
 

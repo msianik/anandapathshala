@@ -58,6 +58,7 @@ import { ExamScheduleTab } from './ExamScheduleTab';
 import { CulturalDayHubTab } from './CulturalDayHubTab';
 import { WeeklyTiffinMenuTab } from './WeeklyTiffinMenuTab';
 import { HomeworkChecklistModule } from './HomeworkChecklistModule';
+import { getActiveStudents } from '../utils/homeworkChecklistLogic';
 import { AcademicYearSelector } from './AcademicYearSelector';
 import { ClassSectionManagerModal } from './ClassSectionManagerModal';
 import {
@@ -1993,6 +1994,7 @@ export const ClassRoutineModule: React.FC<ClassRoutineModuleProps> = ({
       ) : activeRoutineTab === 'homework_checklist' ? (
         <div className="animate-in fade-in duration-200">
           <HomeworkChecklistModule
+            students={getActiveStudents()}
             currentRole={currentRole}
             initialClass={selectedClass}
             initialShift={shiftFilter === 'all' ? undefined : shiftFilter}

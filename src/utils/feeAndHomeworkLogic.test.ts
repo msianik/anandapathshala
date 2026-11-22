@@ -156,10 +156,12 @@ describe('Teacher Daily Classroom Homework Checklist Logic', () => {
   });
 
   it('retrieves homework record for parent portal child view', () => {
-    const rec = getStudentHomeworkRecordForDate('std-0', '2026-11-17', 'বাংলা ভাষা ও বর্ণমালা');
+    const all = loadAllHomeworkChecklists();
+    const firstRecord = all[0]?.records[0]!;
+    const rec = getStudentHomeworkRecordForDate(firstRecord.studentId, firstRecord.dateStr, firstRecord.subjectBn);
     expect(rec).toBeDefined();
-    expect(rec?.studentId).toBe('std-0');
-    expect(rec?.studentNameBn).toBe('তানিশা ইসলাম');
-    expect(rec?.status).toBe('submitted');
+    expect(rec?.studentId).toBe(firstRecord.studentId);
+    expect(rec?.studentNameBn).toBe(firstRecord.studentNameBn);
+    expect(rec?.status).toBe(firstRecord.status);
   });
 });

@@ -72,17 +72,25 @@ export const HomeworkChecklistModule: React.FC<HomeworkChecklistModuleProps> = (
     initialClass ||
     ((loggedInAccount?.assignedClass as SchoolClass) || 'HateKhori');
 
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
   const [selectedClass, setSelectedClass] = useState<SchoolClass>(defaultClass);
   const [selectedShift, setSelectedShift] = useState<SchoolShift>(
     initialShift || (selectedClass === 'KG' || selectedClass === 'Class-1' || selectedClass === 'Class-2' ? 'day' : 'morning')
   );
   const [selectedSection, setSelectedSection] = useState<string>(
-    initialSection || STANDARD_SECTIONS[0]?.nameBn || 'গোলাপ শাখা (ক)'
+    initialSection || 'all'
   );
   const [selectedSubject, setSelectedSubject] = useState<string>(
     STANDARD_SUBJECTS[0] || 'বাংলা ভাষা ও বর্ণমালা'
   );
-  const [selectedDateStr, setSelectedDateStr] = useState<string>('2026-11-17');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr || '2026-11-23');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'submitted' | 'pending' | 'excused'>('all');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
@@ -93,24 +101,28 @@ export const HomeworkChecklistModule: React.FC<HomeworkChecklistModuleProps> = (
       selectedClass,
       selectedShift,
       selectedSection,
-      selectedDateStr,
-      selectedSubject
+      todayStr || '2026-11-23',
+      selectedSubject,
+      undefined,
+      students
     )
   );
 
-  // Sync checklist when selectors change
+  // Sync checklist when selectors or real students change
   useEffect(() => {
     const chk = getOrCreateDailyChecklist(
       selectedClass,
       selectedShift,
       selectedSection,
       selectedDateStr,
-      selectedSubject
+      selectedSubject,
+      undefined,
+      students
     );
     setCurrentChecklist(chk);
-  }, [selectedClass, selectedShift, selectedSection, selectedDateStr, selectedSubject]);
+  }, [selectedClass, selectedShift, selectedSection, selectedDateStr, selectedSubject, students]);
 
-  // Listen to external checklist updates
+  // Listen to external checklist updates & real database student updates
   useEffect(() => {
     const handleUpdate = () => {
       const chk = getOrCreateDailyChecklist(
@@ -118,13 +130,19 @@ export const HomeworkChecklistModule: React.FC<HomeworkChecklistModuleProps> = (
         selectedShift,
         selectedSection,
         selectedDateStr,
-        selectedSubject
+        selectedSubject,
+        undefined,
+        students
       );
       setCurrentChecklist(chk);
     };
     window.addEventListener(HOMEWORK_CHECKLIST_UPDATE_EVENT, handleUpdate);
-    return () => window.removeEventListener(HOMEWORK_CHECKLIST_UPDATE_EVENT, handleUpdate);
-  }, [selectedClass, selectedShift, selectedSection, selectedDateStr, selectedSubject]);
+    window.addEventListener('ananda-students-updated', handleUpdate);
+    return () => {
+      window.removeEventListener(HOMEWORK_CHECKLIST_UPDATE_EVENT, handleUpdate);
+      window.removeEventListener('ananda-students-updated', handleUpdate);
+    };
+  }, [selectedClass, selectedShift, selectedSection, selectedDateStr, selectedSubject, students]);
 
   // Handle individual status change
   const handleStatusChange = (
@@ -339,6 +357,7 @@ export const HomeworkChecklistModule: React.FC<HomeworkChecklistModuleProps> = (
               onChange={(e) => setSelectedSection(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500"
             >
+              <option value="all">🌟 সকল শাখা (All Sections)</option>
               {STANDARD_SECTIONS.map((sec) => (
                 <option key={sec.id} value={sec.nameBn}>
                   {sec.icon} {sec.nameBn}
@@ -367,9 +386,20 @@ export const HomeworkChecklistModule: React.FC<HomeworkChecklistModuleProps> = (
 
           {/* Date Selector */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-              তারিখ:
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-bold text-slate-600">
+                তারিখ:
+              </label>
+              {selectedDateStr !== todayStr && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDateStr(todayStr)}
+                  className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                >
+                  আজকের তারিখ
+                </button>
+              )}
+            </div>
             <input
               type="date"
               value={selectedDateStr}

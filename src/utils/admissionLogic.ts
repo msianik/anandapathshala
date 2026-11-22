@@ -9,6 +9,7 @@ import {
   getClassSectionsForYear,
 } from './academicYearLogic';
 import { cloudSaveStudents } from '../lib/schoolCloudSync';
+import { syncStudentToHomeworkChecklists } from './homeworkChecklistLogic';
 
 export const ADMISSION_UPDATE_EVENT = 'anando_admission_update';
 const ADMISSIONS_STORAGE_KEY = 'anando_admission_applications_v1';
@@ -273,6 +274,7 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
     saveStudentsForYear(currentYear, updatedStudents);
     try {
       cloudSaveStudents(updatedStudents);
+      syncStudentToHomeworkChecklists(newStudent);
     } catch {}
 
     upsertPortalAccount({
