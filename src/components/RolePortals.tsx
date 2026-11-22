@@ -1904,17 +1904,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
             </div>
 
             <div className="space-y-1.5 min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                  <Building2 className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>আনন্দ পাঠশালা, কুষ্টিয়া</span>
-                </span>
-                <span className="inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                  <Heart className="w-3.5 h-3.5 text-amber-300" />
-                  <span>অভিভাবক ও সন্তান ড্যাশবোর্ড</span>
-                </span>
-              </div>
-
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white truncate">
                 আপনার সন্তান: {myChild.nameBn} ({myChild.nameEn})
               </h2>
