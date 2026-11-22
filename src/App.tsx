@@ -1699,6 +1699,7 @@ export default function App() {
                   {currentTab === 'admissions' && (
                     <OnlineAdmissionModule
                       currentRole={currentRole}
+                      onAdmitStudent={handleAddStudent}
                     />
                   )}
 

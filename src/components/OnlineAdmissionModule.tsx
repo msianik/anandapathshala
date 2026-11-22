@@ -24,7 +24,7 @@ import {
   Camera,
   Upload,
 } from 'lucide-react';
-import { AdmissionApplication, SchoolClass, SchoolShift, UserRole } from '../types/school';
+import { AdmissionApplication, SchoolClass, SchoolShift, Student, UserRole } from '../types/school';
 import {
   getAdmissionApplications,
   saveAdmissionApplication,
@@ -40,12 +40,14 @@ interface OnlineAdmissionModuleProps {
   currentRole: UserRole;
   isPublicMode?: boolean; // When opened by a parent on the public website
   onClosePublicModal?: () => void;
+  onAdmitStudent?: (student: Student) => void;
 }
 
 export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
   currentRole,
   isPublicMode = false,
   onClosePublicModal,
+  onAdmitStudent,
 }) => {
   const isAdmin =
     currentRole === 'super_admin' ||
@@ -188,6 +190,19 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
       interviewNotes
     );
     setInterviewApp(null);
+  };
+
+  const handleApproveAdmission = (app: AdmissionApplication) => {
+    const enrolled = updateAdmissionStatus(app.id, 'admitted', 'সরাসরি ভর্তি নিশ্চিত');
+    if (enrolled) {
+      if (onAdmitStudent) {
+        onAdmitStudent(enrolled);
+      }
+      alert(`🎉 অভিনন্দন! "${app.studentNameBn}" এর ভর্তি নিশ্চিত করা হয়েছে এবং শিক্ষার্থী তালিকায় আইডি নম্বর (${enrolled.rollNo}) হিসেবে সফলভাবে যুক্ত হয়েছে!`);
+    } else {
+      alert(`✅ "${app.studentNameBn}" এর ভর্তি নিশ্চিত করা হয়েছে।`);
+    }
+    setApplications(getAdmissionApplications());
   };
 
   const handlePrint = () => {
@@ -466,7 +481,7 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                       {app.status !== 'admitted' && (
                         <button
                           type="button"
-                          onClick={() => updateAdmissionStatus(app.id, 'admitted', 'সরাসরি ভর্তি নিশ্চিত')}
+                          onClick={() => handleApproveAdmission(app)}
                           className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
                         >
                           <Check className="w-3 h-3" />

@@ -2,6 +2,13 @@ import { AdmissionApplication, SchoolClass, SchoolShift, Student } from '../type
 import { INITIAL_STUDENTS } from '../data/mockData';
 import { upsertPortalAccount, normalizeIdentifier } from './schoolLogic';
 import { syncStudentToBiometricDevice } from './biometricAttendanceLogic';
+import {
+  getActiveAcademicYear,
+  getStudentsForYear,
+  saveStudentsForYear,
+  getClassSectionsForYear,
+} from './academicYearLogic';
+import { cloudSaveStudents } from '../lib/schoolCloudSync';
 
 export const ADMISSION_UPDATE_EVENT = 'anando_admission_update';
 const ADMISSIONS_STORAGE_KEY = 'anando_admission_applications_v1';
@@ -165,29 +172,55 @@ export function submitNewAdmissionApplication(
 export function enrollStudentFromAdmission(app: AdmissionApplication): Student | null {
   if (typeof window === 'undefined') return null;
   try {
-    const rawStd = localStorage.getItem('ananda_students_v1');
-    let students: Student[] = rawStd ? JSON.parse(rawStd) : [];
+    const currentYear = getActiveAcademicYear();
+    let students = getStudentsForYear(currentYear);
     if (!Array.isArray(students) || students.length === 0) {
-      students = [...INITIAL_STUDENTS];
+      if (currentYear === '2026') {
+        students = [...INITIAL_STUDENTS];
+      } else {
+        students = [];
+      }
     }
 
     const newId = `std-adm-${app.id}`;
     // Check if student with this ID already enrolled
     const existingIndex = students.findIndex((s) => s.id === newId);
-    const existingInClass = students.filter((s) => s.className === app.applyingClass);
-    const nextRoll = String(existingInClass.length + 1).padStart(2, '0');
+
+    // Compute next unique numeric student ID
+    const bnToEn: Record<string, string> = {
+      '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+      '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+    };
+    const existingNumbers = new Set<number>();
+    students.forEach((s) => {
+      const raw = (s.rollNo || '').replace(/[০-৯]/g, (d) => bnToEn[d] || d).replace(/\D/g, '');
+      const num = parseInt(raw, 10);
+      if (!isNaN(num) && num > 0) existingNumbers.add(num);
+    });
+    let nextIdNum = existingNumbers.size === 0 ? 101 : Math.max(...existingNumbers) + 1;
+    while (existingNumbers.has(nextIdNum)) {
+      nextIdNum++;
+    }
+    const nextStudentId = String(nextIdNum);
+
+    // Get section and shift for this class
+    const classSections = getClassSectionsForYear(currentYear, app.applyingClass);
+    const assignedSection = classSections[0];
+    const sectionCode = assignedSection ? (assignedSection.codeBn || assignedSection.nameBn) : 'ক';
+    const assignedShift = app.preferredShift || assignedSection?.shift || 'morning';
+
     const cleanUsername =
       app.studentNameEn?.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) ||
-      `std_${app.applyingClass.toLowerCase()}_${nextRoll}`;
+      `std_${nextStudentId}`;
 
     const newStudent: Student = {
       id: newId,
-      rollNo: nextRoll,
+      rollNo: nextStudentId,
       nameBn: app.studentNameBn,
       nameEn: app.studentNameEn || app.studentNameBn,
       className: app.applyingClass,
-      section: 'A',
-      shift: app.preferredShift || 'morning',
+      section: sectionCode,
+      shift: assignedShift,
       gender: app.gender,
       birthDate: app.dateOfBirth,
       bloodGroup: app.bloodGroup || 'B+',
@@ -196,14 +229,16 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       email: `${cleanUsername}@anandapathshala.edu.bd`,
       fatherNameBn: app.fatherNameBn,
       motherNameBn: app.motherNameBn,
+      guardianNameBn: app.guardianNameBn || app.fatherNameBn || app.motherNameBn || 'অভিভাবক',
+      guardianRelationBn: app.guardianRelationBn || 'পিতা',
       homeAddressBn: app.presentAddressBn,
       currentStatus: 'in_class',
       authorizedPickups: [
         {
           id: `p-${Date.now()}-1`,
-          nameBn: app.fatherNameBn || 'অভিভাবক',
+          nameBn: app.guardianNameBn || app.fatherNameBn || 'অভিভাবক',
           nameEn: app.studentNameEn || 'Guardian',
-          relationBn: 'বাবা',
+          relationBn: app.guardianRelationBn || 'পিতা',
           relationEn: 'Father/Guardian',
           phone: app.fatherPhone || app.emergencyContact,
           nid: 'NID-VERIFIED-2026',
@@ -218,9 +253,10 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       username: cleanUsername,
       password: '123456',
       portalRole: 'parent',
-      biometricEnrollId: rollNo || newId,
+      biometricEnrollId: nextStudentId,
       biometricSynced: true,
       biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
+      admissionDate: `${currentYear}-01-15`,
     };
 
     // Auto-sync approved admission student to physical & cloud biometric machine
@@ -228,13 +264,18 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       syncStudentToBiometricDevice(newStudent);
     } catch {}
 
+    let updatedStudents: Student[];
     if (existingIndex >= 0) {
-      students[existingIndex] = { ...students[existingIndex], ...newStudent };
+      updatedStudents = [...students];
+      updatedStudents[existingIndex] = { ...updatedStudents[existingIndex], ...newStudent };
     } else {
-      students.push(newStudent);
+      updatedStudents = [newStudent, ...students];
     }
 
-    localStorage.setItem('ananda_students_v1', JSON.stringify(students));
+    saveStudentsForYear(currentYear, updatedStudents);
+    try {
+      cloudSaveStudents(updatedStudents);
+    } catch {}
 
     upsertPortalAccount({
       id: `acc-std-${newId}`,
@@ -244,7 +285,7 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       email: newStudent.email || `${cleanUsername}@anandapathshala.edu.bd`,
       passwordHint: '123456',
       role: 'parent',
-      nameBn: `${newStudent.fatherNameBn} (${newStudent.nameBn}-এর অভিভাবক)`,
+      nameBn: `${newStudent.fatherNameBn || newStudent.nameBn} (${newStudent.nameBn}-এর অভিভাবক)`,
       nameEn: newStudent.nameEn,
       roleTitleBn: `অভিভাবক · শ্রেণি: ${newStudent.className}`,
       portalNameBn: 'অভিভাবক ও সন্তান ড্যাশবোর্ড পোর্টাল',
@@ -252,10 +293,15 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       avatarUrl: newStudent.photoUrl || '/assets/fb/kids-1.jpg',
     });
 
-    window.dispatchEvent(new CustomEvent('ananda-students-updated', { detail: newStudent }));
+    window.dispatchEvent(
+      new CustomEvent('ananda-students-updated', {
+        detail: { student: newStudent, students: updatedStudents, year: currentYear },
+      })
+    );
     window.dispatchEvent(new CustomEvent('ananda-portal-accounts-updated'));
     return newStudent;
-  } catch {
+  } catch (err) {
+    console.error('Failed to enroll student from admission:', err);
     return null;
   }
 }
@@ -264,17 +310,19 @@ export function updateAdmissionStatus(
   id: string,
   status: AdmissionApplication['status'],
   remarks?: string
-): void {
+): Student | null {
   const list = getAdmissionApplications();
   const target = list.find((a) => a.id === id);
+  let enrolled: Student | null = null;
   if (target) {
     target.status = status;
     if (remarks) target.adminRemarksBn = remarks;
     saveAdmissionApplication(target);
     if (status === 'admitted') {
-      enrollStudentFromAdmission(target);
+      enrolled = enrollStudentFromAdmission(target);
     }
   }
+  return enrolled;
 }
 
 export function scheduleAdmissionInterview(
