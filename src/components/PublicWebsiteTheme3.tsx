@@ -380,10 +380,8 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
                 }
               }}
             >
-              {/* Subtle hover highlight for Gate / Signboard: only visible on mouse hover */}
-              {isGateOrSignboard && (
-                <div className="absolute inset-0 rounded-2xl transition-all duration-200 pointer-events-none group-hover:bg-amber-400/20 group-hover:border-2 group-hover:border-amber-300/80 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
-              )}
+              {/* Subtle hover highlight: only visible on mouse hover with smooth rounded border */}
+              <div className="absolute inset-0 rounded-3xl transition-all duration-200 pointer-events-none group-hover:bg-amber-400/20 group-hover:border-2 group-hover:border-amber-300/80 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
 
               {/* Floating Menu Name Badge appearing directly on hover/tap */}
               {isHovered && (
