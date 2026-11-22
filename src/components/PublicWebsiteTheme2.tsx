@@ -256,13 +256,22 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       heightPercent: 42.3,
     },
     {
+      id: 'signboard',
+      nameBn: '✨ আমাদের সম্পর্কে (আনন্দ পাঠশালা সাইনবোর্ড)',
+      modalId: 'school_info' as InteractiveModalType,
+      leftPercent: 62.0,
+      topPercent: 14.5,
+      widthPercent: 23.5,
+      heightPercent: 17.0,
+    },
+    {
       id: 'cottage',
-      nameBn: '🏡 আনন্দ পাঠশালা কুটির ও সাইনবোর্ড (শিক্ষকমণ্ডলী)',
+      nameBn: '🏡 শিক্ষক কুটির (শিক্ষকমণ্ডলী ও স্টাফ)',
       modalId: 'cottage' as InteractiveModalType,
       leftPercent: 56.7,
-      topPercent: 17.0,
+      topPercent: 32.0,
       widthPercent: 38.0,
-      heightPercent: 51.0,
+      heightPercent: 36.0,
     },
     {
       id: 'cultural',
@@ -346,6 +355,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
         {/* Interactive Hotspots Over Objects (Direct Tap on Mobile & Hover on Desktop) */}
         {hotspots.map((spot) => {
           const isHovered = hoveredHotspot === spot.id;
+          const isSignboard = spot.id === 'signboard';
           return (
             <div
               key={spot.id}
@@ -370,6 +380,17 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
                 }
               }}
             >
+              {/* Highlight Marker for Signboard: Glowing boundary & badge */}
+              {isSignboard && (
+                <div className="absolute inset-0 rounded-2xl border-2 border-amber-300/80 bg-amber-400/10 hover:bg-amber-400/25 transition-all duration-300 shadow-lg group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.6)]">
+                  {/* Elegant pulsating badge above the signboard */}
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-slate-950 text-[10px] sm:text-xs font-black shadow-md flex items-center gap-1 border border-amber-200 animate-pulse pointer-events-none">
+                    <Sparkles className="w-3 h-3 text-slate-950 shrink-0" />
+                    <span>আমাদের সম্পর্কে</span>
+                  </div>
+                </div>
+              )}
+
               {/* Floating Menu Name Badge appearing directly on hover/tap */}
               {isHovered && (
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none whitespace-nowrap px-3.5 py-1.5 rounded-xl bg-slate-950/95 border border-emerald-400 text-emerald-200 text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
@@ -476,63 +497,121 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
       {/* 5. MODALS (TRIGGERED ON CLICKING ANY ELEMENT)                              */}
       {/* ========================================================================= */}
 
-      {/* MODAL 0: SCHOOL INFO (আনন্দ পাঠশালা উন্মুক্ত ক্যাম্পাস পরিচিতি) */}
+      {/* MODAL 0: ABOUT US / SCHOOL INFO (আমাদের সম্পর্কে · আনন্দ পাঠশালা প্রতিষ্ঠান পরিচিতি) */}
       {activeModal === 'school_info' && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-          <div className="bg-gradient-to-br from-emerald-50 via-white to-teal-100 text-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border-4 border-emerald-600 space-y-5 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 text-white p-6 sm:p-8 lg:p-10 shadow-2xl border-2 border-emerald-400/40 max-w-4xl w-full max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            {/* Subtle Ambient Decorative Glows */}
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-300/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Close Button */}
             <button
               type="button"
               onClick={() => setActiveModal(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-slate-900 text-white hover:bg-rose-600 transition cursor-pointer"
+              className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-slate-950/60 hover:bg-rose-600 text-white transition backdrop-blur-md border border-white/20 cursor-pointer shadow-lg"
+              title="বন্ধ করুন"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-4 border-b border-emerald-200 pb-4">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-200 text-emerald-900 flex items-center justify-center text-4xl shadow-inner border border-emerald-300 shrink-0">
-                🌿
-              </div>
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 text-[10px] font-black uppercase tracking-wider">
-                  উন্মুক্ত পাঠশালা দর্শন
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
-                  আনন্দ পাঠশালা — কুষ্টিয়া, বাংলাদেশ
-                </h3>
-                <p className="text-xs text-slate-600 font-medium">
-                  {schoolProfile.tagline || 'শিশুর মানবিক ও আনন্দময় প্রাক-প্রাথমিক পাঠশালা'}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center relative z-10">
+              {/* Left Column: Text Info, Logo, Slogan & Admission CTA */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-full text-xs font-semibold border border-white/25">
+                    <Sparkles className="w-4 h-4 text-amber-200" />
+                    <span>আমাদের সম্পর্কে · প্রতিষ্ঠান পরিচিতি</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-200 px-3 py-1 rounded-full text-xs font-semibold border border-amber-300/30">
+                    <span>২০২৭ শিক্ষাবর্ষে ভর্তি চলছে</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3.5 pt-1">
+                  <img
+                    src={logoUrl || schoolProfile.logoUrl || '/assets/fb/logo.jpg'}
+                    alt="আনন্দ পাঠশালা কুষ্টিয়া লোগো"
+                    referrerPolicy="no-referrer"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-white p-1 border-2 border-white/60 shadow-md shrink-0"
+                  />
+                  <div>
+                    <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+                      {schoolProfile.nameBn || 'আনন্দ পাঠশালা'}
+                    </h2>
+                    <p className="text-amber-200 font-bold text-xs sm:text-sm mt-0.5">
+                      “{schoolProfile.sloganBn || 'খেলে আনন্দ নিয়ে শিখি'}” — {schoolProfile.taglineBn || 'শিশুর মানবিক ও প্রাক-প্রাথমিক পাঠশালা'}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-white/95 leading-relaxed font-normal">
+                  আনন্দ পাঠশালা (গোশালা, কুষ্টিয়া)—শিশুর আনন্দময় শৈশব ও আধুনিক প্রাক-প্রাথমিক শিক্ষার এক নির্ভরযোগ্য ঠিকানা। শিশুবান্ধব মন্টেসরি পদ্ধতি, সুসজ্জিত ক্লাসরুম, বর্ণিল খেলার প্রাঙ্গণ ও দক্ষ শিক্ষকদের নিবিড় ও স্নেহময় তত্ত্বাবধানে এখানে প্রতিটি শিশু আনন্দের সাথে শেখে ও সুনাগরিক হিসেবে গড়ে ওঠে।
                 </p>
-              </div>
-            </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-slate-700">
-              <p className="p-4 rounded-2xl bg-white border border-emerald-200 shadow-xs">
-                {schoolProfile.about || 'আনন্দ পাঠশালা কুষ্টিয়ায় অবস্থিত একটি ঐতিহ্যবাহী, স্নেহশীল ও আনন্দময় প্রাক-প্রাথমিক শিক্ষা প্রতিষ্ঠান। সবুজ গাছপালা, ফুলবাগান ও মুক্ত বাতাসে শিশুরা খেলাধুলা, গান, কবিতা ও গল্পের ছলে পাঠ গ্রহণ করে থাকে।'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                  <span className="block text-[11px] text-emerald-900 font-bold">অবস্থান</span>
-                  <span className="font-black text-slate-900 text-sm">কুষ্টিয়া সদর</span>
+                {/* 4 Feature Badges */}
+                <div className="grid grid-cols-2 gap-2 pt-1 text-xs font-medium">
+                  <div className="p-2.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-2">
+                    <span className="text-lg">🌿</span>
+                    <span>উন্মুক্ত কানন প্রাঙ্গণ</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-2">
+                    <span className="text-lg">🎨</span>
+                    <span>মন্টেসরি ও আর্ট ল্যাব</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-2">
+                    <span className="text-lg">🧸</span>
+                    <span>নিরাপদ খেলনা সামগ্রী</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-2">
+                    <span className="text-lg">👩‍🏫</span>
+                    <span>স্নেহময়ী শিক্ষক পরিষদ</span>
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                  <span className="block text-[11px] text-emerald-900 font-bold">যোগাযোগ</span>
-                  <span className="font-black text-slate-900 text-sm">{schoolProfile.phoneBn || '০১৭১২-০০০০০০'}</span>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModal(null);
+                      handleOpenSpot('admission');
+                    }}
+                    className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs sm:text-sm font-black shadow-md transition-all flex items-center gap-2 transform active:scale-95 cursor-pointer"
+                  >
+                    <GraduationCap className="w-4 h-4 text-slate-950" />
+                    <span>অনলাইন ভর্তি আবেদন করুন (২০২৭)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModal('cottage');
+                    }}
+                    className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white border border-white/25 rounded-xl text-xs sm:text-sm font-bold transition-all backdrop-blur-md cursor-pointer"
+                  >
+                    শিক্ষকমণ্ডলী দেখুন
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal(null);
-                  handleOpenSpot('admission');
-                }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-lg hover:from-emerald-600 hover:to-teal-700 transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <GraduationCap className="w-4 h-4 text-white" />
-                <span>অনলাইন ভর্তি আবেদন করুন</span>
-              </button>
+              {/* Right Column: Official Campus Cover Photo Card */}
+              <div className="lg:col-span-5 space-y-3">
+                <div className="rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl bg-teal-900/60 backdrop-blur-md">
+                  <img
+                    src={schoolProfile.coverUrl || '/assets/fb/cover.jpg'}
+                    alt="আনন্দ পাঠশালা কুষ্টিয়া ক্যাম্পাসের শিক্ষক ও শিক্ষার্থীবৃন্দ"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-52 sm:h-60 object-cover"
+                  />
+                  <div className="p-3 bg-teal-950/80 text-[11px] text-teal-100 font-medium text-center">
+                    📍 ১৯/২২, পূর্ণ চন্দ্র লাহিড়ী লেন (গোশালা), কুষ্টিয়া · ফোন: {schoolProfile.phoneBn || '০১৯১৪-০৫৭৫১১'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-white/10 border border-white/15 text-center text-xs text-white/90">
+                  <span className="font-bold text-amber-200">ক্লাস সময়সূচী: </span>
+                  ৩ ঘণ্টার ২টি বিশেষ শিফট (সকাল ও দিবা)
+                </div>
+              </div>
             </div>
           </div>
         </div>
