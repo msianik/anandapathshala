@@ -99,14 +99,6 @@ const AVATAR_COLORS = [
   'bg-violet-100 text-violet-800 border border-violet-300',
 ];
 
-const SAMPLE_STUDENT_AVATARS = [
-  { url: '/assets/biddalay/student_hasin.jpg', label: 'আদিত্য' },
-  { url: '/assets/fb/kids-1.jpg', label: 'প্লে গ্রুপ' },
-  { url: '/assets/fb/photo-1.jpg', label: 'ছবি ১' },
-  { url: '/assets/fb/photo-2.jpg', label: 'ছবি ২' },
-  { url: '/assets/fb/photo-3.jpg', label: 'ছবি ৩' },
-];
-
 export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   students,
   onAddStudent,
@@ -1506,30 +1498,6 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                       <span className="text-[10px] text-slate-400 font-medium">
                         (সর্বোচ্চ ৫ মেগাবাইট)
                       </span>
-                    </div>
-
-                    {/* Presets */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-600 block">অথবা ডেমো ছবি সিলেক্ট করুন:</span>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {SAMPLE_STUDENT_AVATARS.map((av, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, photoUrl: av.url })}
-                            className={`p-0.5 rounded-xl border-2 transition-transform hover:scale-105 cursor-pointer ${
-                              formData.photoUrl === av.url ? 'border-emerald-600 ring-2 ring-emerald-200' : 'border-slate-200 hover:border-emerald-400'
-                            }`}
-                            title={av.label}
-                          >
-                            <img
-                              src={av.url}
-                              alt={av.label}
-                              className="w-8 h-8 rounded-lg object-cover"
-                            />
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
                     {/* URL / Path Option */}
