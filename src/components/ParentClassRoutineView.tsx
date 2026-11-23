@@ -121,7 +121,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
 
   const currentDayOfWeek = useMemo(() => getTodayDayOfWeek(), []);
   const [selectedMobileDay, setSelectedMobileDay] = useState<DayOfWeek>(() => getEffectiveDisplayDay());
-  const [mobileViewMode, setMobileViewMode] = useState<'day' | 'table'>('day');
+  const [mobileViewMode, setMobileViewMode] = useState<'day' | 'table'>('table');
 
   const selectedDayPeriods = useMemo(() => {
     const list = childPeriods.filter((p) => p.day === selectedMobileDay);
@@ -216,8 +216,20 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
               </h3>
             </div>
 
-            {/* Mobile View Toggle (দিনভিত্তিক vs সম্পূর্ণ ছক) */}
+            {/* Mobile View Toggle (সমান্তরাল ছক vs দিনভিত্তিক) */}
             <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-xl text-xs md:hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileViewMode('table')}
+                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition cursor-pointer ${
+                  mobileViewMode === 'table'
+                    ? 'bg-white text-indigo-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span>সমান্তরাল ছক</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setMobileViewMode('day')}
@@ -229,18 +241,6 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
               >
                 <Smartphone className="w-3.5 h-3.5" />
                 <span>দিনভিত্তিক</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileViewMode('table')}
-                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition cursor-pointer ${
-                  mobileViewMode === 'table'
-                    ? 'bg-white text-indigo-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span>পূর্ণ ছক</span>
               </button>
             </div>
           </div>
@@ -391,202 +391,25 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
           </div>
         )}
 
-        {/* 2. Full Week Mobile-Optimized Schedule (100% Mobile Responsive, No Side Overflow or Horizontal Cutoff) */}
-        {mobileViewMode === 'table' && (
-          <div className="block md:hidden p-3.5 sm:p-4 space-y-4 bg-slate-50/60">
-            {/* Quick Sticky Day Jump Bar */}
-            <div className="sticky top-2 z-20 bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-indigo-200/90 shadow-sm">
-              <div className="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center justify-between px-1">
-                <span>দ্রুত দিনে যান:</span>
-                <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-extrabold">৫ দিনের সাপ্তাহিক সময়সূচি</span>
-              </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                {schoolDays.map((d) => {
-                  const isToday = currentDayOfWeek === d.id;
-                  const isCultural = d.id === 'tuesday';
-                  return (
-                    <a
-                      key={d.id}
-                      href={`#routine-day-${d.id}`}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all shadow-2xs shrink-0 flex items-center gap-1 ${
-                        isToday
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : isCultural
-                          ? 'bg-rose-100 text-rose-900 border border-rose-300'
-                          : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
-                      }`}
-                    >
-                      <span>{d.nameBn}</span>
-                      {isCultural && <span>🎨</span>}
-                      {isToday && <span className="text-[9px] bg-white/30 px-1 rounded-full">আজ</span>}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* All Days Complete Schedule Cards */}
-            <div className="space-y-4">
-              {schoolDays.map((d) => {
-                const dayPeriods = childPeriods
-                  .filter((p) => p.day === d.id)
-                  .sort((a, b) => {
-                    if (a.periodNo !== b.periodNo) return a.periodNo - b.periodNo;
-                    return a.isBreak ? 1 : -1;
-                  });
-                const isToday = currentDayOfWeek === d.id;
-                const isCultural = d.id === 'tuesday';
-
-                return (
-                  <div
-                    key={d.id}
-                    id={`routine-day-${d.id}`}
-                    className={`rounded-2xl border transition-all overflow-hidden scroll-mt-20 ${
-                      isToday
-                        ? 'bg-white border-emerald-400 shadow-md ring-2 ring-emerald-300/60'
-                        : isCultural
-                        ? 'bg-white border-rose-200 shadow-xs'
-                        : 'bg-white border-slate-200 shadow-xs'
-                    }`}
-                  >
-                    {/* Day Header */}
-                    <div
-                      className={`p-3.5 flex items-center justify-between border-b ${
-                        isToday
-                          ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
-                          : isCultural
-                          ? 'bg-rose-50/90 text-rose-950 border-rose-200'
-                          : 'bg-slate-100/90 text-slate-900 border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${isToday ? 'bg-emerald-600 animate-pulse' : 'bg-indigo-600'}`} />
-                        <h4 className="text-sm font-black tracking-tight flex items-center gap-1.5">
-                          <span>{d.nameBn}</span>
-                          {isCultural && (
-                            <span className="text-[10px] font-black bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full">
-                              🎨 সাংস্কৃতিক দিন
-                            </span>
-                          )}
-                        </h4>
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">
-                        {isToday ? (
-                          <span className="text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-full font-black text-[11px]">
-                            আজকের রুটিন
-                          </span>
-                        ) : (
-                          `${dayPeriods.filter((p) => !p.isBreak).length}টি ক্লাস`
-                        )}
-                      </span>
-                    </div>
-
-                    {/* Periods List */}
-                    <div className="p-3 space-y-2.5 bg-slate-50/30">
-                      {dayPeriods.map((period, idx) => {
-                        if (period.isBreak) {
-                          return (
-                            <div
-                              key={period.id || idx}
-                              className="p-2.5 rounded-xl bg-amber-50/90 border border-amber-200 flex items-center justify-between text-amber-950 shadow-2xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Coffee className="w-4 h-4 text-amber-700 shrink-0" />
-                                <span className="text-xs font-black">টিফিন বিরতি ও নাস্তা</span>
-                              </div>
-                              <span className="text-[11px] text-amber-800 font-mono font-bold">
-                                {period.startTime} - {period.endTime}
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        const hasHw = !!(
-                          period.homeworkAssignmentBn ||
-                          period.homeworkOrActivityBn ||
-                          period.homeworkTitleBn ||
-                          period.homeworkTitle
-                        );
-                        const isSelected = selectedPeriod?.id === period.id;
-
-                        return (
-                          <div
-                            key={period.id || idx}
-                            onClick={() => setSelectedPeriod(period)}
-                            className={`p-3 rounded-xl border transition-all cursor-pointer shadow-2xs active:scale-[0.99] ${
-                              isSelected
-                                ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-400'
-                                : 'bg-white hover:bg-slate-50 border-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-950 font-black text-xs">
-                                  {period.periodLabelBn || `পিরিয়ড #${toBengaliNumber(period.periodNo)}`}
-                                </span>
-                                <span className="text-xs font-mono text-slate-500 font-semibold flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-slate-400" />
-                                  <span>{period.startTime} - {period.endTime}</span>
-                                </span>
-                              </div>
-                              {hasHw && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 flex items-center gap-1 shrink-0">
-                                  <ClipboardList className="w-3 h-3" />
-                                  <span>HW</span>
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="mt-1.5 space-y-1">
-                              <h5 className="text-sm font-black text-slate-900 leading-snug">
-                                {period.subject || period.subjectBn}
-                              </h5>
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                                <span className="flex items-center gap-1">
-                                  <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span>{period.teacherNameBn}</span>
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span>{period.room || period.roomBn}</span>
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-indigo-600 font-bold">
-                              <span>বিস্তারিত পাঠ ও বাড়ির কাজ দেখতে ট্যাপ করুন</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Desktop Full Table View (Clean, Fixed Responsive Grid for Laptop & Desktop Screens) */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse table-fixed">
+        {/* 2. Full Parallel Weekly Timetable (সমান্তরাল সাপ্তাহিক ছক - মোবাইলেও সমান্তরালভাবে একবারে দেখা যায় এবং ঘরগুলো লম্বাতে রাখা হয়েছে যাতে পুরো লেখা পড়া যায়) */}
+        <div className={`overflow-x-auto no-scrollbar ${mobileViewMode === 'day' ? 'hidden md:block' : 'block'}`}>
+          <table className="w-full text-left border-collapse min-w-[580px] sm:min-w-[700px] lg:w-full table-fixed">
             <thead>
-              <tr className="bg-slate-100/90 text-slate-700 text-xs font-black uppercase tracking-wider border-b border-slate-200">
-                <th className="py-3.5 px-3 text-slate-900 w-[14%] min-w-[100px] border-r border-slate-200 text-center">
+              <tr className="bg-slate-100/95 text-slate-700 text-xs font-black uppercase tracking-wider border-b border-slate-200">
+                <th className="py-3.5 px-2 text-slate-900 w-[14%] min-w-[85px] sm:min-w-[100px] border-r border-slate-200 text-center sticky left-0 z-10 bg-slate-100 shadow-sm">
                   সময় / পিরিয়ড
                 </th>
                 {schoolDays.map((d) => (
                   <th
                     key={d.id}
-                    className={`py-3.5 px-3 border-r border-slate-200 text-center w-[17.2%] ${
-                      d.id === 'tuesday' ? 'bg-rose-50/80 text-rose-950' : ''
+                    className={`py-3.5 px-2 border-r border-slate-200 text-center w-[17.2%] min-w-[100px] sm:min-w-[125px] ${
+                      d.id === 'tuesday' ? 'bg-rose-50/90 text-rose-950' : 'bg-slate-100/90'
                     }`}
                   >
                     <div className="flex flex-col items-center justify-center">
                       <span className="font-black text-xs sm:text-sm">{d.nameBn}</span>
                       {d.id === 'tuesday' && (
-                        <span className="text-[10px] text-rose-700 font-bold">🎨 সাংস্কৃতিক দিন</span>
+                        <span className="text-[10px] text-rose-700 font-bold mt-0.5">🎨 সাংস্কৃতিক দিন</span>
                       )}
                     </div>
                   </th>
@@ -602,19 +425,22 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                     key={sIdx}
                     className={`${isBreak ? 'bg-amber-50/70' : sIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-indigo-50/40 transition-colors`}
                   >
-                    {/* Period Label & Time */}
-                    <td className="py-3 px-4 border-r border-slate-200 font-bold text-slate-900 align-middle">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-black text-slate-900 block">
+                    {/* Period Label & Time (Sticky left for smooth horizontal orientation on phone) */}
+                    <td className="py-3 px-2 border-r border-slate-200 font-bold text-slate-900 align-middle sticky left-0 z-10 bg-slate-50/95 shadow-sm text-center">
+                      <div className="space-y-1">
+                        <span className="text-xs font-black text-slate-900 block leading-tight">
                           {slot.periodLabelBn}
                         </span>
-                        <span className="text-[11px] text-slate-500 font-mono font-medium block">
-                          {slot.startTime} - {slot.endTime}
+                        <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono font-medium block">
+                          {slot.startTime}
+                        </span>
+                        <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono font-medium block">
+                          - {slot.endTime}
                         </span>
                       </div>
                     </td>
 
-                    {/* Day Cells */}
+                    {/* Day Cells (Tall vertical cards / ঘরগুলো লম্বাতে করা হয়েছে যাতে কোনো লেখা ঢাকা না পড়ে) */}
                     {schoolDays.map((day) => {
                       const period = childPeriods.find(
                         (p) =>
@@ -627,10 +453,10 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                         return (
                           <td
                             key={day.id}
-                            className="py-2.5 px-2 border-r border-slate-200 text-center align-middle text-amber-900 bg-amber-50/60"
+                            className="py-2 px-1.5 sm:px-2 border-r border-slate-200 text-center align-middle text-amber-900 bg-amber-50/60"
                           >
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100/90 text-amber-950 text-xs font-bold shadow-2xs">
-                              <Coffee className="w-3.5 h-3.5 text-amber-700" />
+                            <div className="w-full min-h-[55px] sm:min-h-[60px] flex items-center justify-center p-2 rounded-xl bg-amber-100/90 text-amber-950 text-xs font-bold shadow-2xs">
+                              <Coffee className="w-3.5 h-3.5 text-amber-700 mr-1.5 shrink-0" />
                               <span>টিফিন বিরতি</span>
                             </div>
                           </td>
@@ -659,50 +485,58 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                       return (
                         <td
                           key={day.id}
-                          className="py-2 px-2 border-r border-slate-200 align-middle"
+                          className="py-2 px-1.5 sm:px-2 border-r border-slate-200 align-top"
                         >
                           <button
                             type="button"
                             onClick={() => setSelectedPeriod(period)}
-                            className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer space-y-1 block ${
+                            className={`w-full text-left p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between min-h-[145px] sm:min-h-[160px] h-full ${
                               isSelected
                                 ? 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-400'
                                 : day.id === 'tuesday'
                                 ? 'bg-rose-50/80 hover:bg-rose-100/90 border-rose-200 text-rose-950 hover:shadow-xs'
                                 : 'bg-white hover:bg-emerald-50/80 border-slate-200 text-slate-800 hover:border-emerald-300 hover:shadow-xs'
                             }`}
-                            title="বিস্তারিত পাঠ পরিকল্পনা ও বাড়ির কাজ দেখুন"
+                            title="বিস্তারিত পাঠ পরিকল্পনা ও বাড়ির কাজ দেখতে ক্লিক করুন"
                           >
-                            <div className="flex items-start justify-between gap-1">
-                              <span
-                                className={`font-black text-xs leading-snug line-clamp-2 ${
-                                  isSelected ? 'text-white' : 'text-slate-950'
-                                }`}
-                              >
-                                {period.subject || period.subjectBn}
-                              </span>
-                              {hasHw && (
+                            {/* Top Part: Subject & HW badge */}
+                            <div className="space-y-1 w-full">
+                              <div className="flex items-start justify-between gap-1 flex-wrap">
                                 <span
-                                  className={`text-[9px] font-black px-1.5 py-0.2 rounded shrink-0 ${
-                                    isSelected
-                                      ? 'bg-amber-400 text-slate-950'
-                                      : 'bg-amber-500 text-slate-950'
+                                  className={`font-black text-xs leading-snug break-words ${
+                                    isSelected ? 'text-white' : 'text-slate-950'
                                   }`}
-                                  title="বাড়ির কাজ নির্ধারিত আছে"
                                 >
-                                  HW
+                                  {period.subject || period.subjectBn}
                                 </span>
-                              )}
+                                {hasHw && (
+                                  <span
+                                    className={`text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 shadow-2xs ${
+                                      isSelected
+                                        ? 'bg-amber-400 text-slate-950'
+                                        : 'bg-amber-500 text-slate-950'
+                                    }`}
+                                    title="বাড়ির কাজ নির্ধারিত আছে"
+                                  >
+                                    HW
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
+                            {/* Bottom Part: Teacher & Room (Stacked vertically, full text without truncation) */}
                             <div
-                              className={`text-[10px] space-y-0.5 truncate ${
-                                isSelected ? 'text-indigo-100' : 'text-slate-600'
+                              className={`mt-2 pt-1.5 border-t text-[10px] space-y-1 w-full ${
+                                isSelected ? 'border-white/20 text-indigo-100' : 'border-slate-100 text-slate-600'
                               }`}
                             >
-                              <div className="truncate">{period.teacherNameBn}</div>
-                              <div className="font-mono text-[9px] opacity-80">
-                                {period.room || period.roomBn}
+                              <div className="font-bold leading-tight break-words text-slate-800 flex items-center gap-1">
+                                <UserCheck className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className={isSelected ? 'text-white' : 'text-slate-800'}>{period.teacherNameBn}</span>
+                              </div>
+                              <div className="font-mono text-[9px] opacity-85 leading-tight break-words flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{period.room || period.roomBn}</span>
                               </div>
                             </div>
                           </button>
