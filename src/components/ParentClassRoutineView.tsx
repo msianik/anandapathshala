@@ -195,14 +195,6 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
           <div className="flex items-center gap-2 self-start md:self-center shrink-0">
             <button
               type="button"
-              onClick={handleExportCsv}
-              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-white/15 shadow-2xs"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" />
-              <span>এক্সেল / CSV</span>
-            </button>
-            <button
-              type="button"
               onClick={handlePrint}
               className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-md"
             >
