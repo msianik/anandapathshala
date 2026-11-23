@@ -2235,7 +2235,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-amber-200 font-bold uppercase tracking-wider flex items-center gap-1.5">
                   <span className={`w-2.5 h-2.5 rounded-full ${liveChildStatusInfo.dotColor}`} />
-                  <span>সন্তানের আজকের লাইভ স্ট্যাটাস</span>
+                  <span>আজকের লাইভ স্ট্যাটাস</span>
                 </span>
                 <span className="text-xs text-slate-300 flex items-center gap-1">
                   <span className="text-emerald-400">●</span> অটো সিঙ্ক
