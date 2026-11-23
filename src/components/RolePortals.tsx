@@ -2221,7 +2221,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
               {/* Exact Biometric Check-In & School Exit Timing Grid */}
               <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/10 text-[11px]">
                 <div className="bg-white/5 rounded-xl px-2.5 py-1.5 border border-white/10">
-                  <div className="text-[10px] text-slate-400 font-medium">বায়োমেট্রিক চেক-ইন:</div>
+                  <div className="text-[10px] text-slate-400 font-medium">স্কুলে প্রবেশের সময়:</div>
                   <div className="font-bold text-amber-200 flex items-center gap-1 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>{childAttendanceStats.recentCheckIn || 'পাঞ্চ অপেক্ষমাণ'}</span>

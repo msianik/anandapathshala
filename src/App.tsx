@@ -1401,7 +1401,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen text-slate-900 flex flex-col font-sans ${
+      className={`min-h-screen max-w-full overflow-x-hidden text-slate-900 flex flex-col font-sans ${
         isMobilePreview ? 'bg-slate-900 py-4 px-2 items-center' : 'bg-[#FFFDF9]'
       }`}
     >

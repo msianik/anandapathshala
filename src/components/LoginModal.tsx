@@ -428,7 +428,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             ? 'যেমন: 01788990011'
                             : 'যেমন: name@anandapathshala.edu.bd'
                         }
-                        className="w-full pl-10 pr-3 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-medium text-slate-900"
+                        className="w-full pl-10 pr-3 py-2.5 text-base sm:text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-medium text-slate-900"
                       />
                     </div>
                   </div>
@@ -476,7 +476,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         setForgotErrorBn(null);
                       }}
                       placeholder="৬ সংখ্যার কোড"
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
+                      className="w-full px-3 py-2 text-base sm:text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
                     />
                   </div>
 
@@ -495,7 +495,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           setForgotErrorBn(null);
                         }}
                         placeholder="নতুন পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর)"
-                        className="w-full pl-8 pr-8 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
+                        className="w-full pl-8 pr-8 py-2 text-base sm:text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
                       />
                       <button
                         type="button"
@@ -520,7 +520,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         setForgotErrorBn(null);
                       }}
                       placeholder="পাসওয়ার্ড নিশ্চিত করুন"
-                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
+                      className="w-full px-3 py-2 text-base sm:text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 font-mono font-bold text-slate-900"
                     />
                   </div>
 
@@ -598,7 +598,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    autoFocus
                     disabled={loginState === 'authenticating'}
                     value={identifier}
                     onChange={(e) => {
@@ -606,7 +605,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       setErrorBn(null);
                     }}
                     placeholder="ইউজারনেম বা মোবাইল নম্বর"
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium text-slate-900 transition-all placeholder:text-slate-400 disabled:opacity-60"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-medium text-slate-900 transition-all placeholder:text-slate-400 disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -636,7 +635,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       setErrorBn(null);
                     }}
                     placeholder="আপনার পাসওয়ার্ড লিখুন"
-                    className="w-full pl-3.5 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-mono font-bold text-slate-900 transition-all placeholder:text-slate-400 placeholder:font-sans placeholder:font-normal disabled:opacity-60"
+                    className="w-full pl-3.5 pr-10 py-2.5 text-base sm:text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 font-mono font-bold text-slate-900 transition-all placeholder:text-slate-400 placeholder:font-sans placeholder:font-normal disabled:opacity-60"
                   />
                   <button
                     type="button"
