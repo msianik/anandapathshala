@@ -32,7 +32,6 @@ import {
   Sparkles,
   ClipboardList,
   Coffee,
-  ArrowLeft,
   CalendarDays,
   FileText,
   BadgeAlert,
@@ -151,17 +150,6 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              {onNavigateTab && (
-                <button
-                  type="button"
-                  onClick={() => onNavigateTab('overview')}
-                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer mr-1"
-                  title="আমার সন্তান ড্যাশবোর্ডে ফিরুন"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>ড্যাশবোর্ড</span>
-                </button>
-              )}
               <span className="px-3 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider">
                 সাপ্তাহিক ক্লাস রুটিন
               </span>
