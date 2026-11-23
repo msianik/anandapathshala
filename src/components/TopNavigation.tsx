@@ -783,80 +783,82 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               </button>
             </div>
 
-            {/* Public Website Theme Selector */}
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                <span>🌐 পাবলিক ওয়েবসাইট থিম:</span>
-                <span className="text-[11px] text-amber-600 font-extrabold">
-                  {publicTheme === 'theme1'
-                    ? 'থিম ১ (ক্লাসিক)'
-                    : publicTheme === 'theme2'
-                    ? 'থিম ২ (কানন বাগান)'
-                    : 'থিম ৩ (তোরণ ক্যাম্পাস)'}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPublicTheme('theme1');
-                    setStoredPublicWebsiteTheme('theme1');
-                    cloudSavePublicWebsiteTheme('theme1');
-                  }}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
-                    publicTheme === 'theme1'
-                      ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                  }`}
-                >
-                  <div>
-                    <p className="font-black">থিম ১: ক্লাসিক</p>
-                    <p className="text-[10px] text-slate-500">ট্রেডিশনাল ক্যাম্পাস</p>
-                  </div>
-                  {publicTheme === 'theme1' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
-                </button>
+            {/* Public Website Theme Selector (Only visible to Super Admin) */}
+            {isSuperAdmin && (
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <span>🌐 পাবলিক ওয়েবসাইট থিম:</span>
+                  <span className="text-[11px] text-amber-600 font-extrabold">
+                    {publicTheme === 'theme1'
+                      ? 'থিম ১ (ক্লাসিক)'
+                      : publicTheme === 'theme2'
+                      ? 'থিম ২ (কানন বাগান)'
+                      : 'থিম ৩ (তোরণ ক্যাম্পাস)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublicTheme('theme1');
+                      setStoredPublicWebsiteTheme('theme1');
+                      cloudSavePublicWebsiteTheme('theme1');
+                    }}
+                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                      publicTheme === 'theme1'
+                        ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-black">থিম ১: ক্লাসিক</p>
+                      <p className="text-[10px] text-slate-500">ট্রেডিশনাল ক্যাম্পাস</p>
+                    </div>
+                    {publicTheme === 'theme1' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPublicTheme('theme2');
-                    setStoredPublicWebsiteTheme('theme2');
-                    cloudSavePublicWebsiteTheme('theme2');
-                  }}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
-                    publicTheme === 'theme2'
-                      ? 'border-emerald-500 bg-emerald-50 text-slate-950 shadow-xs ring-1 ring-emerald-400'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                  }`}
-                >
-                  <div>
-                    <p className="font-black">থিম ২: কানন</p>
-                    <p className="text-[10px] text-slate-500">উন্মুক্ত বাগান</p>
-                  </div>
-                  {publicTheme === 'theme2' && <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublicTheme('theme2');
+                      setStoredPublicWebsiteTheme('theme2');
+                      cloudSavePublicWebsiteTheme('theme2');
+                    }}
+                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                      publicTheme === 'theme2'
+                        ? 'border-emerald-500 bg-emerald-50 text-slate-950 shadow-xs ring-1 ring-emerald-400'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-black">থিম ২: কানন</p>
+                      <p className="text-[10px] text-slate-500">উন্মুক্ত বাগান</p>
+                    </div>
+                    {publicTheme === 'theme2' && <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />}
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPublicTheme('theme3');
-                    setStoredPublicWebsiteTheme('theme3');
-                    cloudSavePublicWebsiteTheme('theme3');
-                  }}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
-                    publicTheme === 'theme3'
-                      ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                  }`}
-                >
-                  <div>
-                    <p className="font-black">থিম ৩: তোরণ</p>
-                    <p className="text-[10px] text-slate-500">গ্রাম্য তোরণ ফটক</p>
-                  </div>
-                  {publicTheme === 'theme3' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublicTheme('theme3');
+                      setStoredPublicWebsiteTheme('theme3');
+                      cloudSavePublicWebsiteTheme('theme3');
+                    }}
+                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+                      publicTheme === 'theme3'
+                        ? 'border-amber-500 bg-amber-50 text-slate-950 shadow-xs ring-1 ring-amber-400'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-black">থিম ৩: তোরণ</p>
+                      <p className="text-[10px] text-slate-500">গ্রাম্য তোরণ ফটক</p>
+                    </div>
+                    {publicTheme === 'theme3' && <Check className="w-4 h-4 text-amber-600 stroke-[3]" />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* School Brand Preset Colors */}
             <div className="space-y-2">

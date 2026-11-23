@@ -408,5 +408,50 @@ body {
   }
 }
 
+/* =========================================================================
+   Mobile Font Scaling & Readability Boost (Enhanced Bengali Typography)
+   Automatically scales text one step up on mobile phones so parents & users
+   can read all status labels, tables, badges, and portal data comfortably.
+   ========================================================================= */
+@media screen and (max-width: 768px) {
+  html {
+    font-size: 17px;
+  }
+
+  /* Micro text classes scale up by one step for clear legibility on mobile */
+  .text-\[8px\],
+  .text-\[9px\] {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  .text-\[10px\] {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .text-\[11px\] {
+    font-size: 13.5px !important;
+    line-height: 1.45 !important;
+  }
+
+  /* Boost general text classes proportionally on mobile */
+  .text-xs {
+    font-size: 0.85rem !important; /* ~14.5px instead of 12px */
+    line-height: 1.5 !important;
+  }
+
+  .text-sm {
+    font-size: 0.975rem !important; /* ~16.5px instead of 14px */
+    line-height: 1.55 !important;
+  }
+
+  /* General typography crispness and breathing room */
+  p, span, div, strong, label, button, a {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 
 

@@ -2214,7 +2214,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 {myChild.nameBn} {myChild.nameEn ? `(${myChild.nameEn})` : ''}
               </h2>
 
-              <p className="text-xs sm:text-sm text-slate-200 font-medium flex flex-wrap items-center gap-1.5">
+              <p className="text-sm sm:text-base text-slate-200 font-medium flex flex-wrap items-center gap-2">
                 <span>
                   শ্রেণি: <strong className="text-amber-300 font-bold">{getSchoolClassNameBn(myChild.className)}</strong> ({myChild.section})
                 </span>
@@ -2231,13 +2231,13 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
           {/* Right Side: Live Status & Compact Side Notification for Fee Due */}
           <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 min-w-[280px]">
             {/* Live Status Card */}
-            <div className="bg-black/35 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 space-y-2">
+            <div className="bg-black/35 backdrop-blur-md p-4 rounded-2xl border border-white/15 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${liveChildStatusInfo.dotColor}`} />
+                <span className="text-xs text-amber-200 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-full ${liveChildStatusInfo.dotColor}`} />
                   <span>সন্তানের আজকের লাইভ স্ট্যাটাস</span>
                 </span>
-                <span className="text-[10px] text-slate-300 flex items-center gap-1">
+                <span className="text-xs text-slate-300 flex items-center gap-1">
                   <span className="text-emerald-400">●</span> অটো সিঙ্ক
                   <button
                     type="button"
@@ -2251,37 +2251,37 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                     title="বায়োমেট্রিক মেশিন থেকে এখনই রিফ্রেশ ও সিঙ্ক করুন"
                     className="ml-1 p-0.5 rounded text-amber-200 hover:text-white hover:bg-white/10 cursor-pointer transition active:scale-90 inline-flex items-center"
                   >
-                    <RefreshCw className="w-2.5 h-2.5" />
+                    <RefreshCw className="w-3 h-3" />
                   </button>
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-white">
+                <span className="text-sm sm:text-base font-black text-white">
                   {liveChildStatusInfo.text}
                 </span>
               </div>
 
               {/* Exact Biometric Check-In & School Exit Timing Grid */}
-              <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/10 text-[11px]">
-                <div className="bg-white/5 rounded-xl px-2.5 py-1.5 border border-white/10">
-                  <div className="text-[10px] text-slate-400 font-medium">স্কুলে প্রবেশের সময়:</div>
-                  <div className="font-bold text-amber-200 flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs sm:text-sm">
+                <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                  <div className="text-xs text-slate-300 font-medium">স্কুলে প্রবেশের সময়:</div>
+                  <div className="font-bold text-amber-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                     <span>{childAttendanceStats.recentCheckIn || 'পাঞ্চ অপেক্ষমাণ'}</span>
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-xl px-2.5 py-1.5 border border-white/10">
-                  <div className="text-[10px] text-slate-400 font-medium">স্কুল ত্যাগের সময়:</div>
-                  <div className="font-bold text-emerald-200 flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                  <div className="text-xs text-slate-300 font-medium">স্কুল ত্যাগের সময়:</div>
+                  <div className="font-bold text-emerald-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
                     <span>{childAttendanceStats.checkOutTime || (schoolTimeInfo.isSchoolEnded ? 'ছুটি সম্পন্ন' : 'ক্লাস চলছে')}</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-[10px] text-slate-300">
+              <p className="text-xs text-slate-300 pt-0.5">
                 শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn} · জরুরি হেল্পলাইন: {childClassTeacher.phone}
               </p>
             </div>
