@@ -261,19 +261,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               src={logoUrl}
               alt="আনন্দ পাঠশালা লোগো"
               referrerPolicy="no-referrer"
-              className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl object-cover bg-white p-1 border-2 border-amber-300 shadow-md shrink-0"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-white p-1 border-2 border-amber-300 shadow-md shrink-0"
             />
-            <div>
-              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-amber-200">
+            <div className="flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-200">
                 <Sparkles className="w-3 h-3 text-amber-300" />
                 স্মার্ট স্কুল পোর্টাল
               </span>
-              <h2 className="text-lg sm:text-xl font-black tracking-tight mt-1">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1 drop-shadow-sm font-['Ruhul_Amin',sans-serif] leading-tight">
                 আনন্দ পাঠশালা
               </h2>
-              <p className="text-xs text-emerald-100 font-medium mt-0.5">
-                পোর্টাল লগইন
-              </p>
             </div>
           </div>
         </div>
