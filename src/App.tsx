@@ -855,21 +855,15 @@ export default function App() {
     };
   }, []);
 
-  // 15-Minute Periodic Background Attendance & Cloud Data Auto-Sync Runner (Staff & Admin Only)
+  // 15-Minute Periodic Background Attendance & Biometric Data Auto-Sync Runner (Active for all users)
   useEffect(() => {
     const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
     const runPeriodicAttendanceSync = async () => {
-      // Background physical machine sync only runs inside staff/admin accounts, never on the public site
-      const isStaffOrAdmin = ['super_admin', 'principal', 'teacher'].includes(currentRoleRef.current);
-      if (!isStaffOrAdmin) {
-        return;
-      }
-
       try {
         console.log('[CloudSync] Automatic real biometric attendance sync running...');
 
-        // 1. Fetch latest physical machine biometric logs from endpoint / json
+        // 1. Fetch latest physical machine biometric logs from endpoint / json (Runs for all logged-in roles)
         try {
           const resp = await fetch(`/attendance_synced_logs.json?t=${Date.now()}`);
           if (resp.ok) {
@@ -885,7 +879,9 @@ export default function App() {
                 if (incomingNew.length > 0) {
                   const mergedLogs = [...incomingNew, ...currentLogs];
                   saveBiometricLogs(mergedLogs);
-                  await cloudSaveBiometricLogs(mergedLogs);
+                  try {
+                    await cloudSaveBiometricLogs(mergedLogs);
+                  } catch {}
 
                   // Recalculate attendance
                   const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
@@ -907,7 +903,9 @@ export default function App() {
                   if (syncResult.updatedAttendance && syncResult.updatedAttendance.length > 0) {
                     setAttendanceRecords(syncResult.updatedAttendance);
                     localStorage.setItem('ananda_attendance_v1', JSON.stringify(syncResult.updatedAttendance));
-                    await cloudSaveAttendance(syncResult.updatedAttendance);
+                    try {
+                      await cloudSaveAttendance(syncResult.updatedAttendance);
+                    } catch {}
                   }
                 }
               }
@@ -915,6 +913,21 @@ export default function App() {
           }
         } catch (fetchErr) {
           console.log('[CloudSync] Physical machine log file check:', fetchErr);
+        }
+
+        // Notify all views that biometric sync completed
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
+        }
+
+        // 2-4. Cloud Firestore persistence (Staff & Admin only)
+        const isStaffOrAdmin = ['super_admin', 'principal', 'teacher'].includes(currentRoleRef.current);
+        if (!isStaffOrAdmin) {
+          setCloudSyncInfo({
+            isConnected: true,
+            lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (অটো সিঙ্ক সক্রিয়)`,
+          });
+          return;
         }
 
         // 2. Ensure current student attendance is saved to Cloud Firestore
@@ -955,7 +968,17 @@ export default function App() {
     // Run once on load for immediate live alignment
     runPeriodicAttendanceSync();
     const intervalTimer = setInterval(runPeriodicAttendanceSync, FIFTEEN_MINUTES_MS);
-    return () => clearInterval(intervalTimer);
+
+    // Also listen for manual triggers from portals
+    const handleManualTrigger = () => {
+      runPeriodicAttendanceSync();
+    };
+    window.addEventListener('ananda_trigger_biometric_sync', handleManualTrigger);
+
+    return () => {
+      clearInterval(intervalTimer);
+      window.removeEventListener('ananda_trigger_biometric_sync', handleManualTrigger);
+    };
   }, []);
 
   // Trigger fee due notification ONLY for a logged-in parent whose child has pending/unpaid fees

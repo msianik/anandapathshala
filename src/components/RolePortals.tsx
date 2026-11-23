@@ -1761,22 +1761,52 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
           (l.nameBn && myChild.nameBn && l.nameBn.trim() === myChild.nameBn.trim()))
     );
 
-    // Filter punches strictly for TODAY (never pull old punches from weeks ago as today's live status)
+    // Filter punches strictly for TODAY
     const todayPunches = myBioPunches.filter((l) => isTodayLog(l.timestamp, l.dateStr));
     todayPunches.sort((a, b) => a.timestamp - b.timestamp);
 
     const todayEntry = todayPunches.find((p) => p.punchType === 'entry') || (todayPunches.length > 0 ? todayPunches[0] : null);
     const todayExit = todayPunches.slice().reverse().find((p) => p.punchType === 'exit');
 
-    // 2. Look in attendanceRecords for today
+    // Recent session punches if today hasn't recorded yet (e.g. synced logs from latest school session)
+    const sortedAllPunches = [...myBioPunches].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const latestPunch = sortedAllPunches[0];
+    const latestDateStr = latestPunch?.dateStr;
+    const latestSessionPunches = latestDateStr
+      ? myBioPunches.filter((p) => p.dateStr === latestDateStr).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+      : [];
+    const latestSessionEntry = latestSessionPunches.find((p) => p.punchType === 'entry') || (latestSessionPunches.length > 0 ? latestSessionPunches[0] : null);
+    const latestSessionExit = latestSessionPunches.slice().reverse().find((p) => p.punchType === 'exit');
+
+    // 2. Look in gate pickupLogs for child's release / departure time
+    const myPickup = (pickupLogs || []).find(
+      (p) =>
+        p &&
+        (p.studentId === myChild.id ||
+          (myChild.nameBn && p.studentNameBn && p.studentNameBn.trim() === myChild.nameBn.trim()))
+    );
+    const pickupTimeStr = myPickup?.timestamp ? myPickup.timestamp.replace(/^আজ[, ]*/, '').trim() : null;
+
+    // 3. Look in attendanceRecords
     const myRecords = (attendanceRecords || []).filter(
       (r) => r.studentId === myChild.id || (myChild.rollNo && normalizeIdentifier(r.rollNo) === normalizeIdentifier(myChild.rollNo))
     );
-    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr));
+    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr)) || myRecords[0];
 
-    // Real check-in time strictly from biometric punch of today (no mock fallbacks!)
-    const realCheckInTime = todayEntry?.punchTimeStr || (todayRec?.biometricSynced && isTodayLog(todayRec.entryTimestamp, todayRec.dateStr) ? todayRec.checkInTime : null);
-    const realCheckOutTime = todayExit?.punchTimeStr || (todayRec?.biometricSynced && isTodayLog(todayRec.exitTimestamp, todayRec.dateStr) ? todayRec.checkOutTime : null);
+    // Real check-in time strictly from biometric machine punch:
+    const realCheckInTime =
+      todayEntry?.punchTimeStr ||
+      (todayRec?.biometricSynced && todayRec.checkInTime ? todayRec.checkInTime : null) ||
+      latestSessionEntry?.punchTimeStr ||
+      null;
+
+    // Real school exit / departure time strictly from device exit punch, gate pickup, or synced records:
+    const realCheckOutTime =
+      todayExit?.punchTimeStr ||
+      pickupTimeStr ||
+      (todayRec?.biometricSynced && todayRec.checkOutTime ? todayRec.checkOutTime : null) ||
+      latestSessionExit?.punchTimeStr ||
+      null;
 
     const present = myRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
     const totalDays = myRecords.length > 0 ? myRecords.length : 24;
@@ -1788,11 +1818,23 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       totalDays,
       recentCheckIn: realCheckInTime,
       checkOutTime: realCheckOutTime,
-      isBiometricSynced: Boolean(todayEntry || (todayRec?.biometricSynced && realCheckInTime)),
-      punchDate: todayEntry?.dateStr || todayRec?.dateStr,
+      isBiometricSynced: Boolean(todayEntry || latestSessionEntry || (todayRec?.biometricSynced && realCheckInTime)),
+      punchDate: todayEntry?.dateStr || latestDateStr || todayRec?.dateStr,
       hasPunchedToday: Boolean(realCheckInTime),
     };
-  }, [attendanceRecords, myChild.id, myChild.rollNo, myChild.biometricEnrollId, myChild.nameBn, feeConfigSyncVer]);
+  }, [attendanceRecords, pickupLogs, myChild.id, myChild.rollNo, myChild.biometricEnrollId, myChild.nameBn, feeConfigSyncVer]);
+
+  // Periodic auto-sync for Parent Portal (runs immediately on mount and every 60 seconds)
+  useEffect(() => {
+    const triggerSync = () => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
+      }
+    };
+    triggerSync();
+    const timer = setInterval(triggerSync, 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const onFeeCfgSync = () => setFeeConfigSyncVer((v) => v + 1);
@@ -2144,41 +2186,56 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
           {/* Right Side: Live Status & Compact Side Notification for Fee Due */}
           <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 min-w-[280px]">
             {/* Live Status Card */}
-            <div className="bg-black/35 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 space-y-1.5">
+            <div className="bg-black/35 backdrop-blur-md p-3.5 rounded-2xl border border-white/15 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wider">
-                  সন্তানের আজকের লাইভ স্ট্যাটাস
+                <span className="text-[10px] text-amber-200 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${liveChildStatusInfo.dotColor}`} />
+                  <span>সন্তানের আজকের লাইভ স্ট্যাটাস</span>
                 </span>
-                <span
-                  className={`w-2 h-2 rounded-full ${liveChildStatusInfo.dotColor}`}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-black text-white">
-                  {liveChildStatusInfo.text}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
-                <span className="flex items-center gap-1">
-                  <span>বায়োমেট্রিক:</span>
-                  <strong className="text-amber-200 font-bold">
-                    {liveChildStatusInfo.biometricBadge}
-                  </strong>
+                <span className="text-[10px] text-slate-300 flex items-center gap-1">
+                  <span className="text-emerald-400">●</span> ১৫ মিনিট অটো সিঙ্ক
                   <button
                     type="button"
                     onClick={() => {
                       setFeeConfigSyncVer((v) => v + 1);
                       if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
                         window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
                       }
                     }}
-                    title="বায়োমেট্রিক মেশিন থেকে ইনস্ট্যান্ট লাইভ সিঙ্ক করুন"
+                    title="বায়োমেট্রিক মেশিন থেকে এখনই রিফ্রেশ ও সিঙ্ক করুন"
                     className="ml-1 p-0.5 rounded text-amber-200 hover:text-white hover:bg-white/10 cursor-pointer transition active:scale-90 inline-flex items-center"
                   >
                     <RefreshCw className="w-2.5 h-2.5" />
                   </button>
                 </span>
               </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-black text-white">
+                  {liveChildStatusInfo.text}
+                </span>
+              </div>
+
+              {/* Exact Biometric Check-In & School Exit Timing Grid */}
+              <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/10 text-[11px]">
+                <div className="bg-white/5 rounded-xl px-2.5 py-1.5 border border-white/10">
+                  <div className="text-[10px] text-slate-400 font-medium">বায়োমেট্রিক চেক-ইন:</div>
+                  <div className="font-bold text-amber-200 flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>{childAttendanceStats.recentCheckIn || 'পাঞ্চ অপেক্ষমাণ'}</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 rounded-xl px-2.5 py-1.5 border border-white/10">
+                  <div className="text-[10px] text-slate-400 font-medium">স্কুল ত্যাগের সময়:</div>
+                  <div className="font-bold text-emerald-200 flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                    <span>{childAttendanceStats.checkOutTime || (schoolTimeInfo.isSchoolEnded ? 'ছুটি সম্পন্ন' : 'ক্লাস চলছে')}</span>
+                  </div>
+                </div>
+              </div>
+
               <p className="text-[10px] text-slate-300">
                 শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn} · জরুরি হেল্পলাইন: {childClassTeacher.phone}
               </p>

@@ -15323,15 +15323,15 @@ export const REAL_DEVICE_STUDENT_ATTENDANCE: AttendanceRecord[] = [
     "rollNo": "২৭৫",
     "className": "HateKhori",
     "status": "present",
-    "checkInTime": "সকাল ১০:৫৩",
+    "checkInTime": "সকাল ১০:১৪",
     "checkOutTime": "দুপুর ০২:৩৮",
     "biometricSynced": true,
     "checkInMethod": "biometric",
     "checkOutMethod": "biometric",
-    "entryTimestamp": 1794199989000,
+    "entryTimestamp": 1795061641000,
     "exitTimestamp": 1795077535000,
     "dateStr": "আজ, ১৯ নভেম্বর, ২০২৬",
-    "remarks": "বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (পাঞ্চ: সকাল ১০:৫৩, প্রস্থান: দুপুর ০২:৩৮)"
+    "remarks": "বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (পাঞ্চ: সকাল ১০:১৪, প্রস্থান: দুপুর ০২:৩৮)"
   },
   {
     "studentId": "std-zk-274",
