@@ -1686,6 +1686,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   activityPosts,
   assessments,
   invoices,
+  pickupLogs = [],
   attendanceRecords,
   onNavigateTab,
   onSendUrgentPickupAlert,
