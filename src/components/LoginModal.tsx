@@ -264,13 +264,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-white p-1 border-2 border-amber-300 shadow-md shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-200">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm font-['Ruhul_Amin',sans-serif] leading-tight">
+                আনন্দ পাঠশালা
+              </h2>
+              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-200 mt-1">
                 <Sparkles className="w-3 h-3 text-amber-300" />
                 স্মার্ট স্কুল পোর্টাল
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1 drop-shadow-sm font-['Ruhul_Amin',sans-serif] leading-tight">
-                আনন্দ পাঠশালা
-              </h2>
             </div>
           </div>
         </div>
