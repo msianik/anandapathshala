@@ -172,7 +172,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
 
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
               <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-amber-300 shrink-0" />
-              <span>{myChild.nameBn}-এর সাপ্তাহিক ক্লাস রুটিন</span>
+              <span>{myChild.nameBn}-এর ক্লাস রুটিন</span>
             </h2>
 
             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-emerald-100 pt-1">
@@ -246,7 +246,7 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
           </div>
 
           <div className="text-xs text-slate-500 font-medium">
-            শুক্রবার সাপ্তাহিক ছুটি · প্রতি মঙ্গলবার সৃজনশীল ও সাংস্কৃতিক কার্যক্রম
+            শুক্রবার ও শনিবার সাপ্তাহিক ছুটি · প্রতি মঙ্গলবার সৃজনশীল ও সাংস্কৃতিক কার্যক্রম
           </div>
         </div>
 
