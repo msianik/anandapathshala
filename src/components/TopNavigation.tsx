@@ -35,7 +35,6 @@ import {
   Camera,
   Fingerprint,
 } from 'lucide-react';
-import { PWAInstallButton } from './MobileAppShell';
 import {
   PRESET_SCHOOL_THEMES,
   DEFAULT_THEME_COLOR,
@@ -549,13 +548,6 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
           {/* Right Header Controls with Safe Left Boundary */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pl-3 lg:pr-1 lg:pl-5 border-l border-slate-200/80">
-            <PWAInstallButton
-              onOpenMobileModal={onOpenMobileModal}
-              isMobilePreview={isMobilePreview}
-              square
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-all shadow-2xs shrink-0 relative group cursor-pointer"
-            />
-
             {/* School Theme Toggle */}
             <button
               type="button"
