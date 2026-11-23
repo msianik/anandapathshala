@@ -240,8 +240,13 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         ref={navContainerRef}
         className="bg-white border-b border-amber-200/80 sticky top-0 z-40 shadow-xs w-full print:hidden no-print"
       >
-        {/* Role Portal Banner & Instant Role Switcher (Compact) */}
-        <div className={`${topStripBg} text-white text-xs py-1 border-b border-black/10`}>
+        {/* Role Portal Banner & Instant Role Switcher (Compact with iOS Safe Area) */}
+        <div
+          className={`${topStripBg} text-white text-xs pb-1 border-b border-black/10`}
+          style={{
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.25rem)',
+          }}
+        >
           <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
             <div className="flex items-center gap-1.5 min-w-0 shrink">
               <span className="font-bold tracking-wide bg-white/15 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] truncate shrink-0">

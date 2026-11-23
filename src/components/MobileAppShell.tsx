@@ -247,6 +247,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       className={`${
         forceVisible ? 'flex' : 'flex lg:hidden'
       } fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-amber-200/90 shadow-lg px-1 py-1 items-center justify-around print:hidden no-print`}
+      style={{
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.25rem)',
+      }}
     >
       {portalTabs.map((item) => {
         const Icon = item.icon;

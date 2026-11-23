@@ -675,7 +675,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   if (isStandalonePage) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 sm:p-6">
+      <div
+        className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 sm:p-6"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
+        }}
+      >
         {modalContent}
         <div className="mt-4 text-center">
           <p className="text-emerald-400/80 text-xs font-semibold tracking-wide">
