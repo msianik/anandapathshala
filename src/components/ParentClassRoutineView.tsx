@@ -391,24 +391,195 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
           </div>
         )}
 
-        {/* 2. Full Table View (Always visible on Desktop, visible on Mobile when 'table' view selected) */}
-        <div className={mobileViewMode === 'day' ? 'hidden md:block' : 'block'}>
-          {mobileViewMode === 'table' && (
-            <div className="block md:hidden px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-[11px] font-bold text-indigo-900 text-center">
-              👈 সম্পূর্ণ ছক দেখতে আঙুল দিয়ে ডানে-বামে স্ক্রোল করুন 👉
+        {/* 2. Full Week Mobile-Optimized Schedule (100% Mobile Responsive, No Side Overflow or Horizontal Cutoff) */}
+        {mobileViewMode === 'table' && (
+          <div className="block md:hidden p-3.5 sm:p-4 space-y-4 bg-slate-50/60">
+            {/* Quick Sticky Day Jump Bar */}
+            <div className="sticky top-2 z-20 bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-indigo-200/90 shadow-sm">
+              <div className="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center justify-between px-1">
+                <span>দ্রুত দিনে যান:</span>
+                <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-extrabold">৫ দিনের সাপ্তাহিক সময়সূচি</span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {schoolDays.map((d) => {
+                  const isToday = currentDayOfWeek === d.id;
+                  const isCultural = d.id === 'tuesday';
+                  return (
+                    <a
+                      key={d.id}
+                      href={`#routine-day-${d.id}`}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all shadow-2xs shrink-0 flex items-center gap-1 ${
+                        isToday
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : isCultural
+                          ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                          : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
+                      }`}
+                    >
+                      <span>{d.nameBn}</span>
+                      {isCultural && <span>🎨</span>}
+                      {isToday && <span className="text-[9px] bg-white/30 px-1 rounded-full">আজ</span>}
+                    </a>
+                  );
+                })}
+              </div>
             </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[700px] sm:min-w-[750px]">
+
+            {/* All Days Complete Schedule Cards */}
+            <div className="space-y-4">
+              {schoolDays.map((d) => {
+                const dayPeriods = childPeriods
+                  .filter((p) => p.day === d.id)
+                  .sort((a, b) => {
+                    if (a.periodNo !== b.periodNo) return a.periodNo - b.periodNo;
+                    return a.isBreak ? 1 : -1;
+                  });
+                const isToday = currentDayOfWeek === d.id;
+                const isCultural = d.id === 'tuesday';
+
+                return (
+                  <div
+                    key={d.id}
+                    id={`routine-day-${d.id}`}
+                    className={`rounded-2xl border transition-all overflow-hidden scroll-mt-20 ${
+                      isToday
+                        ? 'bg-white border-emerald-400 shadow-md ring-2 ring-emerald-300/60'
+                        : isCultural
+                        ? 'bg-white border-rose-200 shadow-xs'
+                        : 'bg-white border-slate-200 shadow-xs'
+                    }`}
+                  >
+                    {/* Day Header */}
+                    <div
+                      className={`p-3.5 flex items-center justify-between border-b ${
+                        isToday
+                          ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
+                          : isCultural
+                          ? 'bg-rose-50/90 text-rose-950 border-rose-200'
+                          : 'bg-slate-100/90 text-slate-900 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${isToday ? 'bg-emerald-600 animate-pulse' : 'bg-indigo-600'}`} />
+                        <h4 className="text-sm font-black tracking-tight flex items-center gap-1.5">
+                          <span>{d.nameBn}</span>
+                          {isCultural && (
+                            <span className="text-[10px] font-black bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full">
+                              🎨 সাংস্কৃতিক দিন
+                            </span>
+                          )}
+                        </h4>
+                      </div>
+                      <span className="text-xs font-bold text-slate-500">
+                        {isToday ? (
+                          <span className="text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-full font-black text-[11px]">
+                            আজকের রুটিন
+                          </span>
+                        ) : (
+                          `${dayPeriods.filter((p) => !p.isBreak).length}টি ক্লাস`
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Periods List */}
+                    <div className="p-3 space-y-2.5 bg-slate-50/30">
+                      {dayPeriods.map((period, idx) => {
+                        if (period.isBreak) {
+                          return (
+                            <div
+                              key={period.id || idx}
+                              className="p-2.5 rounded-xl bg-amber-50/90 border border-amber-200 flex items-center justify-between text-amber-950 shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Coffee className="w-4 h-4 text-amber-700 shrink-0" />
+                                <span className="text-xs font-black">টিফিন বিরতি ও নাস্তা</span>
+                              </div>
+                              <span className="text-[11px] text-amber-800 font-mono font-bold">
+                                {period.startTime} - {period.endTime}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        const hasHw = !!(
+                          period.homeworkAssignmentBn ||
+                          period.homeworkOrActivityBn ||
+                          period.homeworkTitleBn ||
+                          period.homeworkTitle
+                        );
+                        const isSelected = selectedPeriod?.id === period.id;
+
+                        return (
+                          <div
+                            key={period.id || idx}
+                            onClick={() => setSelectedPeriod(period)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer shadow-2xs active:scale-[0.99] ${
+                              isSelected
+                                ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-400'
+                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-950 font-black text-xs">
+                                  {period.periodLabelBn || `পিরিয়ড #${toBengaliNumber(period.periodNo)}`}
+                                </span>
+                                <span className="text-xs font-mono text-slate-500 font-semibold flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  <span>{period.startTime} - {period.endTime}</span>
+                                </span>
+                              </div>
+                              {hasHw && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 flex items-center gap-1 shrink-0">
+                                  <ClipboardList className="w-3 h-3" />
+                                  <span>HW</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-1.5 space-y-1">
+                              <h5 className="text-sm font-black text-slate-900 leading-snug">
+                                {period.subject || period.subjectBn}
+                              </h5>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                                <span className="flex items-center gap-1">
+                                  <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>{period.teacherNameBn}</span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                  <span>{period.room || period.roomBn}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-indigo-600 font-bold">
+                              <span>বিস্তারিত পাঠ ও বাড়ির কাজ দেখতে ট্যাপ করুন</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Desktop Full Table View (Clean, Fixed Responsive Grid for Laptop & Desktop Screens) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="bg-slate-100/90 text-slate-700 text-xs font-black uppercase tracking-wider border-b border-slate-200">
-                <th className="py-3.5 px-4 text-slate-900 w-32 border-r border-slate-200">
+                <th className="py-3.5 px-3 text-slate-900 w-[14%] min-w-[100px] border-r border-slate-200 text-center">
                   সময় / পিরিয়ড
                 </th>
                 {schoolDays.map((d) => (
                   <th
                     key={d.id}
-                    className={`py-3.5 px-3 border-r border-slate-200 text-center ${
+                    className={`py-3.5 px-3 border-r border-slate-200 text-center w-[17.2%] ${
                       d.id === 'tuesday' ? 'bg-rose-50/80 text-rose-950' : ''
                     }`}
                   >
@@ -545,7 +716,6 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
           </table>
         </div>
       </div>
-    </div>
 
       {/* Selected Period Details Section (Below the Table) */}
       {selectedPeriod && (
