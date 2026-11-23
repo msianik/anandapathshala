@@ -31,13 +31,13 @@ export const EN_MONTH_NAMES = [
 ];
 
 export const BN_WEEKDAYS = [
-  { shortBn: 'রবি', fullBn: 'রবিবার', shortEn: 'Sun', isWeekend: false },
-  { shortBn: 'সোম', fullBn: 'সোমবার', shortEn: 'Mon', isWeekend: false },
-  { shortBn: 'মঙ্গল', fullBn: 'মঙ্গলবার', shortEn: 'Tue', isWeekend: false },
-  { shortBn: 'বুধ', fullBn: 'বুধবার', shortEn: 'Wed', isWeekend: false },
-  { shortBn: 'বৃহঃ', fullBn: 'বৃহস্পতিবার', shortEn: 'Thu', isWeekend: false },
-  { shortBn: 'শুক্র', fullBn: 'শুক্রবার', shortEn: 'Fri', isWeekend: true },
-  { shortBn: 'শনি', fullBn: 'শনিবার', shortEn: 'Sat', isWeekend: true },
+  { shortBn: 'রবি', fullBn: 'রবি', shortEn: 'Sun', isWeekend: false },
+  { shortBn: 'সোম', fullBn: 'সোম', shortEn: 'Mon', isWeekend: false },
+  { shortBn: 'মঙ্গল', fullBn: 'মঙ্গল', shortEn: 'Tue', isWeekend: false },
+  { shortBn: 'বুধ', fullBn: 'বুধ', shortEn: 'Wed', isWeekend: false },
+  { shortBn: 'বৃহস্পতি', fullBn: 'বৃহস্পতি', shortEn: 'Thu', isWeekend: false },
+  { shortBn: 'শুক্র', fullBn: 'শুক্র', shortEn: 'Fri', isWeekend: true },
+  { shortBn: 'শনি', fullBn: 'শনি', shortEn: 'Sat', isWeekend: true },
 ];
 
 /**
