@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActivityPost, SchoolClass, ActivityType, ChildMood, UserRole, FcmNotification, Student } from '../types/school';
 import { ALL_SCHOOL_CLASSES, isSameSchoolClass, getSchoolClassNameBn, toBengaliNumber } from '../utils/schoolLogic';
 import { 
