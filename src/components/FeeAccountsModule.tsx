@@ -1192,7 +1192,7 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                   {ownParentStudent.nameBn}-এর ব্যক্তিগত পেমেন্ট স্ট্যাটাস ও মানি রসিদ
                 </h2>
                 <p className="text-emerald-100 text-xs max-w-2xl leading-relaxed">
-                  শ্রেণি: <strong>{getSchoolClassNameBn(ownParentStudent.className)}</strong> ({ownParentStudent.section}) · রোল: <strong>{toBengaliNumber(ownParentStudent.rollNo)}</strong> · অভিভাবক: <strong>{loggedInAccount?.nameBn || ownParentStudent.fatherNameBn}</strong> — এখানে শুধুমাত্র আপনার সন্তানের পরিশোধিত ফি এবং বর্তমান বকেয়া (Due) স্ট্যাটাস দেখানো হচ্ছে।
+                  শ্রেণি: <strong>{getSchoolClassNameBn(ownParentStudent.className)}</strong> ({ownParentStudent.section}) · রোল: <strong>{toBengaliNumber(ownParentStudent.rollNo)}</strong> · অভিভাবক: <strong>{ownParentStudent.fatherNameBn || ownParentStudent.guardianNameBn || (loggedInAccount?.nameBn && loggedInAccount.nameBn !== ownParentStudent.nameBn ? loggedInAccount.nameBn : 'অভিভাবক')}</strong> — এখানে শুধুমাত্র আপনার সন্তানের পরিশোধিত ফি এবং বর্তমান বকেয়া (Due) স্ট্যাটাস দেখানো হচ্ছে।
                 </p>
               </div>
             </div>

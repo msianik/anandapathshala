@@ -2089,13 +2089,57 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   // Selected period state for detailed view popup
   const [selectedPeriodForDetail, setSelectedPeriodForDetail] = useState<ClassRoutinePeriod | null>(null);
 
+  // Dedicated Guardian / Parent Name resolution (Ensure student's own name is never shown as guardian)
+  const childGuardianName = React.useMemo(() => {
+    // 1. If account name is an authentic parent/guardian name (not the student's own name)
+    const isAccountChildSelf =
+      account.nameBn &&
+      myChild.nameBn &&
+      (account.nameBn.trim().toLowerCase() === myChild.nameBn.trim().toLowerCase() ||
+        (myChild.nameEn && account.nameBn.toLowerCase().includes(myChild.nameEn.toLowerCase())));
+
+    if (
+      !isAccountChildSelf &&
+      account.nameBn &&
+      !account.nameBn.includes('Student') &&
+      !account.nameBn.includes('শিক্ষার্থী')
+    ) {
+      return account.nameBn.trim();
+    }
+
+    // 2. Father's name from student record
+    if (myChild.fatherNameBn && myChild.fatherNameBn.trim()) {
+      return myChild.fatherNameBn.trim();
+    }
+
+    // 3. Guardian's name from student record
+    if (myChild.guardianNameBn && myChild.guardianNameBn.trim()) {
+      return myChild.guardianNameBn.trim();
+    }
+
+    // 4. Primary authorized pickup person
+    const primaryPickup =
+      myChild.authorizedPickups?.find((p) => p.isPrimary) ||
+      myChild.authorizedPickups?.[0];
+    if (primaryPickup?.nameBn && primaryPickup.nameBn.trim()) {
+      return primaryPickup.nameBn.trim();
+    }
+
+    // 5. Mother's name
+    if (myChild.motherNameBn && myChild.motherNameBn.trim()) {
+      return myChild.motherNameBn.trim();
+    }
+
+    return 'অভিভাবক';
+  }, [account.nameBn, myChild]);
+
   const handleParentArrivedAtGate = (e: React.FormEvent) => {
     e.preventDefault();
     onSendUrgentPickupAlert(
       myChild,
-      account.nameBn,
-      'বাবা (অভিভাবক পোর্টাল থেকে)',
-      parentPickupNote || 'আমি স্কুলের মেইন গেটে পৌঁছেছি, অনুগ্রহ করে আদিত্যকে পাঠানোর ব্যবস্থা করুন।'
+      childGuardianName,
+      'অভিভাবক (পোর্টাল থেকে)',
+      parentPickupNote || `আমি স্কুলের মেইন গেটে পৌঁছেছি, অনুগ্রহ করে ${myChild.nameBn}-কে পাঠানোর ব্যবস্থা করুন।`
     );
     setParentPickupNote('');
     setPickupSentBanner(true);
@@ -2179,7 +2223,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 <span>·</span>
                 <span>ব্লাড গ্রুপ: <strong>{myChild.bloodGroup}</strong></span>
                 <span>·</span>
-                <span>অভিভাবক: <strong>{account.nameBn}</strong></span>
+                <span>অভিভাবক: <strong>{childGuardianName}</strong></span>
               </p>
             </div>
           </div>
