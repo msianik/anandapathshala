@@ -2238,7 +2238,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                   <span>সন্তানের আজকের লাইভ স্ট্যাটাস</span>
                 </span>
                 <span className="text-[10px] text-slate-300 flex items-center gap-1">
-                  <span className="text-emerald-400">●</span> ১৫ মিনিট অটো সিঙ্ক
+                  <span className="text-emerald-400">●</span> অটো সিঙ্ক
                   <button
                     type="button"
                     onClick={() => {
