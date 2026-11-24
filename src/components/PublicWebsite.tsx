@@ -50,6 +50,7 @@ import {
   ArrowUp,
   Globe,
   Image as ImageIcon,
+  Smartphone,
 } from 'lucide-react';
 import { HomeCarousel } from './HomeCarousel';
 import { NoticeBoard, NoticeTicker } from './NoticeBoard';
@@ -543,6 +544,18 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
               </button>
             )}
 
+            {/* Mobile App Button */}
+            <button
+              type="button"
+              onClick={onOpenMobileModal}
+              className="h-9 sm:h-11 px-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-800 border border-emerald-300 font-bold text-xs sm:text-sm shadow-2xs hover:shadow-xs active:scale-95 transition-all duration-200 cursor-pointer shrink-0 group"
+              title="মোবাইল অ্যাপ ইনস্টল করুন (Android ও iPhone)"
+              aria-label="মোবাইল অ্যাপ"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <span className="tracking-wide">অ্যাপ</span>
+            </button>
+
             {/* Login Button */}
             <button
               type="button"
@@ -634,6 +647,18 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
                   <Facebook className="w-3.5 h-3.5 fill-current" />
                   <span>ফেসবুক পেজ</span>
                 </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenMobileModal();
+                  }}
+                  className="py-2 px-3.5 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-xl font-bold flex items-center gap-1.5 border border-teal-200/60 transition-colors cursor-pointer"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-teal-600" />
+                  <span>মোবাইল অ্যাপ</span>
+                </button>
 
                 <button
                   type="button"
@@ -733,6 +758,15 @@ export const PublicWebsite: React.FC<PublicWebsiteProps> = ({
                 >
                   <span>অনলাইন ভর্তি আবেদন করুন (২০২৭)</span>
                   <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenMobileModal}
+                  className="px-5 py-3 bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-100 hover:text-white border border-emerald-400/40 rounded-xl text-sm font-bold transition-all backdrop-blur-md flex items-center gap-2 transform active:scale-95 cursor-pointer shadow-sm"
+                  title="মোবাইল অ্যাপ ইনস্টল করুন"
+                >
+                  <Smartphone className="w-4 h-4 text-emerald-300" />
+                  <span>মোবাইল অ্যাপ নিন</span>
                 </button>
                 <a
                   href="#teachers"

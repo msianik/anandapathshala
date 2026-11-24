@@ -30,6 +30,7 @@ import {
   Bell,
   MapPin,
   Mail,
+  Smartphone,
 } from 'lucide-react';
 
 const OnlineAdmissionModule = lazy(() =>
@@ -94,6 +95,7 @@ function playChimeSound() {
 
 export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
   onOpenLoginModal,
+  onOpenMobileModal = () => {},
   logoUrl = '/assets/fb/logo.jpg',
   schoolProfile: propSchoolProfile,
   leadershipProfiles: propLeadershipProfiles,
@@ -364,6 +366,16 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
 
           <button
             type="button"
+            onClick={onOpenMobileModal}
+            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 text-[11px] font-bold border border-emerald-400/40 flex items-center gap-1 cursor-pointer"
+            title="মোবাইল অ্যাপ ইনস্টল করুন"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+            <span>অ্যাপ</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenLoginModal}
             className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold border border-white/20 flex items-center gap-1 cursor-pointer"
           >
@@ -442,6 +454,16 @@ export const PublicWebsiteTheme3: React.FC<PublicWebsiteTheme3Props> = ({
         >
           <GraduationCap className="w-4 h-4 text-slate-950" />
           <span>ভর্তি আবেদন</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenMobileModal}
+          className="px-3.5 py-2 rounded-xl bg-slate-950/75 hover:bg-slate-950 text-white text-sm font-bold border border-emerald-400/40 backdrop-blur-md transition flex items-center gap-1.5 cursor-pointer shadow-xl"
+          title="মোবাইল অ্যাপ ইনস্টল করুন"
+        >
+          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+          <span>অ্যাপ</span>
         </button>
 
         <button
