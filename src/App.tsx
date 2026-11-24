@@ -174,7 +174,7 @@ class DashboardErrorBoundary extends React.Component<DashboardErrorBoundaryProps
         <div className="p-8 my-6 max-w-xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-2xl text-center space-y-4 shadow-md">
           <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl font-bold">⚠️</div>
           <h3 className="text-base font-bold text-amber-900">একটি সাময়িক রেন্ডারিং সমস্যা হয়েছে</h3>
-          <p className="text-xs text-amber-700">আপনার অ্যাডমিন সেশন সুরক্ষিত রয়েছে। নিচে দেওয়া বাটনে ক্লিক করে ড্যাশবোর্ডে ফিরে যান বা পৃষ্ঠাটি পুনরায় লোড করুন।</p>
+          <p className="text-xs text-amber-700">আপনার সেশন সুরক্ষিত রয়েছে। নিচে দেওয়া বাটনে ক্লিক করে ড্যাশবোর্ডে ফিরে যান বা পৃষ্ঠাটি পুনরায় লোড করুন।</p>
           {this.state.error && (
             <p className="text-[11px] font-mono text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200 text-left overflow-x-auto max-h-24">
               {this.state.error.message}
@@ -195,7 +195,12 @@ class DashboardErrorBoundary extends React.Component<DashboardErrorBoundaryProps
             </button>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                try {
+                  localStorage.setItem('ananda_session_tab_v1', 'overview');
+                } catch {}
+                window.location.reload();
+              }}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow cursor-pointer transition"
             >
               পুনরায় লোড করুন
@@ -436,22 +441,25 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => {
     const currentYear = getActiveAcademicYear();
     const yearStudents = getStudentsForYear(currentYear);
-    if (currentYear === '2026' && yearStudents.length === 0) {
-      try {
-        const stored = localStorage.getItem('ananda_students_v2');
-        if (stored) {
-          const parsed: Student[] = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fatherNameBn !== 'অভিভাবক') {
-            saveStudentsForYear('2026', parsed);
-            return parsed;
-          }
+    if (yearStudents && yearStudents.length > 0) return yearStudents;
+
+    // Guaranteed Fallback: If active year has 0 students, fallback to 2026 or INITIAL_STUDENTS so portal never crashes with empty student list
+    const fallback2026 = getStudentsForYear('2026');
+    if (fallback2026 && fallback2026.length > 0) return fallback2026;
+
+    try {
+      const stored = localStorage.getItem('ananda_students_v2') || localStorage.getItem('ananda_students_v1');
+      if (stored) {
+        const parsed: Student[] = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].fatherNameBn !== 'অভিভাবক') {
+          saveStudentsForYear('2026', parsed);
+          return parsed;
         }
-      } catch {}
-      const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
-      saveStudentsForYear('2026', initialEnriched);
-      return initialEnriched;
-    }
-    return yearStudents;
+      }
+    } catch {}
+    const initialEnriched = enrichStudentsWithPortalAccounts(INITIAL_STUDENTS);
+    saveStudentsForYear('2026', initialEnriched);
+    return initialEnriched;
   });
 
   // Global Real-time Listener for Student Updates Across all Modules
@@ -1050,6 +1058,11 @@ export default function App() {
 
   // Smart Role-Auto-Detect Login Handler
   const handleLoginSuccess = (account: PortalAccount) => {
+    try {
+      localStorage.setItem('ananda_session_account_v1', JSON.stringify(account));
+      localStorage.setItem('ananda_session_tab_v1', 'overview');
+      sessionStorage.setItem('ananda_app_mode', 'true');
+    } catch {}
     setLoggedInAccount(account);
     setCurrentRole(account.role);
     if (account.role === 'super_admin') {

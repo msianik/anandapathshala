@@ -1682,49 +1682,88 @@ interface ParentPortalDashboardProps {
 
 export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   account,
-  students,
-  activityPosts,
-  assessments,
-  invoices,
+  students = [],
+  activityPosts = [],
+  assessments = {},
+  invoices = [],
   pickupLogs = [],
-  attendanceRecords,
+  attendanceRecords = [],
   onNavigateTab,
   onSendUrgentPickupAlert,
   onUpdateStudent,
 }) => {
   const [selectedChildId, setSelectedChildId] = useState<string>(() => account.studentId || 'std-1');
 
+  // Fallback dummy student object so that myChild is guaranteed to never be undefined
+  const defaultFallbackStudent: Student = React.useMemo(() => ({
+    id: account.studentId || 'std-1',
+    rollNo: '০১',
+    nameBn: account.nameBn || 'শিক্ষার্থী',
+    nameEn: account.nameEn || 'Student',
+    className: (account.assignedClass || 'Play') as SchoolClass,
+    section: 'ক (গোলাপ)',
+    shift: 'morning',
+    fatherNameBn: account.nameBn || 'অভিভাবক',
+    emergencyPhone: account.phone || '01914057511',
+    authorizedPickups: [{
+      id: 'pickup-default',
+      nameBn: account.nameBn || 'অভিভাবক',
+      relationshipBn: 'অভিভাবক',
+      phone: account.phone || '01914057511',
+      isPrimary: true,
+      canPickup: true,
+    }],
+    currentStatus: 'in_class',
+  }), [account]);
+
   // Find all children associated with this parent
   const parentChildren = React.useMemo(() => {
     const cleanPhone = normalizeIdentifier(account.phone || '');
-    const matched = students.filter(
+    const validStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    const matched = validStudents.filter(
       (s) =>
-        s.id === account.studentId ||
+        s &&
+        (s.id === account.studentId ||
         (cleanPhone && cleanPhone.length > 5 && normalizeIdentifier(s.emergencyPhone).includes(cleanPhone)) ||
         (account.nameBn && s.fatherNameBn && account.nameBn.includes(s.fatherNameBn)) ||
-        (account.nameBn && s.nameBn && account.nameBn.includes(s.nameBn))
+        (account.nameBn && s.nameBn && account.nameBn.includes(s.nameBn)))
     );
-    return matched.length > 0 ? matched : [students.find((s) => s.id === (account.studentId || 'std-1')) || students[0]];
-  }, [students, account]);
+    if (matched.length > 0) return matched;
+    const directMatch = validStudents.find((s) => s.id === (account.studentId || 'std-1')) || validStudents[0];
+    return [directMatch || defaultFallbackStudent];
+  }, [students, account, defaultFallbackStudent]);
 
-  const myChild = React.useMemo(() => {
+  const myChild: Student = React.useMemo(() => {
     return (
-      parentChildren.find((s) => s.id === selectedChildId) ||
-      students.find((s) => s.id === selectedChildId) ||
-      students.find((s) => s.id === (account.studentId || 'std-1')) ||
-      students[0]
+      parentChildren.find((s) => s && s.id === selectedChildId) ||
+      (Array.isArray(students) ? students.find((s) => s && s.id === selectedChildId) : undefined) ||
+      (Array.isArray(students) ? students.find((s) => s && s.id === (account.studentId || 'std-1')) : undefined) ||
+      parentChildren[0] ||
+      defaultFallbackStudent
     );
-  }, [students, parentChildren, selectedChildId, account.studentId]);
+  }, [students, parentChildren, selectedChildId, account.studentId, defaultFallbackStudent]);
 
-  const childAssessment = assessments[myChild.id];
+  const childAssessment = assessments && myChild?.id ? assessments[myChild.id] : undefined;
   const childClassTeacher = React.useMemo(() => {
     const staff = getStoredStaffMembers();
-    return (
-      staff.find(
-        (t) => t.assignedClass && isSameSchoolClass(t.assignedClass, myChild.className)
-      ) || staff[1] || staff[0]
+    const validStaff = Array.isArray(staff) ? staff.filter(Boolean) : [];
+    const found = validStaff.find(
+      (t) => t.assignedClass && myChild?.className && isSameSchoolClass(t.assignedClass, myChild.className)
     );
-  }, [myChild.className]);
+    if (found) return found;
+    if (validStaff.length > 0) return validStaff[0];
+    return {
+      id: 'tch-default',
+      nameBn: 'শ্রেণি শিক্ষক',
+      nameEn: 'Class Teacher',
+      designationBn: 'সহকারী শিক্ষক',
+      departmentBn: 'প্রাথমিক শাখা',
+      phone: '01914057511',
+      email: 'teacher@anandapathshala.edu.bd',
+      photoUrl: '/assets/fb/logo.jpg',
+      assignedClass: myChild?.className || 'Play',
+    };
+  }, [myChild?.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);
 
   // Live Attendance calculation strictly from Real Biometric Machine Punches (No Mock Data)
@@ -3513,9 +3552,9 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
             <div className="space-y-1.5 pt-1">
               <span className="text-[11px] font-bold text-slate-700 block">
-                অনুমোদিত পিক-আপ অভিভাবক ({toBengaliNumber(myChild.authorizedPickups.length)} জন):
+                অনুমোদিত পিক-আপ অভিভাবক ({toBengaliNumber((myChild.authorizedPickups || []).length)} জন):
               </span>
-              {myChild.authorizedPickups.map((p) => (
+              {(myChild.authorizedPickups || []).map((p) => (
                 <div
                   key={p.id}
                   className="flex items-center justify-between text-xs bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/70"

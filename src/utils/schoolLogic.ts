@@ -680,7 +680,10 @@ export function getAllPortalAccounts(): PortalAccount[] {
   let students: Student[] = INITIAL_STUDENTS;
   if (typeof window !== 'undefined') {
     try {
-      const rawStd = localStorage.getItem('ananda_students_v1');
+      const rawStd =
+        localStorage.getItem('ananda_students_v2') ||
+        localStorage.getItem('ananda_students_year_2026') ||
+        localStorage.getItem('ananda_students_v1');
       if (rawStd) {
         const parsed = JSON.parse(rawStd);
         if (Array.isArray(parsed) && parsed.length > 0) students = parsed;
