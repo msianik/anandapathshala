@@ -2077,7 +2077,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     // 3. Early morning before school starts
     if (schoolTimeInfo.isBeforeSchool) {
       return {
-        text: `⏰ স্কুল শুরুর অপেক্ষা (আজকের ক্লাস শুরু: ${schoolTimeInfo.schoolStartStr})`,
+        text: `⏰ স্কুল শুরুর অপেক্ষা (ক্লাস শুরু: ${schoolTimeInfo.schoolStartStr})`,
         dotColor: 'bg-amber-400',
         biometricBadge: 'আজকের পাঞ্চ অপেক্ষমাণ',
       };
