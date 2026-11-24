@@ -83,6 +83,7 @@ import {
   PUBLIC_THEME_CHANGE_EVENT,
 } from './utils/publicWebsiteTheme';
 import { ROUTINE_UPDATE_EVENT, getClassRoutines } from './utils/routineLogic';
+import { AppUpdateChecker } from './components/AppUpdateChecker';
 
 const OverviewDashboard = lazy(() => import('./components/OverviewDashboard').then(m => ({ default: m.OverviewDashboard })));
 const TeacherPortalDashboard = lazy(() => import('./components/RolePortals').then(m => ({ default: m.TeacherPortalDashboard })));
@@ -1440,6 +1441,9 @@ export default function App() {
           </button>
         </div>
       )}
+
+      {/* In-App Auto Update & Offline Caching Notice Banner */}
+      <AppUpdateChecker />
 
       {/* Smart Role-Detecting Login Modal (for standard website visitors) */}
       {!isAppMode && (
