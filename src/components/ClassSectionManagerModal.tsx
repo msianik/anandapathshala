@@ -435,21 +435,6 @@ export const ClassSectionManagerModal: React.FC<ClassSectionManagerModalProps> =
               </div>
             ))}
           </div>
-
-          {/* Bottom helper & reset */}
-          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-            <span className="flex items-center gap-1">
-              <Info className="w-3.5 h-3.5 text-amber-600" />
-              <span>প্রতিটি শ্রেণির জন্য স্বাধীনভাবে সেকশন তৈরি ও কাস্টমাইজ করা যায়।</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleResetToDefault}
-              className="text-amber-800 hover:text-amber-900 font-bold underline cursor-pointer"
-            >
-              ডিফল্ট সেকশন রিসেট
-            </button>
-          </div>
         </div>
 
         {/* Footer */}
