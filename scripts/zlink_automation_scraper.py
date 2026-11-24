@@ -171,7 +171,8 @@ def run_scraper():
                 else:
                     break
 
-            # ৪. JSON ফাইলে আউটপুট সেভ
+            # ৪. সর্বশেষ পাঞ্চ সবার উপরে সাজানো এবং JSON ফাইলে আউটপুট সেভ
+            records.sort(key=lambda x: str(x.get("punchTime", "")), reverse=True)
             payload = {
                 "last_synced_at": datetime.now().isoformat(),
                 "device_sn": "JUS3251800031",
@@ -192,19 +193,34 @@ def run_scraper():
             # ৫. সরাসরি Google Cloud Firestore ডাটাবেজে লাইভ আপলোড
             try:
                 import urllib.request
+                from datetime import timezone, timedelta
+                bdt_tz = timezone(timedelta(hours=6))
                 fs_url = "https://firestore.googleapis.com/v1/projects/gen-lang-client-0036381817/databases/ai-studio-kindergartenscho-9ee82096-0aea-4672-a0ef-ed73933e59d3/documents/portal_data/biometric_logs"
                 values = []
-                for r in records[:300]:
+                for idx, r in enumerate(records[:300]):
+                    pt_str = str(r.get("punchTime", "")).strip()
+                    ts_ms = int(datetime.now(bdt_tz).timestamp() * 1000)
+                    punch_type = "entry"
+                    try:
+                        dt = datetime.strptime(pt_str[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=bdt_tz)
+                        ts_ms = int(dt.timestamp() * 1000)
+                        punch_type = "exit" if dt.hour >= 12 else "entry"
+                    except Exception:
+                        pass
+                    enroll_id = str(r.get("enrollId", ""))
                     values.append({
                         "mapValue": {
                             "fields": {
+                                "id": {"stringValue": f"zlink-{enroll_id}-{ts_ms}-{idx}"},
                                 "userId": {"stringValue": str(r.get("userId", ""))},
-                                "enrollId": {"stringValue": str(r.get("enrollId", ""))},
+                                "enrollId": {"stringValue": enroll_id},
                                 "name": {"stringValue": str(r.get("name", ""))},
                                 "department": {"stringValue": str(r.get("department", ""))},
                                 "personType": {"stringValue": str(r.get("personType", "student"))},
-                                "punchTime": {"stringValue": str(r.get("punchTime", ""))},
+                                "punchType": {"stringValue": punch_type},
+                                "punchTime": {"stringValue": pt_str},
                                 "time": {"stringValue": str(r.get("time", ""))},
+                                "timestamp": {"integerValue": str(ts_ms)},
                                 "verificationMode": {"stringValue": str(r.get("verificationMode", "fingerprint"))},
                                 "deviceSn": {"stringValue": str(r.get("deviceSn", "JUS3251800031"))},
                                 "status": {"stringValue": str(r.get("status", "on_time"))},

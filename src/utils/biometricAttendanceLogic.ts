@@ -116,6 +116,121 @@ export function saveBiometricConfig(config: BiometricDeviceConfig): void {
 }
 
 /**
+ * Strictly checks whether a biometric log or attendance record belongs to TODAY's calendar date.
+ * Never falsely matches historical records labeled "আজ, ১৯ নভেম্বর, ২০২৬" on subsequent days.
+ */
+export function isTimestampOrDateToday(timestamp?: number, dateStr?: string, refDate: Date = new Date()): boolean {
+  if (!timestamp && !dateStr) return false;
+
+  if (typeof timestamp === 'number' && timestamp > 0) {
+    const d = new Date(timestamp);
+    return (
+      d.getFullYear() === refDate.getFullYear() &&
+      d.getMonth() === refDate.getMonth() &&
+      d.getDate() === refDate.getDate()
+    );
+  }
+
+  if (dateStr) {
+    const cleaned = dateStr.replace(/^আজ[, ]*/g, '').replace(/,/g, '').replace(/\s+/g, ' ').trim();
+    if (!cleaned) {
+      return dateStr.trim() === 'আজ';
+    }
+    const todayBn = refDate
+      .toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })
+      .replace(/,/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const todayBnShortDay = refDate
+      .toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+      .replace(/,/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const todayIso = `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, '0')}-${String(refDate.getDate()).padStart(2, '0')}`;
+    return cleaned === todayBn || cleaned === todayBnShortDay || cleaned.includes(todayIso);
+  }
+
+  return false;
+}
+
+/**
+ * Normalizes either a pre-formatted BiometricPunchLog or a raw ZLink cloud scraper log entry
+ * so raw Firestore records from GitHub Actions / ZLink RPA never get dropped.
+ */
+function normalizeBiometricLogEntry(raw: any): BiometricPunchLog | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  // Already a structured BiometricPunchLog
+  if (raw.id && typeof raw.timestamp === 'number' && raw.punchTimeStr && raw.dateStr) {
+    if (String(raw.id).startsWith('bio-log-') || String(raw.dateStr).includes('০৮ নভেম্বর ২০২৬')) {
+      return null;
+    }
+    return raw as BiometricPunchLog;
+  }
+
+  // Raw ZLink scraper record (has punchTime / time / userId / enrollId)
+  const rawEnrollId = String(
+    raw.enrollId || raw.userId || raw.pin || raw.personId || ''
+  ).trim();
+  const rawDateTimeStr = String(raw.punchTime || raw.time || raw.recordTime || '').trim();
+  if (!rawEnrollId && !rawDateTimeStr) return null;
+
+  let ts = typeof raw.timestamp === 'number' ? raw.timestamp : Number(raw.timestamp);
+  let validDate = !isNaN(ts) && ts > 0 ? new Date(ts) : new Date(rawDateTimeStr.replace(' ', 'T'));
+  if (isNaN(validDate.getTime()) && rawDateTimeStr) {
+    validDate = new Date(rawDateTimeStr);
+  }
+  if (isNaN(validDate.getTime())) {
+    return null;
+  }
+  ts = validDate.getTime();
+  const hour = validDate.getHours();
+  const punchType: BiometricPunchType =
+    raw.punchType === 'exit' || raw.type === 'exit' || hour >= 12 ? 'exit' : 'entry';
+  const isTeacher =
+    raw.personType === 'teacher' ||
+    String(raw.department || '').toLowerCase().includes('teacher');
+  const displayName = String(raw.nameBn || raw.nameEn || raw.name || rawEnrollId);
+
+  return {
+    id: String(raw.id || `zlink-${rawEnrollId}-${ts}`),
+    enrollId: rawEnrollId,
+    personType: isTeacher ? 'teacher' : 'student',
+    personId: String(raw.personId || rawEnrollId),
+    nameBn: displayName,
+    nameEn: String(raw.nameEn || raw.name || displayName),
+    className: raw.className || (isTeacher ? undefined : 'Unassigned'),
+    rollNo: raw.rollNo || (isTeacher ? undefined : rawEnrollId),
+    punchType,
+    punchTimeStr: raw.punchTimeStr || formatBanglaTime(validDate),
+    timestamp: ts,
+    dateStr:
+      raw.dateStr ||
+      validDate.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' }),
+    verificationMode: raw.verificationMode || 'fingerprint',
+    status:
+      raw.status && raw.status !== 'on_time'
+        ? raw.status
+        : punchType === 'entry'
+        ? hour > 8
+          ? 'late'
+          : 'on_time'
+        : 'regular_exit',
+    statusLabelBn:
+      raw.statusLabelBn ||
+      (punchType === 'entry'
+        ? hour > 8
+          ? 'বিলম্বিত প্রবেশ'
+          : 'অন-টাইম প্রবেশ'
+        : 'স্বাভাবিক প্রস্থান'),
+    deviceId: raw.deviceId || 'zk-sensefp-m1-01',
+    deviceNameBn: raw.deviceNameBn || 'ZKTeco SenseFP M1 ক্লাউড লগ',
+    syncedAt: raw.syncedAt || Date.now(),
+    smsNotified: Boolean(raw.smsNotified),
+  };
+}
+
+/**
  * Get all biometric punch logs (clean real logs only, auto-purges any obsolete mock logs)
  */
 export function getBiometricLogs(): BiometricPunchLog[] {
@@ -123,7 +238,7 @@ export function getBiometricLogs(): BiometricPunchLog[] {
     const rawPrimary = safeGetItem(BIOMETRIC_LOGS_KEY);
     const rawCloud = safeGetItem('ananda_biometric_punch_logs_v1');
 
-    const parseList = (raw: string | null): BiometricPunchLog[] => {
+    const parseList = (raw: string | null): any[] => {
       if (!raw) return [];
       try {
         const parsed = JSON.parse(raw);
@@ -140,14 +255,14 @@ export function getBiometricLogs(): BiometricPunchLog[] {
       return REAL_DEVICE_BIOMETRIC_LOGS;
     }
 
-    // Merge both local & cloud lists, deduplicating by enrollId/personId + timestamp + punchType
+    // Merge both local & cloud lists, normalizing any raw ZLink records and deduplicating
     const mergedMap = new Map<string, BiometricPunchLog>();
-    for (const l of [...listB, ...listA]) {
-      if (!l || !l.id) continue;
-      if (l.id.startsWith('bio-log-') || l.dateStr?.includes('০৮ নভেম্বর ২০২৬')) continue;
-      const key = `${l.enrollId || l.personId}_${l.timestamp}_${l.punchType}`;
+    for (const rawItem of [...listB, ...listA]) {
+      const normalized = normalizeBiometricLogEntry(rawItem);
+      if (!normalized) continue;
+      const key = `${normalized.enrollId || normalized.personId}_${normalized.timestamp}_${normalized.punchType}`;
       if (!mergedMap.has(key)) {
-        mergedMap.set(key, l);
+        mergedMap.set(key, normalized);
       }
     }
 
@@ -466,28 +581,32 @@ export function syncBiometricAttendanceData({
 
   // Update Student attendance
   const updatedAttendance = [...existingAttendance];
+  const todayFormattedBn = `আজ, ${new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })}`;
 
   students.forEach((student) => {
-    const pLogs = studentLogsMap.get(student.id);
-    if (!pLogs || pLogs.length === 0) return;
+    const pLogs = studentLogsMap.get(student.id) || [];
+    const todayPLogs = pLogs.filter((p) => isTimestampOrDateToday(p.timestamp, p.dateStr));
+    const index = updatedAttendance.findIndex((r) => r.studentId === student.id);
 
-    const now = new Date();
-    const isToday = (ts?: number, dateStr?: string) => {
-      if (!ts && !dateStr) return false;
-      if (ts) {
-        const d = new Date(ts);
-        if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()) return true;
+    if (todayPLogs.length === 0) {
+      // Clear stale historical check-in/out from prior days (e.g. "আজ, ১৯ নভেম্বর, ২০২৬") so yesterday/last week isn't shown as today
+      if (index >= 0 && !isTimestampOrDateToday(updatedAttendance[index].entryTimestamp, updatedAttendance[index].dateStr)) {
+        updatedAttendance[index] = {
+          ...updatedAttendance[index],
+          status: 'absent',
+          checkInTime: undefined,
+          checkOutTime: undefined,
+          biometricSynced: false,
+          checkInMethod: undefined,
+          checkOutMethod: undefined,
+          entryTimestamp: undefined,
+          exitTimestamp: undefined,
+          dateStr: todayFormattedBn,
+          remarks: 'আজ এখনও বায়োমেট্রিক পাঞ্চ করেননি (অপেক্ষমাণ)',
+        };
       }
-      if (dateStr) {
-        if (dateStr.includes('আজ')) return true;
-        const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
-        if (dateStr.includes(todayBn)) return true;
-      }
-      return false;
-    };
-
-    const todayPLogs = pLogs.filter((p) => isToday(p.timestamp, p.dateStr));
-    if (todayPLogs.length === 0) return;
+      return;
+    }
 
     // Sort today's punches by timestamp
     todayPLogs.sort((a, b) => a.timestamp - b.timestamp);
@@ -501,7 +620,6 @@ export function syncBiometricAttendanceData({
     const outTimeStr = exitPunch?.punchTimeStr;
     const isLate = entryPunch?.status === 'late';
 
-    const index = updatedAttendance.findIndex((r) => r.studentId === student.id);
     if (index >= 0) {
       updatedAttendance[index] = {
         ...updatedAttendance[index],
@@ -513,6 +631,7 @@ export function syncBiometricAttendanceData({
         checkOutMethod: outTimeStr ? 'biometric' : updatedAttendance[index].checkOutMethod,
         entryTimestamp: entryPunch?.timestamp || updatedAttendance[index].entryTimestamp,
         exitTimestamp: exitPunch?.timestamp || updatedAttendance[index].exitTimestamp,
+        dateStr: todayFormattedBn,
         remarks: `বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (প্রবেশ: ${inTimeStr || 'N/A'}${
           outTimeStr ? `, প্রস্থান: ${outTimeStr}` : ''
         })`,
@@ -531,7 +650,7 @@ export function syncBiometricAttendanceData({
         checkOutMethod: outTimeStr ? 'biometric' : undefined,
         entryTimestamp: entryPunch?.timestamp,
         exitTimestamp: exitPunch?.timestamp,
-        dateStr: `আজ, ${new Date().toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+        dateStr: todayFormattedBn,
         remarks: `বায়োমেট্রিক ফিঙ্গারপ্রিন্ট সিঙ্ক (প্রবেশ: ${inTimeStr || 'N/A'}${
           outTimeStr ? `, প্রস্থান: ${outTimeStr}` : ''
         })`,

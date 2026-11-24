@@ -535,12 +535,18 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({
             const parsed = parseBiometricMachineFile(fileText, students);
             if (parsed && parsed.newLogs && parsed.newLogs.length > 0) {
               const currentLogs = getBiometricLogs();
+              const maxCurrentTs = currentLogs.reduce((max, l) => Math.max(max, l.timestamp || 0), 0);
               const existingIds = new Set(currentLogs.map((l) => `${l.enrollId}_${l.timestamp}`));
               const incomingNew = parsed.newLogs.filter((l) => !existingIds.has(`${l.enrollId}_${l.timestamp}`));
-              if (incomingNew.length > 0) {
-                const mergedLogs = [...incomingNew, ...currentLogs];
+              const hasNewerThanCloud = incomingNew.some((l) => (l.timestamp || 0) > maxCurrentTs);
+              if (currentLogs.length === 0 || hasNewerThanCloud) {
+                const mergedLogs = [...incomingNew, ...currentLogs].sort(
+                  (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+                );
                 saveBiometricLogs(mergedLogs);
-                await cloudSaveBiometricLogs(mergedLogs);
+                if (hasNewerThanCloud) {
+                  await cloudSaveBiometricLogs(mergedLogs);
+                }
               }
             }
           }

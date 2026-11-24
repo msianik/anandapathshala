@@ -882,7 +882,7 @@ export default function App() {
         // 0. Actively pull latest biometric logs, attendance & class routines from Cloud Firestore
         await cloudPullLatestAttendanceAndRoutines();
 
-        // 1. Fetch latest physical machine biometric logs from endpoint / json (Runs for all logged-in roles)
+        // 1. Fetch latest physical machine biometric logs from endpoint / json (Only merge if newer than existing cloud logs or cache empty)
         try {
           const resp = await fetch(`/attendance_synced_logs.json?t=${Date.now()}`);
           if (resp.ok) {
@@ -891,39 +891,21 @@ export default function App() {
               const parsed = parseBiometricMachineFile(fileText, students);
               if (parsed && parsed.newLogs && parsed.newLogs.length > 0) {
                 const currentLogs = getBiometricLogs();
+                const maxCurrentTs = currentLogs.reduce((max, l) => Math.max(max, l.timestamp || 0), 0);
                 const existingIds = new Set(currentLogs.map((l) => `${l.enrollId}_${l.timestamp}`));
                 const incomingNew = parsed.newLogs.filter(
                   (l) => !existingIds.has(`${l.enrollId}_${l.timestamp}`)
                 );
-                if (incomingNew.length > 0) {
-                  const mergedLogs = [...incomingNew, ...currentLogs];
+                // Only merge & persist if local cache was empty OR static JSON actually has punches newer than cloud
+                const hasNewerThanCloud = incomingNew.some((l) => (l.timestamp || 0) > maxCurrentTs);
+                if (currentLogs.length === 0 || hasNewerThanCloud) {
+                  const mergedLogs = [...incomingNew, ...currentLogs].sort(
+                    (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+                  );
                   saveBiometricLogs(mergedLogs);
-                  try {
-                    await cloudSaveBiometricLogs(mergedLogs);
-                  } catch {}
-
-                  // Recalculate attendance
-                  const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
-                  let staffList: any[] = [];
-                  if (rawStaffAtt) {
+                  if (hasNewerThanCloud) {
                     try {
-                      const todayStr = new Date().toISOString().split('T')[0];
-                      const staffObj = JSON.parse(rawStaffAtt);
-                      staffList = staffObj[todayStr] || [];
-                    } catch {}
-                  }
-                  const syncResult = syncBiometricAttendanceData({
-                    students,
-                    staffList,
-                    existingAttendance:
-                      attendanceRecords.length > 0 ? attendanceRecords : REAL_DEVICE_STUDENT_ATTENDANCE,
-                    existingStaffAttendance: staffList,
-                  });
-                  if (syncResult.updatedAttendance && syncResult.updatedAttendance.length > 0) {
-                    setAttendanceRecords(syncResult.updatedAttendance);
-                    localStorage.setItem('ananda_attendance_v1', JSON.stringify(syncResult.updatedAttendance));
-                    try {
-                      await cloudSaveAttendance(syncResult.updatedAttendance);
+                      await cloudSaveBiometricLogs(mergedLogs);
                     } catch {}
                   }
                 }
@@ -934,14 +916,36 @@ export default function App() {
           console.log('[CloudSync] Physical machine log file check:', fetchErr);
         }
 
-        // Refresh local attendance state from storage if updated by other workers or devices
-        const storedAtt = localStorage.getItem('ananda_attendance_v1');
-        if (storedAtt) {
+        // Recalculate today's attendance state from the latest merged cloud/biometric logs
+        const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
+        let staffList: any[] = [];
+        if (rawStaffAtt) {
           try {
-            const parsedAtt = JSON.parse(storedAtt);
+            const todayStr = new Date().toISOString().split('T')[0];
+            const staffObj = JSON.parse(rawStaffAtt);
+            staffList = staffObj[todayStr] || [];
+          } catch {}
+        }
+        const storedAttRaw = localStorage.getItem('ananda_attendance_v1');
+        let baseAttendance = attendanceRecords.length > 0 ? attendanceRecords : REAL_DEVICE_STUDENT_ATTENDANCE;
+        if (storedAttRaw) {
+          try {
+            const parsedAtt = JSON.parse(storedAttRaw);
             if (Array.isArray(parsedAtt) && parsedAtt.length > 0) {
-              setAttendanceRecords(parsedAtt);
+              baseAttendance = parsedAtt;
             }
+          } catch {}
+        }
+        const syncResult = syncBiometricAttendanceData({
+          students,
+          staffList,
+          existingAttendance: baseAttendance,
+          existingStaffAttendance: staffList,
+        });
+        if (syncResult.updatedAttendance && syncResult.updatedAttendance.length > 0) {
+          setAttendanceRecords(syncResult.updatedAttendance);
+          try {
+            localStorage.setItem('ananda_attendance_v1', JSON.stringify(syncResult.updatedAttendance));
           } catch {}
         }
 

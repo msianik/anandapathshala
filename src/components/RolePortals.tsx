@@ -51,7 +51,7 @@ import { BirthdayCelebrationWidget } from './BirthdayCelebrationWidget';
 import { SCHOOL_TEACHERS } from '../data/mockData';
 import { getStoredStaffMembers, TEACHERS_UPDATED_EVENT, STAFF_CHANGE_EVENT } from '../utils/staffManagementLogic';
 import { ClassroomAttendanceOverviewChart } from './ClassroomAttendanceOverviewChart';
-import { getBiometricLogs } from '../utils/biometricAttendanceLogic';
+import { getBiometricLogs, isTimestampOrDateToday } from '../utils/biometricAttendanceLogic';
 import {
   BookOpen,
   CalendarCheck,
@@ -1771,27 +1771,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
 
   // Live Attendance calculation strictly from Real Biometric Machine Punches (No Mock Data)
   const childAttendanceStats = React.useMemo(() => {
-    const now = new Date();
-    const isTodayLog = (timestamp?: number, dateStr?: string) => {
-      if (!timestamp && !dateStr) return false;
-      if (timestamp) {
-        const d = new Date(timestamp);
-        if (
-          d.getFullYear() === now.getFullYear() &&
-          d.getMonth() === now.getMonth() &&
-          d.getDate() === now.getDate()
-        ) {
-          return true;
-        }
-      }
-      if (dateStr) {
-        if (dateStr.includes('আজ')) return true;
-        const todayBn = now.toLocaleDateString('bn-BD', { day: '2-digit', month: 'long', year: 'numeric' });
-        if (dateStr.includes(todayBn)) return true;
-      }
-      return false;
-    };
-
     // 1. First look for real physical biometric machine punches
     const bioLogs = getBiometricLogs();
     const myBioPunches = bioLogs.filter(
@@ -1804,37 +1783,33 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
           (l.nameBn && myChild.nameBn && l.nameBn.trim() === myChild.nameBn.trim()))
     );
 
-    // Filter punches strictly for TODAY
-    const todayPunches = myBioPunches.filter((l) => isTodayLog(l.timestamp, l.dateStr));
+    // Filter punches strictly for TODAY (never matches old "আজ, ১৯ নভেম্বর, ২০২৬" records)
+    const todayPunches = myBioPunches.filter((l) => isTimestampOrDateToday(l.timestamp, l.dateStr));
     todayPunches.sort((a, b) => a.timestamp - b.timestamp);
 
     const todayEntry = todayPunches.find((p) => p.punchType === 'entry') || (todayPunches.length > 0 ? todayPunches[0] : null);
     const todayExit = todayPunches.slice().reverse().find((p) => p.punchType === 'exit');
 
-    // Recent session punches if today hasn't recorded yet (e.g. synced logs from latest school session)
-    const sortedAllPunches = [...myBioPunches].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    const latestPunch = sortedAllPunches[0];
-    const latestDateStr = latestPunch?.dateStr;
-    const latestSessionPunches = latestDateStr
-      ? myBioPunches.filter((p) => p.dateStr === latestDateStr).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-      : [];
-    const latestSessionEntry = latestSessionPunches.find((p) => p.punchType === 'entry') || (latestSessionPunches.length > 0 ? latestSessionPunches[0] : null);
-    const latestSessionExit = latestSessionPunches.slice().reverse().find((p) => p.punchType === 'exit');
-
-    // 2. Look in gate pickupLogs for child's release / departure time
-    const myPickup = (pickupLogs || []).find(
-      (p) =>
-        p &&
-        (p.studentId === myChild.id ||
-          (myChild.nameBn && p.studentNameBn && p.studentNameBn.trim() === myChild.nameBn.trim()))
-    );
+    // 2. Look in gate pickupLogs strictly for TODAY's release / departure time
+    const myPickup = (pickupLogs || []).find((p) => {
+      if (!p) return false;
+      const matchesChild =
+        p.studentId === myChild.id ||
+        (myChild.nameBn && p.studentNameBn && p.studentNameBn.trim() === myChild.nameBn.trim());
+      if (!matchesChild) return false;
+      const idTs = p.id?.startsWith('pke-') ? Number(p.id.slice(4)) : NaN;
+      if (!isNaN(idTs) && idTs > 1700000000000) {
+        return isTimestampOrDateToday(idTs);
+      }
+      return Boolean(p.timestamp?.startsWith('আজ') && myChild.currentStatus === 'picked_up');
+    });
     const pickupTimeStr = myPickup?.timestamp ? myPickup.timestamp.replace(/^আজ[, ]*/, '').trim() : null;
 
     // 3. Look in attendanceRecords strictly for TODAY
     const myRecords = (attendanceRecords || []).filter(
       (r) => r.studentId === myChild.id || (myChild.rollNo && normalizeIdentifier(r.rollNo) === normalizeIdentifier(myChild.rollNo))
     );
-    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr));
+    const todayRec = myRecords.find((r) => isTimestampOrDateToday(r.entryTimestamp, r.dateStr));
 
     // Real check-in time strictly from today's biometric machine punch or today's synced record:
     const realCheckInTime =
