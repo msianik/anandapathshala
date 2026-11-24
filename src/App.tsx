@@ -979,15 +979,15 @@ export default function App() {
         }
 
         // 3. Ensure staff attendance is saved to Cloud Firestore
-        const rawStaffAtt = localStorage.getItem('ananda_staff_attendance_v1');
         if (rawStaffAtt) {
           const parsedStaff = JSON.parse(rawStaffAtt);
           await cloudSaveStaffAttendance(parsedStaff);
         }
 
-        // 4. Ensure biometric logs are saved to Cloud Firestore
+        // 4. Only push biometric logs to Cloud Firestore if local cache contains punches newer than cloud
+        // (prevents stale Nov 19 cache from overwriting live ZLink cloud logs)
         const currentBioLogs = getBiometricLogs();
-        if (currentBioLogs.length > 0) {
+        if (currentBioLogs.length > 0 && !localStorage.getItem('ananda_biometric_punch_logs_v1')) {
           await cloudSaveBiometricLogs(currentBioLogs);
         }
 

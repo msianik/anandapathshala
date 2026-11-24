@@ -261,10 +261,10 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                 >
                   {schoolDays.map((d) => {
                     const isToday = currentDayOfWeek === d.id;
-                    const isCultural = d.id === 'tuesday';
+                    const dayLabel = d.id === 'tuesday' ? 'মঙ্গলবার' : d.nameBn;
                     return (
                       <option key={d.id} value={d.id}>
-                        {d.nameBn} {isCultural ? '🎨 (সাংস্কৃতিক দিন)' : ''} {isToday ? '⭐ (আজ)' : ''}
+                        {dayLabel} {isToday ? '⭐ (আজ)' : ''}
                       </option>
                     );
                   })}
