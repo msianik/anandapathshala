@@ -1,8 +1,125 @@
-import { Student, StudentFeeConfig, FeeInvoice, SchoolClass } from '../types/school';
-import { toBengaliNumber } from './schoolLogic';
+import {
+  Student,
+  StudentFeeConfig,
+  FeeInvoice,
+  SchoolClass,
+  SchoolFeeMasterConfig,
+  CustomFeeCatalogItem,
+  ExamScheduleItem,
+} from '../types/school';
+import { toBengaliNumber, isSameSchoolClass, getSchoolClassNameBn } from './schoolLogic';
+import { INITIAL_INVOICES } from '../data/mockData';
 
 export const STUDENT_FEE_CONFIG_STORAGE_KEY = 'ananda_student_fee_configs_v1';
 export const STUDENT_FEE_CONFIG_EVENT = 'student-fee-config-updated';
+export const SCHOOL_FEE_MASTER_STORAGE_KEY = 'ananda_school_fee_master_v1';
+export const SCHOOL_FEE_MASTER_EVENT = 'ananda-school-fee-master-updated';
+export const INVOICES_STORAGE_KEY = 'ananda_invoices_v1';
+export const INVOICES_UPDATED_EVENT = 'ananda-invoices-updated';
+
+export const DEFAULT_SCHOOL_FEE_MASTER_CONFIG: SchoolFeeMasterConfig = {
+  defaultAdmissionFee: 8800,
+  defaultMonthlyTuitionFee: 1600,
+  monthlyWorkbookEnabledByDefault: true,
+  monthlyWorkbookFee: 200,
+  monthlyWorkbookTitleBn: 'মাসিক ওয়ার্কবুক (Monthly Workbook - ১টি/মাস)',
+  defaultExamFeeEnabledByDefault: true,
+  defaultExamFee: 300,
+  defaultExamFeeTitleBn: 'পরীক্ষার ফি (Exam Fee)',
+  customFeeItems: [],
+  updatedByBn: 'সুপার অ্যাডমিন',
+  updatedAtBn: 'নভেম্বর ২০২৬',
+};
+
+export function getSchoolFeeMasterConfig(): SchoolFeeMasterConfig {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(SCHOOL_FEE_MASTER_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_SCHOOL_FEE_MASTER_CONFIG,
+            ...parsed,
+            customFeeItems: Array.isArray(parsed.customFeeItems)
+              ? parsed.customFeeItems
+              : [],
+          };
+        }
+      }
+    }
+  } catch {}
+  return { ...DEFAULT_SCHOOL_FEE_MASTER_CONFIG, customFeeItems: [] };
+}
+
+export function saveSchoolFeeMasterConfig(
+  config: SchoolFeeMasterConfig
+): SchoolFeeMasterConfig {
+  const normalized: SchoolFeeMasterConfig = {
+    ...DEFAULT_SCHOOL_FEE_MASTER_CONFIG,
+    ...config,
+    defaultAdmissionFee: Math.max(0, Number(config.defaultAdmissionFee) || 0),
+    defaultMonthlyTuitionFee: Math.max(0, Number(config.defaultMonthlyTuitionFee) || 0),
+    monthlyWorkbookFee: Math.max(0, Number(config.monthlyWorkbookFee) || 0),
+    defaultExamFee: Math.max(0, Number(config.defaultExamFee) || 0),
+    customFeeItems: (config.customFeeItems || []).map((item: CustomFeeCatalogItem) => ({
+      ...item,
+      amount: Math.max(0, Number(item.amount) || 0),
+    })),
+    updatedAtBn: new Date().toLocaleDateString('bn-BD', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }),
+  };
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SCHOOL_FEE_MASTER_STORAGE_KEY, JSON.stringify(normalized));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(SCHOOL_FEE_MASTER_EVENT, { detail: normalized })
+      );
+    }
+  } catch {}
+  return normalized;
+}
+
+export function loadStoredInvoices(): FeeInvoice[] {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(INVOICES_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch {}
+  return [...INITIAL_INVOICES];
+}
+
+export function persistAndBroadcastInvoices(updatedInvoices: FeeInvoice[]): FeeInvoice[] {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(INVOICES_STORAGE_KEY, JSON.stringify(updatedInvoices));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(INVOICES_UPDATED_EVENT, { detail: updatedInvoices })
+      );
+    }
+    import('../lib/schoolCloudSync')
+      .then((mod) => {
+        if (typeof mod.cloudSaveInvoices === 'function') {
+          mod.cloudSaveInvoices(updatedInvoices);
+        }
+      })
+      .catch(() => {});
+  } catch {}
+  return updatedInvoices;
+}
 
 export interface BillingMonthMeta {
   key: string;
@@ -60,16 +177,23 @@ export function formatIsoDateToBengali(isoDate: string): string {
 }
 
 export function getDefaultClassMonthlyFee(_className?: SchoolClass): number {
-  return 1600;
+  return getSchoolFeeMasterConfig().defaultMonthlyTuitionFee ?? 1600;
 }
 
 export function getDefaultClassAdmissionFee(_className?: SchoolClass): number {
-  return 8800;
+  return getSchoolFeeMasterConfig().defaultAdmissionFee ?? 8800;
 }
 
 export function getDefaultStudentFeeConfig(student: Student): StudentFeeConfig {
-  const defaultMonthly = 1600;
-  const defaultAdmission = 8800;
+  const master = getSchoolFeeMasterConfig();
+  const defaultMonthly =
+    student.monthlyFee !== undefined
+      ? student.monthlyFee
+      : master.defaultMonthlyTuitionFee ?? 1600;
+  const defaultAdmission =
+    student.admissionFee !== undefined
+      ? student.admissionFee
+      : master.defaultAdmissionFee ?? 8800;
   const isoDate = student.admissionDate || '2026-05-01';
   const dateBn = student.admissionDateBn || formatIsoDateToBengali(isoDate);
 
@@ -85,6 +209,15 @@ export function getDefaultStudentFeeConfig(student: Student): StudentFeeConfig {
     monthlyFee: defaultMonthly,
     monthlyDiscount: 0,
     sessionFee: 0,
+    includeAdmissionFee: true,
+    includeMonthlyFee: true,
+    includeMonthlyWorkbook: master.monthlyWorkbookEnabledByDefault,
+    monthlyWorkbookFee: master.monthlyWorkbookFee,
+    includeExamFee: master.defaultExamFeeEnabledByDefault,
+    examFeeAmount: master.defaultExamFee,
+    assignedCustomFeeIds: master.customFeeItems
+      .filter((item) => item.enabledByDefault)
+      .map((item) => item.id),
     updatedByBn: 'সুপার অ্যাডমিন',
     updatedAtBn: '০১ মে ২০২৬',
   };
@@ -105,16 +238,41 @@ export function getAllStudentFeeConfigs(): Record<string, StudentFeeConfig> {
 
 export function getStudentFeeConfig(student: Student): StudentFeeConfig {
   const all = getAllStudentFeeConfigs();
+  const master = getSchoolFeeMasterConfig();
   const cfg = all[student.id];
   if (cfg) {
     let modified = false;
     const upgraded: StudentFeeConfig = { ...cfg };
     if (!upgraded.admissionFee || [4500, 5000, 5500, 6000].includes(upgraded.admissionFee)) {
-      upgraded.admissionFee = 8800;
+      upgraded.admissionFee = master.defaultAdmissionFee ?? 8800;
       modified = true;
     }
     if (!upgraded.monthlyFee || [3500, 3800, 4000, 4200, 4500, 4700, 4800, 5000, 5200].includes(upgraded.monthlyFee)) {
-      upgraded.monthlyFee = 1600;
+      upgraded.monthlyFee = master.defaultMonthlyTuitionFee ?? 1600;
+      modified = true;
+    }
+    if (upgraded.includeAdmissionFee === undefined) {
+      upgraded.includeAdmissionFee = true;
+      modified = true;
+    }
+    if (upgraded.includeMonthlyFee === undefined) {
+      upgraded.includeMonthlyFee = true;
+      modified = true;
+    }
+    if (upgraded.includeMonthlyWorkbook === undefined) {
+      upgraded.includeMonthlyWorkbook = master.monthlyWorkbookEnabledByDefault;
+      upgraded.monthlyWorkbookFee = master.monthlyWorkbookFee;
+      modified = true;
+    }
+    if (upgraded.includeExamFee === undefined) {
+      upgraded.includeExamFee = master.defaultExamFeeEnabledByDefault;
+      upgraded.examFeeAmount = master.defaultExamFee;
+      modified = true;
+    }
+    if (upgraded.assignedCustomFeeIds === undefined) {
+      upgraded.assignedCustomFeeIds = master.customFeeItems
+        .filter((item) => item.enabledByDefault)
+        .map((item) => item.id);
       modified = true;
     }
     if (modified) {
@@ -193,50 +351,52 @@ export function generateStudentInvoicesFromConfig(
   const existingAdmissionInv = currentStudentExisting.find(
     (inv) => inv.invoiceType === 'admission' || inv.monthBn.includes('ভর্তি ফি')
   );
-  const admissionNet = Math.max(0, (config.admissionFee || 0) + (config.sessionFee || 0));
-  const isAdmissionPaid = config.admissionFeeStatus === 'paid';
+  if (config.includeAdmissionFee !== false || existingAdmissionInv?.status === 'paid') {
+    const admissionNet = Math.max(0, (config.admissionFee || 0) + (config.sessionFee || 0));
+    const isAdmissionPaid = config.admissionFeeStatus === 'paid';
 
-  const admissionItems = [
-    { nameBn: `নতুন ভর্তি ও রেজিস্ট্রেশন ফি (ভর্তির তারিখ: ${admissionDateBn})`, amount: config.admissionFee || 0 },
-  ];
-  if (config.sessionFee && config.sessionFee > 0) {
-    admissionItems.push({
-      nameBn: 'বার্ষিক সেশন ও শিক্ষা উপকরণ চার্জ',
-      amount: config.sessionFee,
-    });
+    const admissionItems = [
+      { nameBn: `নতুন ভর্তি ও রেজিস্ট্রেশন ফি (ভর্তির তারিখ: ${admissionDateBn})`, amount: config.admissionFee || 0 },
+    ];
+    if (config.sessionFee && config.sessionFee > 0) {
+      admissionItems.push({
+        nameBn: 'বার্ষিক সেশন ও শিক্ষা উপকরণ চার্জ',
+        amount: config.sessionFee,
+      });
+    }
+
+    const admInvNo =
+      config.admissionReceiptNo || existingAdmissionInv?.invoiceNo || `AP-ADM-${student.rollNo || '101'}`;
+
+    const admissionInvoice: FeeInvoice = {
+      id: existingAdmissionInv?.id || `inv-adm-${student.id}`,
+      invoiceNo: admInvNo,
+      studentId: student.id,
+      studentNameBn: student.nameBn,
+      className: student.className,
+      monthBn: `ভর্তি ফি (${admissionDateBn})`,
+      invoiceType: 'admission',
+      admissionDateBn,
+      totalAmount: admissionNet,
+      discountAmount: 0,
+      netAmount: admissionNet,
+      dueDate: admissionDateBn,
+      status: isAdmissionPaid ? 'paid' : 'unpaid',
+      items: admissionItems,
+      paymentMethod: isAdmissionPaid ? (config.admissionPaymentMethod || 'Cash') : undefined,
+      transactionId: isAdmissionPaid
+        ? existingAdmissionInv?.transactionId || `ADM${student.rollNo || '101'}VRF`
+        : undefined,
+      paidAt: isAdmissionPaid ? (config.admissionPaidAt || admissionDateBn) : undefined,
+      confirmedByBn: isAdmissionPaid ? confirmedBy : undefined,
+      pdfReceiptGenerated: isAdmissionPaid,
+      pdfReceiptFileName: isAdmissionPaid ? `Ananda_Pathshala_Receipt_${admInvNo}.pdf` : undefined,
+      pdfReceiptGeneratedAt: isAdmissionPaid ? (config.admissionPaidAt || admissionDateBn) : undefined,
+      pdfReceiptSerialNo: isAdmissionPaid ? `PDF-RCPT-${admInvNo}` : undefined,
+    };
+
+    generatedForStudent.push(admissionInvoice);
   }
-
-  const admInvNo =
-    config.admissionReceiptNo || existingAdmissionInv?.invoiceNo || `AP-ADM-${student.rollNo || '101'}`;
-
-  const admissionInvoice: FeeInvoice = {
-    id: existingAdmissionInv?.id || `inv-adm-${student.id}`,
-    invoiceNo: admInvNo,
-    studentId: student.id,
-    studentNameBn: student.nameBn,
-    className: student.className,
-    monthBn: `ভর্তি ফি (${admissionDateBn})`,
-    invoiceType: 'admission',
-    admissionDateBn,
-    totalAmount: admissionNet,
-    discountAmount: 0,
-    netAmount: admissionNet,
-    dueDate: admissionDateBn,
-    status: isAdmissionPaid ? 'paid' : 'unpaid',
-    items: admissionItems,
-    paymentMethod: isAdmissionPaid ? (config.admissionPaymentMethod || 'Cash') : undefined,
-    transactionId: isAdmissionPaid
-      ? existingAdmissionInv?.transactionId || `ADM${student.rollNo || '101'}VRF`
-      : undefined,
-    paidAt: isAdmissionPaid ? (config.admissionPaidAt || admissionDateBn) : undefined,
-    confirmedByBn: isAdmissionPaid ? confirmedBy : undefined,
-    pdfReceiptGenerated: isAdmissionPaid,
-    pdfReceiptFileName: isAdmissionPaid ? `Ananda_Pathshala_Receipt_${admInvNo}.pdf` : undefined,
-    pdfReceiptGeneratedAt: isAdmissionPaid ? (config.admissionPaidAt || admissionDateBn) : undefined,
-    pdfReceiptSerialNo: isAdmissionPaid ? `PDF-RCPT-${admInvNo}` : undefined,
-  };
-
-  generatedForStudent.push(admissionInvoice);
 
   // 2. Monthly Tuition Fee Invoices from Admission Month
   const activeMonths = getActiveMonthsFromAdmission(config.admissionDate);
@@ -252,9 +412,13 @@ export function generateStudentInvoicesFromConfig(
   activeMonths.forEach((mMeta, idx) => {
     const existingMonthInv = currentStudentExisting.find(
       (inv) =>
-        inv.invoiceType !== 'admission' &&
+        (!inv.invoiceType || inv.invoiceType === 'monthly') &&
         (inv.monthBn.includes(mMeta.shortBn) || inv.monthBn === mMeta.nameBn)
     );
+
+    if (config.includeMonthlyFee === false && existingMonthInv?.status !== 'paid') {
+      return;
+    }
 
     const isLastOrTargetUnpaid = mMeta.key === unpaidMonthKey || idx === activeMonths.length - 1;
     let status: 'paid' | 'unpaid' | 'overdue' = 'unpaid';
@@ -270,6 +434,7 @@ export function generateStudentInvoicesFromConfig(
     const mPaidAt =
       status === 'paid' ? existingMonthInv?.paidAt || `০৫ ${mMeta.nameBn}` : undefined;
 
+    const isPaidAlready = existingMonthInv?.status === 'paid';
     const monthInvoice: FeeInvoice = {
       id: existingMonthInv?.id || `inv-${mMeta.key}-${student.id}`,
       invoiceNo: mInvNo,
@@ -279,16 +444,19 @@ export function generateStudentInvoicesFromConfig(
       monthBn: mMeta.nameBn,
       invoiceType: 'monthly',
       admissionDateBn,
-      totalAmount: monthlyGross,
-      discountAmount: monthlyDisc,
-      netAmount: monthlyNet,
+      totalAmount: isPaidAlready ? existingMonthInv!.totalAmount : monthlyGross,
+      discountAmount: isPaidAlready ? existingMonthInv!.discountAmount : monthlyDisc,
+      netAmount: isPaidAlready ? existingMonthInv!.netAmount : monthlyNet,
       dueDate: mMeta.dueDayBn,
       status,
-      items: [
-        { nameBn: `মাসিক টিউশন ফি (${mMeta.nameBn})`, amount: tuitionPortion },
-        { nameBn: 'পুষ্টিকর নাশতা ও হেলদি স্ন্যাক্স ফি', amount: snacksPortion },
-        { nameBn: 'আর্ট, ক্রাফট ও স্মার্ট ক্লাসরুম অ্যাক্টিভিটি', amount: activityPortion },
-      ],
+      items:
+        isPaidAlready && existingMonthInv!.items?.length > 0
+          ? existingMonthInv!.items
+          : [
+              { nameBn: `মাসিক টিউশন ফি (${mMeta.nameBn})`, amount: tuitionPortion },
+              { nameBn: 'পুষ্টিকর নাশতা ও হেলদি স্ন্যাক্স ফি', amount: snacksPortion },
+              { nameBn: 'আর্ট, ক্রাফট ও স্মার্ট ক্লাসরুম অ্যাক্টিভিটি', amount: activityPortion },
+            ],
       paymentMethod:
         status === 'paid' ? existingMonthInv?.paymentMethod || 'bKash' : undefined,
       transactionId:
@@ -307,10 +475,14 @@ export function generateStudentInvoicesFromConfig(
     generatedForStudent.push(monthInvoice);
   });
 
-  // Preserve any custom extra invoices for this student not in activeMonths
+  // Preserve any custom/exam/workbook extra invoices for this student
   currentStudentExisting.forEach((inv) => {
+    const isSpecialType =
+      inv.invoiceType === 'exam' ||
+      inv.invoiceType === 'workbook' ||
+      inv.invoiceType === 'custom';
     const alreadyIncluded = generatedForStudent.some(
-      (g) => g.id === inv.id || g.monthBn === inv.monthBn
+      (g) => g.id === inv.id || (!isSpecialType && g.monthBn === inv.monthBn)
     );
     if (!alreadyIncluded) {
       generatedForStudent.push(inv);
@@ -588,3 +760,371 @@ export function rejectBcashNagadPayment(
   });
 }
 
+
+// ============================================================================
+// SUPER ADMIN WORKBOOK FEE, EXAM FEE & CUSTOM FEE PORTAL AUTO-GENERATION
+// ============================================================================
+
+function buildExamSlug(examTitle: string, className: SchoolClass): string {
+  const base = `${className}-${examTitle || 'exam'}`.trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < base.length; i++) {
+    hash = (hash * 31 + base.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Generates or updates assigned invoices (Admission, Monthly Tuition, Monthly Workbook,
+ * Exam Fee, and Super Admin Custom Fees) for a student and broadcasts to Student/Parent Portal.
+ */
+export function syncStudentAssignedFeesToPortal(
+  student: Student,
+  feeConfig: StudentFeeConfig,
+  options?: {
+    targetMonthKey?: string;
+    targetMonthBn?: string;
+    targetDueDateBn?: string;
+    existingInvoices?: FeeInvoice[];
+    skipPersist?: boolean;
+  }
+): FeeInvoice[] {
+  const master = getSchoolFeeMasterConfig();
+  saveStudentFeeConfig(feeConfig);
+
+  const targetMonthKey = options?.targetMonthKey || 'nov';
+  const targetMonthBn = options?.targetMonthBn || 'নভেম্বর ২০২৬';
+  const targetDueDateBn = options?.targetDueDateBn || '১০ নভেম্বর ২০২৬';
+
+  const currentAll = options?.existingInvoices || loadStoredInvoices();
+  const otherStudents = currentAll.filter((inv) => inv.studentId !== student.id);
+  let studentInvs = currentAll.filter((inv) => inv.studentId === student.id);
+
+  // 1. Base Admission & Monthly Tuition (if ticked)
+  if (feeConfig.includeAdmissionFee !== false || feeConfig.includeMonthlyFee !== false) {
+    const mergedBase = generateStudentInvoicesFromConfig(student, feeConfig, studentInvs, {
+      markPastMonthsPaid: true,
+      currentUnpaidMonthKey: targetMonthKey,
+    });
+    studentInvs = mergedBase.filter((inv) => inv.studentId === student.id);
+  }
+
+  // If Admission or Monthly explicitly unticked, remove unpaid ones
+  if (feeConfig.includeAdmissionFee === false) {
+    studentInvs = studentInvs.filter(
+      (inv) => !(inv.invoiceType === 'admission' && inv.status !== 'paid')
+    );
+  }
+  if (feeConfig.includeMonthlyFee === false) {
+    studentInvs = studentInvs.filter(
+      (inv) => !((!inv.invoiceType || inv.invoiceType === 'monthly') && inv.status !== 'paid')
+    );
+  }
+
+  // 2. Monthly Workbook Fee (প্রতি মাসে ১টি করে মাসিক ওয়ার্কবুক)
+  const workbookInvId = `inv-wb-${targetMonthKey}-${student.id}`;
+  const workbookAmount = Math.max(
+    0,
+    feeConfig.monthlyWorkbookFee ?? master.monthlyWorkbookFee ?? 0
+  );
+  if (feeConfig.includeMonthlyWorkbook && workbookAmount > 0) {
+    const existingWb = studentInvs.find((inv) => inv.id === workbookInvId);
+    const wbInvoice: FeeInvoice = existingWb?.status === 'paid'
+      ? existingWb
+      : {
+          id: workbookInvId,
+          invoiceNo: existingWb?.invoiceNo || `AP-WB-${targetMonthKey.toUpperCase()}-${student.rollNo || '101'}`,
+          studentId: student.id,
+          studentNameBn: student.nameBn,
+          className: student.className,
+          monthBn: `মাসিক ওয়ার্কবুক — ${targetMonthBn}`,
+          invoiceType: 'workbook',
+          admissionDateBn: feeConfig.admissionDateBn,
+          totalAmount: workbookAmount,
+          discountAmount: 0,
+          netAmount: workbookAmount,
+          dueDate: existingWb?.dueDate || targetDueDateBn,
+          status: existingWb?.status || 'unpaid',
+          verificationStatus: existingWb?.verificationStatus,
+          paymentMethod: existingWb?.paymentMethod,
+          transactionId: existingWb?.transactionId,
+          senderMobileNumber: existingWb?.senderMobileNumber,
+          items: [
+            {
+              nameBn: `${master.monthlyWorkbookTitleBn || 'মাসিক ওয়ার্কবুক (১টি)'} — ${targetMonthBn}`,
+              amount: workbookAmount,
+            },
+          ],
+        };
+    studentInvs = [wbInvoice, ...studentInvs.filter((inv) => inv.id !== workbookInvId)];
+  } else {
+    studentInvs = studentInvs.filter(
+      (inv) => !(inv.id === workbookInvId && inv.status !== 'paid')
+    );
+  }
+
+  // 3. Assigned Exam Fee (পরীক্ষার ফি)
+  const assignedExamInvId = `inv-exam-assigned-${student.id}`;
+  const examAmount = Math.max(
+    0,
+    feeConfig.examFeeAmount ?? master.defaultExamFee ?? 0
+  );
+  if (feeConfig.includeExamFee && examAmount > 0) {
+    const existingEx = studentInvs.find((inv) => inv.id === assignedExamInvId);
+    const hasAnotherExamInv = studentInvs.some(
+      (inv) => inv.invoiceType === 'exam' && inv.id !== assignedExamInvId
+    );
+    // Avoid duplicating if an exam routine already generated a specific exam invoice, unless existingEx exists
+    if (existingEx || !hasAnotherExamInv) {
+      const exInvoice: FeeInvoice = existingEx?.status === 'paid'
+        ? existingEx
+        : {
+            id: assignedExamInvId,
+            invoiceNo: existingEx?.invoiceNo || `AP-EXM-${student.rollNo || '101'}`,
+            studentId: student.id,
+            studentNameBn: student.nameBn,
+            className: student.className,
+            monthBn: master.defaultExamFeeTitleBn || 'পরীক্ষার ফি (মূল্যায়ন ২০২৬)',
+            invoiceType: 'exam',
+            examTitleBn: master.defaultExamFeeTitleBn || 'পরীক্ষার ফি',
+            admissionDateBn: feeConfig.admissionDateBn,
+            totalAmount: examAmount,
+            discountAmount: 0,
+            netAmount: examAmount,
+            dueDate: existingEx?.dueDate || targetDueDateBn,
+            status: existingEx?.status || 'unpaid',
+            verificationStatus: existingEx?.verificationStatus,
+            paymentMethod: existingEx?.paymentMethod,
+            transactionId: existingEx?.transactionId,
+            senderMobileNumber: existingEx?.senderMobileNumber,
+            items: [
+              {
+                nameBn: `${master.defaultExamFeeTitleBn || 'পরীক্ষার ফি'} (${getSchoolClassNameBn(student.className)})`,
+                amount: examAmount,
+              },
+            ],
+          };
+      studentInvs = [exInvoice, ...studentInvs.filter((inv) => inv.id !== assignedExamInvId)];
+    }
+  } else {
+    studentInvs = studentInvs.filter(
+      (inv) => !(inv.id === assignedExamInvId && inv.status !== 'paid')
+    );
+  }
+
+  // 4. Super Admin Custom Fee Items (অ্যাসাইন করা অন্যান্য বিভিন্ন ফি)
+  const assignedIds = new Set(feeConfig.assignedCustomFeeIds || []);
+  master.customFeeItems.forEach((customItem) => {
+    const suffix = customItem.frequency === 'monthly' ? `${targetMonthKey}-` : '';
+    const customInvId = `inv-custom-${customItem.id}-${suffix}${student.id}`;
+    const customAmt = Math.max(
+      0,
+      feeConfig.customFeeOverrides?.[customItem.id] ?? customItem.amount ?? 0
+    );
+
+    if (assignedIds.has(customItem.id) && customAmt > 0) {
+      const existingCustom = studentInvs.find((inv) => inv.id === customInvId);
+      const customInvoice: FeeInvoice = existingCustom?.status === 'paid'
+        ? existingCustom
+        : {
+            id: customInvId,
+            invoiceNo:
+              existingCustom?.invoiceNo ||
+              `AP-FEE-${customItem.id.slice(-4).toUpperCase()}-${student.rollNo || '101'}`,
+            studentId: student.id,
+            studentNameBn: student.nameBn,
+            className: student.className,
+            monthBn:
+              customItem.frequency === 'monthly'
+                ? `${customItem.titleBn} (${targetMonthBn})`
+                : customItem.titleBn,
+            invoiceType: customItem.frequency === 'exam' ? 'exam' : 'custom',
+            customFeeItemId: customItem.id,
+            admissionDateBn: feeConfig.admissionDateBn,
+            totalAmount: customAmt,
+            discountAmount: 0,
+            netAmount: customAmt,
+            dueDate: existingCustom?.dueDate || targetDueDateBn,
+            status: existingCustom?.status || 'unpaid',
+            verificationStatus: existingCustom?.verificationStatus,
+            paymentMethod: existingCustom?.paymentMethod,
+            transactionId: existingCustom?.transactionId,
+            senderMobileNumber: existingCustom?.senderMobileNumber,
+            items: [
+              {
+                nameBn:
+                  customItem.frequency === 'monthly'
+                    ? `${customItem.titleBn} — ${targetMonthBn}`
+                    : customItem.titleBn,
+                amount: customAmt,
+              },
+            ],
+          };
+      studentInvs = [customInvoice, ...studentInvs.filter((inv) => inv.id !== customInvId)];
+    } else {
+      studentInvs = studentInvs.filter(
+        (inv) => !(inv.customFeeItemId === customItem.id && inv.status !== 'paid')
+      );
+    }
+  });
+
+  const finalList = [...studentInvs, ...otherStudents];
+  if (!options?.skipPersist) {
+    persistAndBroadcastInvoices(finalList);
+  }
+  return finalList;
+}
+
+/**
+ * Automatically generates or updates Exam Fee invoices in Student Portal
+ * whenever an Exam Routine is created or updated.
+ */
+export function generateExamFeeInvoicesForRoutine(
+  exam: Pick<ExamScheduleItem, 'id' | 'className' | 'examTitle' | 'examDateBn' | 'examFee' | 'examFeeDueDateBn'>,
+  allStudents: Student[],
+  options?: {
+    feeAmount?: number;
+    targetStudentIds?: string[];
+    dueDateBn?: string;
+    existingInvoices?: FeeInvoice[];
+  }
+): { count: number; totalAmount: number; updatedInvoices: FeeInvoice[] } {
+  const master = getSchoolFeeMasterConfig();
+  const feeAmount = Math.max(
+    0,
+    options?.feeAmount ?? exam.examFee ?? master.defaultExamFee ?? 0
+  );
+  const baseInvoices = options?.existingInvoices || loadStoredInvoices();
+  if (feeAmount <= 0) {
+    return { count: 0, totalAmount: 0, updatedInvoices: baseInvoices };
+  }
+
+  const classStudents = allStudents.filter((s) => isSameSchoolClass(s.className, exam.className));
+  const targetStudents = options?.targetStudentIds
+    ? classStudents.filter((s) => options.targetStudentIds!.includes(s.id))
+    : classStudents.filter((s) => getStudentFeeConfig(s).includeExamFee !== false);
+
+  const examKey = buildExamSlug(exam.examTitle, exam.className);
+  const dueDateBn = options?.dueDateBn || exam.examFeeDueDateBn || exam.examDateBn || '১৫ নভেম্বর ২০২৬';
+
+  let workingInvoices = [...baseInvoices];
+  let generatedCount = 0;
+
+  targetStudents.forEach((student) => {
+    const invId = `inv-exam-${examKey}-${student.id}`;
+    const existing = workingInvoices.find((inv) => inv.id === invId);
+    const feeCfg = getStudentFeeConfig(student);
+
+    // Sync student's fee config exam flag
+    if (!feeCfg.includeExamFee || feeCfg.examFeeAmount !== feeAmount) {
+      saveStudentFeeConfig({
+        ...feeCfg,
+        includeExamFee: true,
+        examFeeAmount: feeAmount,
+      });
+    }
+
+    if (existing?.status === 'paid') {
+      generatedCount++;
+      return;
+    }
+
+    const examInvoice: FeeInvoice = {
+      id: invId,
+      invoiceNo: existing?.invoiceNo || `AP-EX-${student.rollNo || '101'}-${examKey.slice(0, 3).toUpperCase()}`,
+      studentId: student.id,
+      studentNameBn: student.nameBn,
+      className: student.className,
+      monthBn: `পরীক্ষার ফি — ${exam.examTitle}`,
+      invoiceType: 'exam',
+      examScheduleId: exam.id,
+      examTitleBn: exam.examTitle,
+      admissionDateBn: feeCfg.admissionDateBn,
+      totalAmount: feeAmount,
+      discountAmount: 0,
+      netAmount: feeAmount,
+      dueDate: dueDateBn,
+      status: existing?.status || 'unpaid',
+      verificationStatus: existing?.verificationStatus,
+      paymentMethod: existing?.paymentMethod,
+      transactionId: existing?.transactionId,
+      senderMobileNumber: existing?.senderMobileNumber,
+      items: [
+        {
+          nameBn: `${exam.examTitle} — পরীক্ষার ফি (${getSchoolClassNameBn(student.className)})`,
+          amount: feeAmount,
+        },
+      ],
+    };
+
+    // Replace any generic placeholder exam invoice if superseded by real exam schedule
+    workingInvoices = workingInvoices.filter(
+      (inv) =>
+        inv.id !== invId &&
+        !(inv.id === `inv-exam-assigned-${student.id}` && inv.status !== 'paid')
+    );
+    workingInvoices.unshift(examInvoice);
+    generatedCount++;
+  });
+
+  persistAndBroadcastInvoices(workingInvoices);
+  return {
+    count: generatedCount,
+    totalAmount: generatedCount * feeAmount,
+    updatedInvoices: workingInvoices,
+  };
+}
+
+/**
+ * Syncs Super Admin's Monthly Workbook fee, Exam fee, and enabled Custom fees
+ * to all students' portals in one batch.
+ */
+export function syncWorkbookAndMasterFeesToAllStudents(
+  allStudents: Student[],
+  masterConfig: SchoolFeeMasterConfig,
+  options?: {
+    targetMonthKey?: string;
+    targetMonthBn?: string;
+    targetDueDateBn?: string;
+    includeWorkbook?: boolean;
+    includeExam?: boolean;
+    syncCustomFeeIds?: string[];
+  }
+): { updatedStudentCount: number; updatedInvoices: FeeInvoice[] } {
+  saveSchoolFeeMasterConfig(masterConfig);
+  let workingInvoices = loadStoredInvoices();
+  const targetMonthKey = options?.targetMonthKey || 'nov';
+  const targetMonthBn = options?.targetMonthBn || 'নভেম্বর ২০২৬';
+  const targetDueDateBn = options?.targetDueDateBn || '১০ নভেম্বর ২০২৬';
+
+  allStudents.forEach((student) => {
+    const currentCfg = getStudentFeeConfig(student);
+    const customIdsSet = new Set(currentCfg.assignedCustomFeeIds || []);
+    (options?.syncCustomFeeIds || masterConfig.customFeeItems.filter((c) => c.enabledByDefault).map((c) => c.id)).forEach(
+      (id) => customIdsSet.add(id)
+    );
+
+    const updatedCfg: StudentFeeConfig = {
+      ...currentCfg,
+      includeMonthlyWorkbook: options?.includeWorkbook ?? masterConfig.monthlyWorkbookEnabledByDefault,
+      monthlyWorkbookFee: masterConfig.monthlyWorkbookFee,
+      includeExamFee: options?.includeExam ?? currentCfg.includeExamFee ?? masterConfig.defaultExamFeeEnabledByDefault,
+      examFeeAmount: masterConfig.defaultExamFee,
+      assignedCustomFeeIds: Array.from(customIdsSet),
+    };
+
+    workingInvoices = syncStudentAssignedFeesToPortal(student, updatedCfg, {
+      targetMonthKey,
+      targetMonthBn,
+      targetDueDateBn,
+      existingInvoices: workingInvoices,
+      skipPersist: true,
+    });
+  });
+
+  persistAndBroadcastInvoices(workingInvoices);
+  return {
+    updatedStudentCount: allStudents.length,
+    updatedInvoices: workingInvoices,
+  };
+}

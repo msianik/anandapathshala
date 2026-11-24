@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'bun:test';
-import { FeeInvoice } from '../types/school';
+import { FeeInvoice, Student } from '../types/school';
 import {
   submitBcashNagadPayment,
   verifyBcashNagadPayment,
   rejectBcashNagadPayment,
   SCHOOL_MOBILE_BANKING_ACCOUNTS,
+  getDefaultStudentFeeConfig,
+  syncStudentAssignedFeesToPortal,
+  generateExamFeeInvoicesForRoutine,
 } from './feeManagementLogic';
 import {
   loadAllHomeworkChecklists,
@@ -163,5 +166,77 @@ describe('Teacher Daily Classroom Homework Checklist Logic', () => {
     expect(rec?.studentId).toBe(firstRecord.studentId);
     expect(rec?.studentNameBn).toBe(firstRecord.studentNameBn);
     expect(rec?.status).toBe(firstRecord.status);
+  });
+});
+
+describe('Super Admin Workbook, Exam Routine & Assigned Fees Portal Auto-Generation', () => {
+  const sampleStudent: Student = {
+    id: 'std-test-wb-1',
+    rollNo: '999',
+    nameBn: 'আয়ান রহমান',
+    nameEn: 'Ayan Rahman',
+    className: 'Nursery',
+    section: 'ক',
+    shift: 'morning',
+    gender: 'male',
+    birthDate: '2021-04-10',
+    emergencyPhone: '01700000000',
+    currentStatus: 'in_class',
+    authorizedPickups: [],
+    avatarColor: 'bg-emerald-100',
+  };
+
+  it('auto-generates Monthly Workbook and Exam Fee invoices when ticked on student confirmation/assignment', () => {
+    const baseCfg = getDefaultStudentFeeConfig(sampleStudent);
+    const updatedInvoices = syncStudentAssignedFeesToPortal(
+      sampleStudent,
+      {
+        ...baseCfg,
+        includeAdmissionFee: true,
+        admissionFee: 8800,
+        admissionFeeStatus: 'paid',
+        includeMonthlyFee: true,
+        monthlyFee: 1600,
+        includeMonthlyWorkbook: true,
+        monthlyWorkbookFee: 250,
+        includeExamFee: true,
+        examFeeAmount: 350,
+      },
+      { existingInvoices: [], skipPersist: true }
+    );
+
+    const stdInvs = updatedInvoices.filter((i) => i.studentId === sampleStudent.id);
+    const wbInv = stdInvs.find((i) => i.invoiceType === 'workbook');
+    const examInv = stdInvs.find((i) => i.invoiceType === 'exam');
+    const admInv = stdInvs.find((i) => i.invoiceType === 'admission');
+
+    expect(admInv?.netAmount).toBe(8800);
+    expect(wbInv?.netAmount).toBe(250);
+    expect(wbInv?.status).toBe('unpaid');
+    expect(examInv?.netAmount).toBe(350);
+    expect(examInv?.status).toBe('unpaid');
+  });
+
+  it('auto-generates Exam Fee invoice for class students when Exam Routine is created', () => {
+    const result = generateExamFeeInvoicesForRoutine(
+      {
+        id: 'exam-test-1',
+        className: 'Nursery',
+        examTitle: 'বার্ষিক মূল্যায়ন ২০২৬',
+        examDateBn: '১৫ নভেম্বর ২০২৬',
+        examFee: 400,
+      },
+      [sampleStudent],
+      { existingInvoices: [] }
+    );
+
+    expect(result.count).toBe(1);
+    expect(result.totalAmount).toBe(400);
+    const created = result.updatedInvoices.find(
+      (i) => i.studentId === sampleStudent.id && i.invoiceType === 'exam'
+    );
+    expect(created).toBeDefined();
+    expect(created?.netAmount).toBe(400);
+    expect(created?.examTitleBn).toBe('বার্ষিক মূল্যায়ন ২০২৬');
   });
 });

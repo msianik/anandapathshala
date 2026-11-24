@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FeeInvoice, UserRole, Student, PortalAccount, SchoolClass } from '../types/school';
 import { calculateFeeSummary, toBengaliNumber, getSchoolClassNameBn, ALL_SCHOOL_CLASSES, getPermissionForDirector } from '../utils/schoolLogic';
 import { getDaysUntilDueDate } from '../utils/feeReminderLogic';
@@ -13,6 +13,9 @@ import {
   submitBcashNagadPayment,
   verifyBcashNagadPayment,
   rejectBcashNagadPayment,
+  STUDENT_FEE_CONFIG_EVENT,
+  SCHOOL_FEE_MASTER_EVENT,
+  getSchoolFeeMasterConfig,
 } from '../utils/feeManagementLogic';
 import {
   downloadInvoicePdfReceipt,
@@ -28,6 +31,7 @@ import {
 } from '../utils/pdfReceiptGenerator';
 import { ChildFeeHistoryBarChart } from './ChildFeeHistoryBarChart';
 import { ThreePartMoneyReceiptModal } from './ThreePartMoneyReceiptModal';
+import { SuperAdminFeeMasterPanel } from './SuperAdminFeeMasterPanel';
 import {
   CreditCard,
   CheckCircle2,
@@ -116,14 +120,27 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
   // Admin Custom New Invoice Generator Modal State
   const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState<boolean>(false);
   const [newInvStudentId, setNewInvStudentId] = useState<string>(students[0]?.id || 'std-1');
-  const [newInvType, setNewInvType] = useState<'monthly' | 'admission' | 'combined'>('monthly');
+  const [newInvType, setNewInvType] = useState<'monthly' | 'admission' | 'combined' | 'workbook' | 'exam' | 'custom'>('monthly');
   const [newInvMonthBn, setNewInvMonthBn] = useState<string>('নভেম্বর ২০২৬');
   const [newInvAdmissionDate, setNewInvAdmissionDate] = useState<string>('2026-05-01');
   const [newInvAdmissionFee, setNewInvAdmissionFee] = useState<number>(8800);
   const [newInvMonthlyFee, setNewInvMonthlyFee] = useState<number>(1600);
+  const [newInvExtraTitle, setNewInvExtraTitle] = useState<string>('');
+  const [newInvExtraAmount, setNewInvExtraAmount] = useState<number>(() => getSchoolFeeMasterConfig().monthlyWorkbookFee || 200);
   const [newInvDiscount, setNewInvDiscount] = useState<number>(0);
   const [newInvDueDateBn, setNewInvDueDateBn] = useState<string>('১০ নভেম্বর ২০২৬');
   const [newInvStatus, setNewInvStatus] = useState<'unpaid' | 'paid'>('unpaid');
+  const [feeSyncVer, setFeeSyncVer] = useState<number>(0);
+
+  useEffect(() => {
+    const onFeeSync = () => setFeeSyncVer((v) => v + 1);
+    window.addEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeSync);
+    window.addEventListener(SCHOOL_FEE_MASTER_EVENT, onFeeSync);
+    return () => {
+      window.removeEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeSync);
+      window.removeEventListener(SCHOOL_FEE_MASTER_EVENT, onFeeSync);
+    };
+  }, []);
 
   // Inline Invoice Amount Edit State
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
@@ -225,7 +242,7 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
       return classCompleteInvs;
     }
     return invoices;
-  }, [isParentRole, isTeacherRole, ownParentStudent, invoices, roleScopedStudents, teacherAssignedClass]);
+  }, [isParentRole, isTeacherRole, ownParentStudent, invoices, roleScopedStudents, teacherAssignedClass, feeSyncVer]);
 
   // Student-by-Student Class Due Roster for Teacher's Assigned Class
   const teacherClassStudentDueRows = useMemo(() => {
@@ -655,6 +672,34 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
       grossAmount += mAmt;
     }
 
+    const masterCfg = getSchoolFeeMasterConfig();
+    if (newInvType === 'workbook') {
+      const wbAmt = Math.max(0, Number(newInvExtraAmount) || masterCfg.monthlyWorkbookFee || 200);
+      items.push({
+        nameBn: `${newInvExtraTitle.trim() || masterCfg.monthlyWorkbookTitleBn} (${newInvMonthBn})`,
+        amount: wbAmt,
+      });
+      grossAmount += wbAmt;
+    }
+
+    if (newInvType === 'exam') {
+      const exAmt = Math.max(0, Number(newInvExtraAmount) || masterCfg.defaultExamFee || 300);
+      items.push({
+        nameBn: newInvExtraTitle.trim() || `${masterCfg.defaultExamFeeTitleBn} (${getSchoolClassNameBn(targetStudent.className)})`,
+        amount: exAmt,
+      });
+      grossAmount += exAmt;
+    }
+
+    if (newInvType === 'custom') {
+      const cAmt = Math.max(0, Number(newInvExtraAmount) || 0);
+      items.push({
+        nameBn: newInvExtraTitle.trim() || `বিশেষ ফি (${newInvMonthBn})`,
+        amount: cAmt,
+      });
+      grossAmount += cAmt;
+    }
+
     const disc = Math.max(0, Number(newInvDiscount) || 0);
     const net = Math.max(0, grossAmount - disc);
     const isPaidNow = newInvStatus === 'paid';
@@ -671,6 +716,12 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
           ? `ভর্তি ফি (${admDateBn})`
           : newInvType === 'combined'
           ? `ভর্তি ফি + ${newInvMonthBn}`
+          : newInvType === 'workbook'
+          ? `মাসিক ওয়ার্কবুক — ${newInvMonthBn}`
+          : newInvType === 'exam'
+          ? `পরীক্ষার ফি — ${newInvExtraTitle.trim() || newInvMonthBn}`
+          : newInvType === 'custom'
+          ? newInvExtraTitle.trim() || `অন্যান্য ফি — ${newInvMonthBn}`
           : newInvMonthBn,
       invoiceType: newInvType,
       admissionDateBn: admDateBn,
@@ -1329,9 +1380,26 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                   <div>
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3 gap-2">
                       <div>
-                        <span className="text-[10px] font-mono font-bold text-slate-400 block">
-                          {inv.invoiceNo}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">
+                            {inv.invoiceNo}
+                          </span>
+                          {inv.invoiceType === 'exam' && (
+                            <span className="text-[9.5px] font-black px-2 py-0.2 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                              📝 পরীক্ষার ফি
+                            </span>
+                          )}
+                          {inv.invoiceType === 'workbook' && (
+                            <span className="text-[9.5px] font-black px-2 py-0.2 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                              📘 মাসিক ওয়ার্কবুক
+                            </span>
+                          )}
+                          {inv.invoiceType === 'custom' && (
+                            <span className="text-[9.5px] font-black px-2 py-0.2 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                              ✨ বিশেষ ফি
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-base font-black text-slate-900 mt-0.5">
                           {inv.monthBn}
                         </h3>
@@ -1564,6 +1632,14 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Super Admin Master Fee, Monthly Workbook & Exam Fee Control Panel */}
+          {canEditFees && (
+            <SuperAdminFeeMasterPanel
+              students={students}
+              canEdit={canEditFees}
+            />
+          )}
 
           {/* ====================================================================================
               NEW FEATURE: CURRENT MONTH SUMMARY FEE REPORT (COLLECTED VS PENDING) & EXPORT
@@ -2614,17 +2690,66 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                   <label className="font-bold text-slate-700 block mb-1">পেমেন্ট / ইনভয়েসের ধরন</label>
                   <select
                     value={newInvType}
-                    onChange={(e) =>
-                      setNewInvType(e.target.value as 'monthly' | 'admission' | 'combined')
-                    }
+                    onChange={(e) => {
+                      const nextType = e.target.value as 'monthly' | 'admission' | 'combined' | 'workbook' | 'exam' | 'custom';
+                      setNewInvType(nextType);
+                      const mCfg = getSchoolFeeMasterConfig();
+                      if (nextType === 'workbook') {
+                        setNewInvExtraTitle(mCfg.monthlyWorkbookTitleBn || 'মাসিক ওয়ার্কবুক (১টি)');
+                        setNewInvExtraAmount(mCfg.monthlyWorkbookFee || 200);
+                      } else if (nextType === 'exam') {
+                        setNewInvExtraTitle(mCfg.defaultExamFeeTitleBn || 'পরীক্ষার ফি (মূল্যায়ন ২০২৬)');
+                        setNewInvExtraAmount(mCfg.defaultExamFee || 300);
+                      } else if (nextType === 'custom') {
+                        setNewInvExtraTitle('');
+                        setNewInvExtraAmount(250);
+                      }
+                    }}
                     className="w-full border border-slate-300 rounded-xl px-3 py-2 font-bold text-slate-900"
                   >
                     <option value="monthly">মাসিক টিউশন ফি ইনভয়েস</option>
+                    <option value="workbook">📘 মাসিক ওয়ার্কবুক ফি ইনভয়েস</option>
+                    <option value="exam">📝 পরীক্ষার ফি ইনভয়েস</option>
+                    <option value="custom">✨ কাস্টম / অন্যান্য ফি ইনভয়েস</option>
                     <option value="admission">নতুন ভর্তি ফি ইনভয়েস</option>
                     <option value="combined">ভর্তি ফি + প্রথম মাসের ফি একত্রে</option>
                   </select>
                 </div>
               </div>
+
+              {(newInvType === 'workbook' || newInvType === 'exam' || newInvType === 'custom') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/80 p-3.5 rounded-2xl border border-indigo-200">
+                  <div>
+                    <label className="font-bold text-indigo-950 block mb-1">
+                      {newInvType === 'workbook'
+                        ? 'ওয়ার্কবুকের বিবরণ / নাম'
+                        : newInvType === 'exam'
+                        ? 'পরীক্ষার নাম / বিবরণ'
+                        : 'কাস্টম ফি-এর নাম'}
+                    </label>
+                    <input
+                      type="text"
+                      value={newInvExtraTitle}
+                      onChange={(e) => setNewInvExtraTitle(e.target.value)}
+                      placeholder="বিবরণ লিখুন..."
+                      className="w-full bg-white border border-indigo-300 rounded-xl px-3 py-1.5 font-bold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-indigo-950 block mb-1">
+                      নির্ধারিত ফি পরিমাণ (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10}
+                      value={newInvExtraAmount}
+                      onChange={(e) => setNewInvExtraAmount(Number(e.target.value))}
+                      className="w-full bg-white border border-indigo-300 rounded-xl px-3 py-1.5 font-mono font-black text-indigo-900"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
                 <div>

@@ -340,7 +340,7 @@ export const PublicWebsiteTheme2: React.FC<PublicWebsiteTheme2Props> = ({
               {schoolProfile.nameBn || 'আনন্দ পাঠশালা'}
             </h1>
             <span className="text-[10px] text-emerald-300/90 font-medium">
-              কুষ্টিয়া • উন্মুক্ত কানন ক্যাম্পাস
+              কুষ্টিয়া
             </span>
           </div>
         </div>

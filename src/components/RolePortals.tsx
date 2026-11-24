@@ -1852,6 +1852,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       setFeeConfigSyncVer((v) => v + 1);
     };
     window.addEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
+    window.addEventListener('ananda-school-fee-master-updated', onFeeCfgSync);
     window.addEventListener('ananda-invoices-updated', onInvSync);
     window.addEventListener('ananda-students-updated', onStdSync);
     window.addEventListener('ananda_biometric_synced', onBioSync);
@@ -1861,6 +1862,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     window.addEventListener('storage', onBioSync);
     return () => {
       window.removeEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
+      window.removeEventListener('ananda-school-fee-master-updated', onFeeCfgSync);
       window.removeEventListener('ananda-invoices-updated', onInvSync);
       window.removeEventListener('ananda-students-updated', onStdSync);
       window.removeEventListener('ananda_biometric_synced', onBioSync);
@@ -1876,9 +1878,20 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     [myChild, invoices, feeConfigSyncVer]
   );
   const childInvoices = invoices.filter((inv) => inv.studentId === myChild.id);
-  const unpaidInvoice =
-    childInvoices.find((inv) => inv.status !== 'paid') ||
-    allChildInvoices.find((inv) => inv.status !== 'paid');
+  const allUnpaidChildInvoices = React.useMemo(() => {
+    const map = new Map<string, FeeInvoice>();
+    [...childInvoices, ...allChildInvoices].forEach((inv) => {
+      if (inv.status !== 'paid' && !map.has(inv.id)) {
+        map.set(inv.id, inv);
+      }
+    });
+    return Array.from(map.values());
+  }, [childInvoices, allChildInvoices]);
+  const unpaidInvoice = allUnpaidChildInvoices[0];
+  const totalUnpaidAmount = allUnpaidChildInvoices.reduce(
+    (sum, inv) => sum + (inv.netAmount || 0),
+    0
+  );
   const childDiaryPosts = activityPosts.filter(
     (p) => isSameSchoolClass(p.className, myChild.className)
   );
@@ -2346,8 +2359,23 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                     <CreditCard className="w-4 h-4 text-amber-300" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-bold text-amber-200 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="text-[10px] font-bold text-amber-200 uppercase tracking-wide flex items-center gap-1.5 flex-wrap">
                       <span>ফি নোটিফিকেশন</span>
+                      {allUnpaidChildInvoices.length > 1 && (
+                        <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full">
+                          {toBengaliNumber(allUnpaidChildInvoices.length)}টি বিল
+                        </span>
+                      )}
+                      {allUnpaidChildInvoices.some((i) => i.invoiceType === 'exam') && (
+                        <span className="text-[9px] bg-purple-500/80 text-white font-bold px-1.5 py-0.2 rounded-full">
+                          পরীক্ষা ফি
+                        </span>
+                      )}
+                      {allUnpaidChildInvoices.some((i) => i.invoiceType === 'workbook') && (
+                        <span className="text-[9px] bg-indigo-500/80 text-white font-bold px-1.5 py-0.2 rounded-full">
+                          ওয়ার্কবুক
+                        </span>
+                      )}
                       {daysUntilDue !== null && daysUntilDue <= 3 && (
                         <span className="text-[9px] bg-rose-600 text-white font-bold px-1.5 py-0.2 rounded-full">
                           জরুরি
@@ -2355,7 +2383,9 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                       )}
                     </div>
                     <div className="text-xs font-black truncate text-rose-200">
-                      {unpaidInvoice.monthBn}-এর বকেয়া: ৳{unpaidInvoice.netAmount.toLocaleString('bn-BD')}
+                      {allUnpaidChildInvoices.length > 1
+                        ? `মোট বকেয়া: ৳${totalUnpaidAmount.toLocaleString('bn-BD')}`
+                        : `${unpaidInvoice.monthBn}-এর বকেয়া: ৳${unpaidInvoice.netAmount.toLocaleString('bn-BD')}`}
                     </div>
                   </div>
                 </div>

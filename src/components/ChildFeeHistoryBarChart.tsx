@@ -6,7 +6,10 @@ import {
   saveStudentFeeConfig,
   formatIsoDateToBengali,
   generateStudentInvoicesFromConfig,
+  syncStudentAssignedFeesToPortal,
+  getSchoolFeeMasterConfig,
   STUDENT_FEE_CONFIG_EVENT,
+  SCHOOL_FEE_MASTER_EVENT,
   ALL_2026_MONTHS,
 } from '../utils/feeManagementLogic';
 import { downloadInvoicePdfReceipt } from '../utils/pdfReceiptGenerator';
@@ -212,8 +215,29 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
   const [editMonthlyDiscount, setEditMonthlyDiscount] = useState<number>(
     studentFeeConfig.monthlyDiscount || 0
   );
+  const [editIncludeWorkbook, setEditIncludeWorkbook] = useState<boolean>(
+    studentFeeConfig.includeMonthlyWorkbook ?? true
+  );
+  const [editWorkbookFee, setEditWorkbookFee] = useState<number>(
+    studentFeeConfig.monthlyWorkbookFee ?? getSchoolFeeMasterConfig().monthlyWorkbookFee ?? 200
+  );
+  const [editIncludeExamFee, setEditIncludeExamFee] = useState<boolean>(
+    studentFeeConfig.includeExamFee ?? true
+  );
+  const [editExamFeeAmount, setEditExamFeeAmount] = useState<number>(
+    studentFeeConfig.examFeeAmount ?? getSchoolFeeMasterConfig().defaultExamFee ?? 300
+  );
+  const [editAssignedCustomIds, setEditAssignedCustomIds] = useState<string[]>(
+    studentFeeConfig.assignedCustomFeeIds || []
+  );
   const [markPastMonthsPaid, setMarkPastMonthsPaid] = useState<boolean>(true);
   const [configSavedBanner, setConfigSavedBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onMasterSync = () => setConfigVersion((v) => v + 1);
+    window.addEventListener(SCHOOL_FEE_MASTER_EVENT, onMasterSync);
+    return () => window.removeEventListener(SCHOOL_FEE_MASTER_EVENT, onMasterSync);
+  }, []);
 
   // Inline single month amount edit state
   const [editingMonthKey, setEditingMonthKey] = useState<string | null>(null);
@@ -222,11 +246,20 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
   // Sync form fields when switching student
   useEffect(() => {
     const cfg = getStudentFeeConfig(currentStudent);
+    const master = getSchoolFeeMasterConfig();
     setEditAdmissionDate(cfg.admissionDate);
     setEditAdmissionFee(cfg.admissionFee);
     setEditAdmissionStatus(cfg.admissionFeeStatus);
     setEditMonthlyFee(cfg.monthlyFee);
     setEditMonthlyDiscount(cfg.monthlyDiscount || 0);
+    setEditIncludeWorkbook(cfg.includeMonthlyWorkbook ?? master.monthlyWorkbookEnabledByDefault);
+    setEditWorkbookFee(cfg.monthlyWorkbookFee ?? master.monthlyWorkbookFee ?? 200);
+    setEditIncludeExamFee(cfg.includeExamFee ?? master.defaultExamFeeEnabledByDefault);
+    setEditExamFeeAmount(cfg.examFeeAmount ?? master.defaultExamFee ?? 300);
+    setEditAssignedCustomIds(
+      cfg.assignedCustomFeeIds ||
+        (master.customFeeItems || []).filter((i) => i.enabledByDefault).map((i) => i.id)
+    );
     setEditingMonthKey(null);
   }, [currentStudent.id, configVersion]);
 
@@ -250,6 +283,11 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
       admissionFeeStatus: editAdmissionStatus,
       monthlyFee: Number(editMonthlyFee) || 0,
       monthlyDiscount: Number(editMonthlyDiscount) || 0,
+      includeMonthlyWorkbook: editIncludeWorkbook,
+      monthlyWorkbookFee: Number(editWorkbookFee) || 0,
+      includeExamFee: editIncludeExamFee,
+      examFeeAmount: Number(editExamFeeAmount) || 0,
+      assignedCustomFeeIds: editAssignedCustomIds,
       updatedByBn: loggedInAccount?.nameBn || 'সুপার অ্যাডমিন',
       updatedAtBn: 'আজ, ০৫ নভেম্বর ২০২৬',
     };
@@ -267,18 +305,23 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
       });
     }
 
+    const baseInvoices = generateStudentInvoicesFromConfig(
+      currentStudent,
+      updatedConfig,
+      invoices,
+      {
+        markPastMonthsPaid,
+        currentUnpaidMonthKey: 'oct',
+        confirmedByBn: loggedInAccount?.nameBn || 'সুপার অ্যাডমিন',
+      }
+    );
+    const syncedWithExtras = syncStudentAssignedFeesToPortal(
+      currentStudent,
+      updatedConfig,
+      { existingInvoices: baseInvoices }
+    );
     if (onUpdateInvoices) {
-      const nextInvoices = generateStudentInvoicesFromConfig(
-        currentStudent,
-        updatedConfig,
-        invoices,
-        {
-          markPastMonthsPaid,
-          currentUnpaidMonthKey: 'oct',
-          confirmedByBn: loggedInAccount?.nameBn || 'সুপার অ্যাডমিন',
-        }
-      );
-      onUpdateInvoices(nextInvoices);
+      onUpdateInvoices(syncedWithExtras);
     }
 
     setConfigSavedBanner(
@@ -749,6 +792,85 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
                 <span className="text-[10px] text-slate-300 block">
                   নিট মাসিক দেয়: ৳ {toBengaliNumber(Math.max(0, (editMonthlyFee || 0) - (editMonthlyDiscount || 0)))}
                 </span>
+              </div>
+            </div>
+
+            {/* Tick Checklist for Workbook, Exam Fee & Custom Fees */}
+            <div className="bg-white/5 border border-white/15 rounded-2xl p-3.5 space-y-2.5">
+              <span className="text-[11px] font-black text-amber-300 block">
+                অতিরিক্ত ফি, মাসিক ওয়ার্কবুক ও পরীক্ষার ফি টিক দিয়ে অ্যাসাইন করুন (স্টুডেন্ট পোর্টালে অটো জেনারেট হবে):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2 bg-slate-950/60 border border-white/10 rounded-xl px-3 py-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-white font-bold">
+                    <input
+                      type="checkbox"
+                      checked={editIncludeWorkbook}
+                      onChange={(e) => setEditIncludeWorkbook(e.target.checked)}
+                      className="rounded text-amber-400"
+                    />
+                    <span>📘 মাসিক ওয়ার্কবুক</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    disabled={!editIncludeWorkbook}
+                    value={editWorkbookFee}
+                    onChange={(e) => setEditWorkbookFee(Number(e.target.value))}
+                    className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-right font-mono font-bold text-amber-300"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 bg-slate-950/60 border border-white/10 rounded-xl px-3 py-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-white font-bold">
+                    <input
+                      type="checkbox"
+                      checked={editIncludeExamFee}
+                      onChange={(e) => setEditIncludeExamFee(e.target.checked)}
+                      className="rounded text-purple-400"
+                    />
+                    <span>📝 পরীক্ষার ফি</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={50}
+                    disabled={!editIncludeExamFee}
+                    value={editExamFeeAmount}
+                    onChange={(e) => setEditExamFeeAmount(Number(e.target.value))}
+                    className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-right font-mono font-bold text-purple-300"
+                  />
+                </div>
+
+                {(getSchoolFeeMasterConfig().customFeeItems || []).map((cItem) => {
+                  const isTicked = editAssignedCustomIds.includes(cItem.id);
+                  return (
+                    <label
+                      key={cItem.id}
+                      className="flex items-center justify-between gap-2 bg-slate-950/60 border border-white/10 rounded-xl px-3 py-2 cursor-pointer text-white font-bold"
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isTicked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditAssignedCustomIds([...editAssignedCustomIds, cItem.id]);
+                            } else {
+                              setEditAssignedCustomIds(editAssignedCustomIds.filter((id) => id !== cItem.id));
+                            }
+                          }}
+                          className="rounded text-indigo-400"
+                        />
+                        <span className="truncate">{cItem.titleBn}</span>
+                      </span>
+                      <span className="font-mono text-indigo-300 shrink-0">
+                        ৳{toBengaliNumber(cItem.amount)}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

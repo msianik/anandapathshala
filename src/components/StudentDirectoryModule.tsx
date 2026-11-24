@@ -22,6 +22,17 @@ import {
   downloadStudentDirectoryCsvFile,
   getPermissionForDirector,
 } from '../utils/schoolLogic';
+import {
+  getStudentFeeConfig,
+  getDefaultStudentFeeConfig,
+  syncStudentAssignedFeesToPortal,
+  formatIsoDateToBengali,
+} from '../utils/feeManagementLogic';
+import {
+  StudentFeeAssignmentChecklist,
+  StudentFeeAssignmentSelection,
+  createInitialFeeAssignmentSelection,
+} from './StudentFeeAssignmentChecklist';
 import { 
   Users, 
   UserPlus, 
@@ -208,6 +219,9 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedPhotoName, setUploadedPhotoName] = useState('');
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [studentAdmissionDate, setStudentAdmissionDate] = useState<string>('2026-05-01');
+  const [studentFeeAssignment, setStudentFeeAssignment] =
+    useState<StudentFeeAssignmentSelection>(() => createInitialFeeAssignmentSelection());
 
   // Real-time unique student ID duplicate check
   const isDuplicateId = useMemo(() => {
@@ -402,12 +416,29 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       portalRole: 'parent',
     });
     setUploadedPhotoName('');
+    setStudentAdmissionDate(new Date().toISOString().split('T')[0] || '2026-05-01');
+    setStudentFeeAssignment(createInitialFeeAssignmentSelection());
     setIsAddModalOpen(true);
   };
 
   // Open Edit Modal
   const handleOpenEditModal = (student: Student) => {
     setEditingStudent(student);
+    const cfg = getStudentFeeConfig(student);
+    setStudentAdmissionDate(cfg.admissionDate || student.admissionDate || '2026-05-01');
+    setStudentFeeAssignment({
+      includeAdmissionFee: cfg.includeAdmissionFee ?? true,
+      admissionFee: cfg.admissionFee,
+      admissionFeeStatus: cfg.admissionFeeStatus,
+      includeMonthlyFee: cfg.includeMonthlyFee ?? true,
+      monthlyFee: cfg.monthlyFee,
+      includeMonthlyWorkbook: cfg.includeMonthlyWorkbook ?? true,
+      monthlyWorkbookFee: cfg.monthlyWorkbookFee ?? 200,
+      includeExamFee: cfg.includeExamFee ?? true,
+      examFeeAmount: cfg.examFeeAmount ?? 300,
+      assignedCustomFeeIds: cfg.assignedCustomFeeIds || [],
+      customFeeOverrides: cfg.customFeeOverrides || {},
+    });
     if (student.photoUrl && student.photoUrl.startsWith('data:image')) {
       setUploadedPhotoName('সংরক্ষিত প্রোফাইল ছবি');
     } else {
@@ -516,10 +547,32 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
+      admissionDate: studentAdmissionDate,
+      admissionDateBn: formatIsoDateToBengali(studentAdmissionDate),
+      admissionFee: studentFeeAssignment.admissionFee,
+      monthlyFee: studentFeeAssignment.monthlyFee,
       biometricEnrollId: formData.rollNo.trim() || newId,
       biometricSynced: true,
       biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
     };
+
+    const defaultCfg = getDefaultStudentFeeConfig(newStudent);
+    syncStudentAssignedFeesToPortal(newStudent, {
+      ...defaultCfg,
+      admissionDate: studentAdmissionDate,
+      admissionDateBn: formatIsoDateToBengali(studentAdmissionDate),
+      includeAdmissionFee: studentFeeAssignment.includeAdmissionFee,
+      admissionFee: studentFeeAssignment.admissionFee,
+      admissionFeeStatus: studentFeeAssignment.admissionFeeStatus,
+      includeMonthlyFee: studentFeeAssignment.includeMonthlyFee,
+      monthlyFee: studentFeeAssignment.monthlyFee,
+      includeMonthlyWorkbook: studentFeeAssignment.includeMonthlyWorkbook,
+      monthlyWorkbookFee: studentFeeAssignment.monthlyWorkbookFee,
+      includeExamFee: studentFeeAssignment.includeExamFee,
+      examFeeAmount: studentFeeAssignment.examFeeAmount,
+      assignedCustomFeeIds: studentFeeAssignment.assignedCustomFeeIds,
+      customFeeOverrides: studentFeeAssignment.customFeeOverrides,
+    });
 
     upsertPortalAccount({
       id: `acc-std-${newId}`,
@@ -617,10 +670,32 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       username: cleanUsername,
       password: cleanPassword,
       portalRole: assignedRole,
+      admissionDate: studentAdmissionDate,
+      admissionDateBn: formatIsoDateToBengali(studentAdmissionDate),
+      admissionFee: studentFeeAssignment.admissionFee,
+      monthlyFee: studentFeeAssignment.monthlyFee,
       biometricEnrollId: formData.rollNo.trim() || editingStudent.biometricEnrollId || editingStudent.rollNo || editingStudent.id,
       biometricSynced: true,
       biometricSyncTimeStr: 'এইমাত্র ZLink ক্লাউড ও ডিভাইসে সিঙ্ক সম্পন্ন',
     };
+
+    const existingCfg = getStudentFeeConfig(updatedStudent);
+    syncStudentAssignedFeesToPortal(updatedStudent, {
+      ...existingCfg,
+      admissionDate: studentAdmissionDate,
+      admissionDateBn: formatIsoDateToBengali(studentAdmissionDate),
+      includeAdmissionFee: studentFeeAssignment.includeAdmissionFee,
+      admissionFee: studentFeeAssignment.admissionFee,
+      admissionFeeStatus: studentFeeAssignment.admissionFeeStatus,
+      includeMonthlyFee: studentFeeAssignment.includeMonthlyFee,
+      monthlyFee: studentFeeAssignment.monthlyFee,
+      includeMonthlyWorkbook: studentFeeAssignment.includeMonthlyWorkbook,
+      monthlyWorkbookFee: studentFeeAssignment.monthlyWorkbookFee,
+      includeExamFee: studentFeeAssignment.includeExamFee,
+      examFeeAmount: studentFeeAssignment.examFeeAmount,
+      assignedCustomFeeIds: studentFeeAssignment.assignedCustomFeeIds,
+      customFeeOverrides: studentFeeAssignment.customFeeOverrides,
+    });
 
     upsertPortalAccount({
       id: `acc-std-${updatedStudent.id}`,
@@ -1984,6 +2059,35 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* 5B. FEE, MONTHLY WORKBOOK & EXAM FEE TICK ASSIGNMENT */}
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-amber-50/70 px-3.5 py-2.5 rounded-xl border border-amber-200">
+                  <div>
+                    <span className="font-black text-amber-950 block">
+                      💰 ভর্তি ফি, মাসিক বেতন ও ওয়ার্কবুক (একবার ইনপুট দিলেই বেতন ও স্টুডেন্ট পোর্টালে অটো-সেভ হবে)
+                    </span>
+                    <span className="text-[10.5px] text-amber-800">
+                      ভর্তির সময় একবার ভর্তি ফি ও মাসিক বেতন নির্ধারণ করলে বেতন শাখা এবং স্টুডেন্ট পোর্টালে আলাদাভাবে এন্ট্রি দিতে হবে না।
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-bold text-slate-700 text-[11px]">ভর্তির তারিখ:</span>
+                    <input
+                      type="date"
+                      value={studentAdmissionDate}
+                      onChange={(e) => setStudentAdmissionDate(e.target.value)}
+                      className="px-2.5 py-1 bg-white border border-amber-300 rounded-lg font-mono font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+                <StudentFeeAssignmentChecklist
+                  value={studentFeeAssignment}
+                  onChange={setStudentFeeAssignment}
+                  showAdmissionPaidToggle
+                  titleBn="ভর্তি ফি, মাসিক বেতন ও ওয়ার্কবুক/পরীক্ষার ফি নির্ধারণ ও টিক অপশন"
+                />
               </div>
 
               {/* 6. DIGITAL BIOMETRIC & FINGERPRINT MACHINE AUTO-SYNC */}

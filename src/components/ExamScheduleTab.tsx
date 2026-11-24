@@ -8,7 +8,17 @@ import {
 import {
   getSchoolClassNameBn,
   toBengaliNumber,
+  isSameSchoolClass,
 } from '../utils/schoolLogic';
+import {
+  getSchoolFeeMasterConfig,
+  generateExamFeeInvoicesForRoutine,
+} from '../utils/feeManagementLogic';
+import {
+  getActiveAcademicYear,
+  getStudentsForYear,
+} from '../utils/academicYearLogic';
+import { INITIAL_STUDENTS } from '../data/mockData';
 import {
   getExamSchedules,
   addExamSchedule,
@@ -116,6 +126,17 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
   // Modal State for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
+  const [selectedExamStudentIds, setSelectedExamStudentIds] = useState<string[] | null>(null);
+  const [showStudentChecklist, setShowStudentChecklist] = useState<boolean>(false);
+
+  const loadLiveStudentsForExam = () => {
+    try {
+      const year = getActiveAcademicYear();
+      const list = getStudentsForYear(year);
+      if (Array.isArray(list) && list.length > 0) return list;
+    } catch {}
+    return INITIAL_STUDENTS;
+  };
 
   const [formData, setFormData] = useState<{
     className: SchoolClass;
@@ -133,25 +154,39 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
     examinerTeacherNameBn: string;
     assessmentType: AssessmentType;
     instructionsBn: string;
+    examFee: number;
+    autoGenerateExamFee: boolean;
+    examFeeDueDateBn: string;
     status: 'upcoming' | 'ongoing' | 'completed';
-  }>({
-    className: selectedClass,
-    examTitle: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
-    subject: 'বাংলা ও বর্ণমালা জ্ঞান',
-    examDate: '2026-11-15',
-    dayNameBn: 'রবিবার',
-    startTime: '০৯:৩০ AM',
-    endTime: '১১:০০ AM',
-    durationMinutes: 90,
-    room: 'রুম ১০২',
-    syllabusTopics: 'স্বরবর্ণ ও ব্যঞ্জনবর্ণ লেখা, ছড়া আবৃত্তি',
-    totalMarks: 50,
-    passMarks: 20,
-    examinerTeacherNameBn: 'ফাতেমা আক্তার',
-    assessmentType: 'written',
-    instructionsBn: 'প্রয়োজনীয় পেন্সিল ও ইরেজার সঙ্গে রাখতে হবে।',
-    status: 'upcoming',
+  }>(() => {
+    const master = getSchoolFeeMasterConfig();
+    return {
+      className: selectedClass,
+      examTitle: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
+      subject: 'বাংলা ও বর্ণমালা জ্ঞান',
+      examDate: '2026-11-15',
+      dayNameBn: 'রবিবার',
+      startTime: '০৯:৩০ AM',
+      endTime: '১১:০০ AM',
+      durationMinutes: 90,
+      room: 'রুম ১০২',
+      syllabusTopics: 'স্বরবর্ণ ও ব্যঞ্জনবর্ণ লেখা, ছড়া আবৃত্তি',
+      totalMarks: 50,
+      passMarks: 20,
+      examinerTeacherNameBn: 'ফাতেমা আক্তার',
+      assessmentType: 'written',
+      instructionsBn: 'প্রয়োজনীয় পেন্সিল ও ইরেজার সঙ্গে রাখতে হবে।',
+      examFee: master.defaultExamFee ?? 300,
+      autoGenerateExamFee: master.defaultExamFeeEnabledByDefault ?? true,
+      examFeeDueDateBn: '১৫ নভেম্বর ২০২৬',
+      status: 'upcoming',
+    };
   });
+
+  const classStudentsForForm = useMemo(() => {
+    const all = loadLiveStudentsForExam();
+    return all.filter((s) => isSameSchoolClass(s.className, formData.className));
+  }, [formData.className, isModalOpen]);
 
   // Calculate day name automatically when date changes
   const handleDateChange = (dateVal: string) => {
@@ -172,7 +207,10 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
   // Open modal for new exam
   const handleOpenAddModal = (targetClass?: SchoolClass) => {
     const cls = targetClass || (filterClass === 'all' ? selectedClass : filterClass);
+    const master = getSchoolFeeMasterConfig();
     setEditingExamId(null);
+    setSelectedExamStudentIds(null);
+    setShowStudentChecklist(false);
     setFormData({
       className: cls,
       examTitle: 'বার্ষিক মূল্যায়ন ২০২৬ (Annual Assessment)',
@@ -189,6 +227,9 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
       examinerTeacherNameBn: SCHOOL_TEACHERS[0]?.nameBn || 'ফাতেমা আক্তার',
       assessmentType: 'written',
       instructionsBn: 'সকল শিক্ষার্থীকে যথাসময়ে উপস্থিত থাকতে হবে।',
+      examFee: master.defaultExamFee ?? 300,
+      autoGenerateExamFee: master.defaultExamFeeEnabledByDefault ?? true,
+      examFeeDueDateBn: '১৫ নভেম্বর ২০২৬',
       status: 'upcoming',
     });
     setIsModalOpen(true);
@@ -196,7 +237,10 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
 
   // Open modal for editing
   const handleOpenEditModal = (exam: ExamScheduleItem) => {
+    const master = getSchoolFeeMasterConfig();
     setEditingExamId(exam.id);
+    setSelectedExamStudentIds(null);
+    setShowStudentChecklist(false);
     setFormData({
       className: exam.className,
       examTitle: exam.examTitle,
@@ -213,6 +257,9 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
       examinerTeacherNameBn: exam.examinerTeacherNameBn,
       assessmentType: exam.assessmentType,
       instructionsBn: exam.instructionsBn || '',
+      examFee: exam.examFee ?? master.defaultExamFee ?? 300,
+      autoGenerateExamFee: exam.autoGenerateExamFee ?? true,
+      examFeeDueDateBn: exam.examFeeDueDateBn || exam.examDateBn || '১৫ নভেম্বর ২০২৬',
       status: exam.status,
     });
     setIsModalOpen(true);
@@ -240,22 +287,73 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
     ];
     const examDateBn = `${toBengaliNumber(d)} ${monthsBn[m - 1]} ${toBengaliNumber(y)}`;
 
+    let savedExam: ExamScheduleItem | null = null;
     if (editingExamId) {
-      updateExamSchedule(editingExamId, {
+      savedExam = updateExamSchedule(editingExamId, {
         ...formData,
         examDateBn,
       });
-      showToast('পরীক্ষার সময়সূচি সফলভাবে আপডেট করা হয়েছে! ✓');
     } else {
-      addExamSchedule({
+      savedExam = addExamSchedule({
         ...formData,
         examDateBn,
       });
-      showToast('নতুন পরীক্ষার তারিখ ও সূচি সফলভাবে যুক্ত করা হয়েছে! ✓');
+    }
+
+    if (
+      savedExam &&
+      formData.autoGenerateExamFee &&
+      Number(formData.examFee) > 0
+    ) {
+      const liveStudents = loadLiveStudentsForExam();
+      const targetIds =
+        selectedExamStudentIds !== null
+          ? selectedExamStudentIds
+          : undefined;
+      const res = generateExamFeeInvoicesForRoutine(savedExam, liveStudents, {
+        feeAmount: Number(formData.examFee),
+        targetStudentIds: targetIds,
+        dueDateBn: formData.examFeeDueDateBn || examDateBn,
+      });
+      showToast(
+        `${
+          editingExamId ? 'সময়সূচি আপডেট' : 'নতুন পরীক্ষার সূচি যুক্ত'
+        } ও ${toBengaliNumber(res.count)} জন শিক্ষার্থীর পোর্টালে ৳${toBengaliNumber(
+          Number(formData.examFee)
+        )} পরীক্ষার ফি অটো-জেনারেট হয়েছে! ✓`
+      );
+    } else {
+      showToast(
+        editingExamId
+          ? 'পরীক্ষার সময়সূচি সফলভাবে আপডেট করা হয়েছে! ✓'
+          : 'নতুন পরীক্ষার তারিখ ও সূচি সফলভাবে যুক্ত করা হয়েছে! ✓'
+      );
     }
 
     setIsModalOpen(false);
     setExamSchedules(getExamSchedules());
+  };
+
+  // Manual 1-click exam fee generation from any existing schedule card/row
+  const handleGenerateFeeForRoutine = (exam: ExamScheduleItem) => {
+    const master = getSchoolFeeMasterConfig();
+    const fee = exam.examFee ?? master.defaultExamFee ?? 300;
+    if (fee <= 0) {
+      alert('পরীক্ষার ফি ০ টাকার বেশি হতে হবে। এডিট করে পরীক্ষার ফি নির্ধারণ করুন।');
+      return;
+    }
+    const liveStudents = loadLiveStudentsForExam();
+    const res = generateExamFeeInvoicesForRoutine(exam, liveStudents, {
+      feeAmount: fee,
+      dueDateBn: exam.examFeeDueDateBn || exam.examDateBn,
+    });
+    showToast(
+      `✅ "${exam.examTitle}" (${getSchoolClassNameBn(
+        exam.className
+      )}) — ${toBengaliNumber(res.count)} জন শিক্ষার্থীর পোর্টালে ৳${toBengaliNumber(
+        fee
+      )} পরীক্ষার ফি জেনারেট সম্পন্ন!`
+    );
   };
 
   // Delete Exam
@@ -664,6 +762,13 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
                       পূর্ণমান: {toBengaliNumber(exam.totalMarks)} | পাস: {toBengaliNumber(exam.passMarks || 20)}
                     </span>
                   </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-purple-200/70">
+                    <span className="text-purple-800 font-bold">নির্ধারিত পরীক্ষার ফি:</span>
+                    <span className="font-mono font-black text-purple-900 bg-purple-100 px-2 py-0.5 rounded-md">
+                      ৳ {toBengaliNumber(exam.examFee ?? getSchoolFeeMasterConfig().defaultExamFee ?? 300)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Syllabus Box */}
@@ -688,6 +793,14 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
 
                   {canEdit && (
                     <div className="flex items-center gap-1 shrink-0 print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateFeeForRoutine(exam)}
+                        className="px-2 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black transition cursor-pointer shadow-2xs"
+                        title="এই শ্রেণির শিক্ষার্থীদের স্টুডেন্ট পোর্টালে পরীক্ষার ফি জেনারেট করুন"
+                      >
+                        💳 ফি জেনারেট
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleOpenEditModal(exam)}
@@ -1073,6 +1186,117 @@ export const ExamScheduleTab: React.FC<ExamScheduleTabProps> = ({
                   rows={2}
                   className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 outline-none focus:border-purple-600 resize-none"
                 />
+              </div>
+
+              {/* Exam Fee Option & Auto-Generate for Student Portal */}
+              <div className="p-4 rounded-2xl bg-purple-50/90 border-2 border-purple-300 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="font-black text-purple-950 flex items-center gap-1.5">
+                    <span>💳 পরীক্ষার ফি নির্ধারণ ও স্টুডেন্ট পোর্টালে অটো-জেনারেট</span>
+                  </span>
+                  <span className="text-[10px] font-bold bg-purple-700 text-white px-2.5 py-0.5 rounded-full">
+                    অটো পোর্টাল সিঙ্ক
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-purple-900">পরীক্ষার ফি-এর পরিমাণ (৳)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      value={formData.examFee}
+                      onChange={(e) =>
+                        setFormData({ ...formData, examFee: Number(e.target.value) })
+                      }
+                      className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-mono font-black text-purple-950 outline-none focus:border-purple-600"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-purple-900">পরিশোধের শেষ তারিখ</label>
+                    <input
+                      type="text"
+                      value={formData.examFeeDueDateBn}
+                      onChange={(e) =>
+                        setFormData({ ...formData, examFeeDueDateBn: e.target.value })
+                      }
+                      placeholder="যেমন: ১৫ নভেম্বর ২০২৬"
+                      className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-purple-600"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs font-bold text-purple-950 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoGenerateExamFee}
+                    onChange={(e) =>
+                      setFormData({ ...formData, autoGenerateExamFee: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded text-purple-700 cursor-pointer"
+                  />
+                  <span>
+                    এক্সাম রুটিন সংরক্ষণ করার সাথে সাথে "{getSchoolClassNameBn(formData.className)}" শ্রেণির শিক্ষার্থীদের স্টুডেন্ট পোর্টালে পরীক্ষার ফি (৳{toBengaliNumber(formData.examFee)}) অটো-জেনারেট করুন
+                  </span>
+                </label>
+
+                {formData.autoGenerateExamFee && classStudentsForForm.length > 0 && (
+                  <div className="pt-2 border-t border-purple-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-purple-900">
+                        অ্যাসাইনকৃত শিক্ষার্থী ({toBengaliNumber(selectedExamStudentIds === null ? classStudentsForForm.length : selectedExamStudentIds.length)} / {toBengaliNumber(classStudentsForForm.length)} জন)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowStudentChecklist((prev) => !prev)}
+                        className="text-[11px] font-black text-purple-700 hover:underline cursor-pointer"
+                      >
+                        {showStudentChecklist
+                          ? 'তালিকা লুকান ▲'
+                          : 'শিক্ষার্থী টিক দিয়ে বাছাই করুন ▼'}
+                      </button>
+                    </div>
+
+                    {showStudentChecklist && (
+                      <div className="max-h-36 overflow-y-auto bg-white rounded-xl border border-purple-200 p-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {classStudentsForForm.map((st) => {
+                          const isChecked =
+                            selectedExamStudentIds === null ||
+                            selectedExamStudentIds.includes(st.id);
+                          return (
+                            <label
+                              key={st.id}
+                              className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-purple-50 text-[11px] font-semibold text-slate-800 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const baseIds =
+                                    selectedExamStudentIds === null
+                                      ? classStudentsForForm.map((s) => s.id)
+                                      : [...selectedExamStudentIds];
+                                  if (e.target.checked) {
+                                    if (!baseIds.includes(st.id)) baseIds.push(st.id);
+                                  } else {
+                                    const idx = baseIds.indexOf(st.id);
+                                    if (idx >= 0) baseIds.splice(idx, 1);
+                                  }
+                                  setSelectedExamStudentIds(baseIds);
+                                }}
+                                className="rounded text-purple-600"
+                              />
+                              <span className="truncate">
+                                {st.nameBn} (আইডি: {toBengaliNumber(st.rollNo)})
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Buttons */}

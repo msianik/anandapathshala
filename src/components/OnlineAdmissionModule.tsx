@@ -34,7 +34,17 @@ import {
   deleteAdmissionApplication,
   ADMISSION_UPDATE_EVENT,
 } from '../utils/admissionLogic';
-import { getSchoolClassNameBn } from '../utils/schoolLogic';
+import { getSchoolClassNameBn, toBengaliNumber } from '../utils/schoolLogic';
+import {
+  getDefaultStudentFeeConfig,
+  formatIsoDateToBengali,
+  syncStudentAssignedFeesToPortal,
+} from '../utils/feeManagementLogic';
+import {
+  StudentFeeAssignmentChecklist,
+  StudentFeeAssignmentSelection,
+  createInitialFeeAssignmentSelection,
+} from './StudentFeeAssignmentChecklist';
 
 interface OnlineAdmissionModuleProps {
   currentRole: UserRole;
@@ -192,17 +202,65 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
     setInterviewApp(null);
   };
 
-  const handleApproveAdmission = (app: AdmissionApplication) => {
-    const enrolled = updateAdmissionStatus(app.id, 'admitted', 'সরাসরি ভর্তি নিশ্চিত');
+  const [confirmAdmissionApp, setConfirmAdmissionApp] =
+    useState<AdmissionApplication | null>(null);
+  const [confirmAdmissionDate, setConfirmAdmissionDate] = useState<string>('2026-05-01');
+  const [confirmFeeSelection, setConfirmFeeSelection] =
+    useState<StudentFeeAssignmentSelection>(() => createInitialFeeAssignmentSelection());
+
+  const handleOpenConfirmAdmission = (app: AdmissionApplication) => {
+    setConfirmAdmissionApp(app);
+    setConfirmAdmissionDate(new Date().toISOString().split('T')[0] || '2026-05-01');
+    setConfirmFeeSelection(createInitialFeeAssignmentSelection());
+  };
+
+  const handleConfirmAdmissionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmAdmissionApp) return;
+    const app = confirmAdmissionApp;
+    const enrolled = updateAdmissionStatus(app.id, 'admitted', 'সরাসরি ভর্তি নিশ্চিত ও ফি অ্যাসাইন');
     if (enrolled) {
+      const admDateBn = formatIsoDateToBengali(confirmAdmissionDate);
+      const updatedEnrolled: Student = {
+        ...enrolled,
+        admissionDate: confirmAdmissionDate,
+        admissionDateBn: admDateBn,
+        admissionFee: confirmFeeSelection.admissionFee,
+        monthlyFee: confirmFeeSelection.monthlyFee,
+      };
+      const baseCfg = getDefaultStudentFeeConfig(updatedEnrolled);
+      syncStudentAssignedFeesToPortal(updatedEnrolled, {
+        ...baseCfg,
+        admissionDate: confirmAdmissionDate,
+        admissionDateBn: admDateBn,
+        includeAdmissionFee: confirmFeeSelection.includeAdmissionFee,
+        admissionFee: confirmFeeSelection.admissionFee,
+        admissionFeeStatus: confirmFeeSelection.admissionFeeStatus,
+        includeMonthlyFee: confirmFeeSelection.includeMonthlyFee,
+        monthlyFee: confirmFeeSelection.monthlyFee,
+        includeMonthlyWorkbook: confirmFeeSelection.includeMonthlyWorkbook,
+        monthlyWorkbookFee: confirmFeeSelection.monthlyWorkbookFee,
+        includeExamFee: confirmFeeSelection.includeExamFee,
+        examFeeAmount: confirmFeeSelection.examFeeAmount,
+        assignedCustomFeeIds: confirmFeeSelection.assignedCustomFeeIds,
+        customFeeOverrides: confirmFeeSelection.customFeeOverrides,
+      });
+
       if (onAdmitStudent) {
-        onAdmitStudent(enrolled);
+        onAdmitStudent(updatedEnrolled);
       }
-      alert(`🎉 অভিনন্দন! "${app.studentNameBn}" এর ভর্তি নিশ্চিত করা হয়েছে এবং শিক্ষার্থী তালিকায় আইডি নম্বর (${enrolled.rollNo}) হিসেবে সফলভাবে যুক্ত হয়েছে!`);
+      alert(
+        `🎉 অভিনন্দন! "${app.studentNameBn}" এর ভর্তি নিশ্চিত করা হয়েছে (আইডি: ${updatedEnrolled.rollNo}) এবং নির্বাচিত সকল ফি, মাসিক ওয়ার্কবুক ও পরীক্ষার ফি স্টুডেন্ট পোর্টালে অটো-জেনারেট হয়েছে!`
+      );
     } else {
       alert(`✅ "${app.studentNameBn}" এর ভর্তি নিশ্চিত করা হয়েছে।`);
     }
+    setConfirmAdmissionApp(null);
     setApplications(getAdmissionApplications());
+  };
+
+  const handleApproveAdmission = (app: AdmissionApplication) => {
+    handleOpenConfirmAdmission(app);
   };
 
   const handlePrint = () => {
@@ -1042,6 +1100,81 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
                 >
                   শিডিউল নিশ্চিত করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admission Confirmation & Fee/Workbook/Exam Assignment Modal */}
+      {confirmAdmissionApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border-2 border-emerald-300 max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>শিক্ষার্থী ভর্তি কনফার্মেশন ও ফি/ওয়ার্কবুক অ্যাসাইনমেন্ট</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {confirmAdmissionApp.studentNameBn} ({getSchoolClassNameBn(confirmAdmissionApp.applyingClass)}) — টিক দেওয়া সকল ফি স্টুডেন্ট পোর্টালে অটো জেনারেট হবে
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmAdmissionApp(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xs p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmAdmissionSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200">
+                <div>
+                  <span className="text-[11px] font-bold text-emerald-950 block">শিক্ষার্থী ও অভিভাবক:</span>
+                  <strong className="text-slate-900 block mt-0.5">
+                    {confirmAdmissionApp.studentNameBn} (পিতা: {confirmAdmissionApp.fatherNameBn})
+                  </strong>
+                  <span className="text-[11px] text-emerald-800">
+                    আবেদন নং: {confirmAdmissionApp.applicationNo}
+                  </span>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-emerald-950 block mb-1">
+                    ভর্তির তারিখ (Admission Date):
+                  </label>
+                  <input
+                    type="date"
+                    value={confirmAdmissionDate}
+                    onChange={(e) => setConfirmAdmissionDate(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl font-mono font-bold text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <StudentFeeAssignmentChecklist
+                value={confirmFeeSelection}
+                onChange={setConfirmFeeSelection}
+                showAdmissionPaidToggle
+                titleBn="কনফার্মেশনের সাথে অ্যাসাইনকৃত ফি, মাসিক ওয়ার্কবুক ও পরীক্ষার ফি টিক দিন"
+              />
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setConfirmAdmissionApp(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>ভর্তি নিশ্চিত ও স্টুডেন্ট পোর্টালে ফি জেনারেট করুন</span>
                 </button>
               </div>
             </form>

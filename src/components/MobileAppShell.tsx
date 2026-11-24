@@ -418,11 +418,6 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({
           {activePlatform === 'android' ? (
             /* ================= ANDROID SECTION ================= */
             <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                <AndroidBotIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>স্যামসাং, শাওমি, রিয়েলমি, অপো, ভিভো সহ সকল ফোনের জন্য</span>
-              </div>
-
               {/* Method 1: Instant 1-Click Install to Home Screen */}
               <div className="p-4 rounded-2xl bg-emerald-50/90 border border-emerald-300 space-y-2.5">
                 <div className="flex items-start justify-between gap-2">

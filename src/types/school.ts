@@ -232,6 +232,30 @@ export interface Student {
   biometricSyncTimeStr?: string; // সর্বশেষ ক্লাউড সিঙ্ক সময়
 }
 
+export interface CustomFeeCatalogItem {
+  id: string;
+  titleBn: string; // যেমন: "মাসিক ওয়ার্কবুক", "পরীক্ষার ফি", "সেশন ফি"
+  amount: number;
+  frequency: 'monthly' | 'exam' | 'one_time';
+  enabledByDefault: boolean; // শিক্ষার্থী কনফার্মেশন/অ্যাসাইন করার সময় ডিফল্ট টিক দেওয়া থাকবে কি না
+  descriptionBn?: string;
+  updatedAt?: string;
+}
+
+export interface SchoolFeeMasterConfig {
+  defaultAdmissionFee: number; // যেমন: 8800
+  defaultMonthlyTuitionFee: number; // যেমন: 1600
+  monthlyWorkbookEnabledByDefault: boolean;
+  monthlyWorkbookFee: number; // প্রতি মাসে ১টি করে মাসিক ওয়ার্কবুক এর মূল্য (৳)
+  monthlyWorkbookTitleBn: string;
+  defaultExamFeeEnabledByDefault: boolean;
+  defaultExamFee: number; // ডিফল্ট পরীক্ষার ফি (৳)
+  defaultExamFeeTitleBn: string;
+  customFeeItems: CustomFeeCatalogItem[];
+  updatedByBn?: string;
+  updatedAtBn?: string;
+}
+
 export interface StudentFeeConfig {
   studentId: string;
   admissionDate: string; // ISO YYYY-MM-DD, e.g. '2026-05-01'
@@ -244,6 +268,14 @@ export interface StudentFeeConfig {
   monthlyFee: number; // প্রত্যেক মাসিক ফি (৳)
   monthlyDiscount: number; // মাসিক বিশেষ ছাড় (৳)
   sessionFee?: number; // সেশন বা শিক্ষা উপকরণ ফি (৳)
+  includeAdmissionFee?: boolean;
+  includeMonthlyFee?: boolean;
+  includeMonthlyWorkbook?: boolean; // প্রতি মাসের মাসিক ওয়ার্কবুক ফি টিক অপশন
+  monthlyWorkbookFee?: number;
+  includeExamFee?: boolean; // পরীক্ষার ফি টিক অপশন
+  examFeeAmount?: number;
+  assignedCustomFeeIds?: string[]; // সুপার অ্যাডমিনের যুক্ত করা কাস্টম ফি আইটেমের টিক করা আইডি তালিকা
+  customFeeOverrides?: Record<string, number>;
   updatedByBn?: string;
   updatedAtBn?: string;
 }
@@ -404,7 +436,10 @@ export interface FeeInvoice {
   studentNameBn: string;
   className: SchoolClass;
   monthBn: string;
-  invoiceType?: 'monthly' | 'admission' | 'combined';
+  invoiceType?: 'monthly' | 'admission' | 'combined' | 'exam' | 'workbook' | 'custom';
+  examScheduleId?: string;
+  examTitleBn?: string;
+  customFeeItemId?: string;
   admissionDateBn?: string;
   totalAmount: number;
   discountAmount: number;
@@ -1211,6 +1246,9 @@ export interface ExamScheduleItem {
   examinerTeacherNameBn: string;
   assessmentType: AssessmentType;
   instructionsBn?: string;
+  examFee?: number; // পরীক্ষার ফি (৳)
+  autoGenerateExamFee?: boolean; // এক্সাম রুটিন তৈরি হলে অটো পরীক্ষার ফি জেনারেট হবে কি না
+  examFeeDueDateBn?: string; // পরীক্ষার ফি পরিশোধের শেষ তারিখ
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;
   updatedAt: string;
