@@ -4,7 +4,6 @@ import {
   SCHOOL_FEE_MASTER_EVENT,
   getSchoolFeeMasterConfig,
 } from '../utils/feeManagementLogic';
-import { toBengaliNumber } from '../utils/schoolLogic';
 import { BookOpen, CheckSquare, FileText, Sparkles } from 'lucide-react';
 
 export interface StudentFeeAssignmentSelection {
@@ -79,26 +78,6 @@ export const StudentFeeAssignmentChecklist: React.FC<
       assignedCustomFeeIds: Array.from(current),
     });
   };
-
-  // Compute summary totals
-  let oneTimeTotal = 0;
-  let monthlyTotal = 0;
-  if (value.includeAdmissionFee) oneTimeTotal += Number(value.admissionFee) || 0;
-  if (value.includeMonthlyFee) monthlyTotal += Number(value.monthlyFee) || 0;
-  if (value.includeMonthlyWorkbook)
-    monthlyTotal += Number(value.monthlyWorkbookFee) || 0;
-  if (value.includeExamFee) oneTimeTotal += Number(value.examFeeAmount) || 0;
-
-  (master.customFeeItems || []).forEach((item) => {
-    if ((value.assignedCustomFeeIds || []).includes(item.id)) {
-      const amt = value.customFeeOverrides?.[item.id] ?? item.amount;
-      if (item.frequency === 'monthly') {
-        monthlyTotal += Number(amt) || 0;
-      } else {
-        oneTimeTotal += Number(amt) || 0;
-      }
-    }
-  });
 
   return (
     <div className="p-4 rounded-2xl bg-indigo-50/90 border-2 border-indigo-300 space-y-3 text-xs">
@@ -349,22 +328,6 @@ export const StudentFeeAssignmentChecklist: React.FC<
             </div>
           );
         })}
-      </div>
-
-      {/* Summary Footer */}
-      <div className="pt-2 border-t border-indigo-200 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-indigo-950">
-        <span>
-          সক্রিয় এককালীন / পরীক্ষা ফি:{' '}
-          <strong className="font-mono text-indigo-700">
-            ৳ {toBengaliNumber(oneTimeTotal.toLocaleString())}
-          </strong>
-        </span>
-        <span>
-          সক্রিয় মাসিক মোট (বেতন + ওয়ার্কবুক/অন্যান্য):{' '}
-          <strong className="font-mono text-emerald-700">
-            ৳ {toBengaliNumber(monthlyTotal.toLocaleString())} / মাস
-          </strong>
-        </span>
       </div>
     </div>
   );
