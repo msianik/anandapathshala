@@ -1864,21 +1864,6 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     };
   }, [attendanceRecords, pickupLogs, myChild.id, myChild.rollNo, myChild.biometricEnrollId, myChild.nameBn, feeConfigSyncVer]);
 
-  // Periodic auto-sync for Parent Portal (runs immediately on mount and every 60 seconds)
-  useEffect(() => {
-    const triggerSync = () => {
-      setFeeConfigSyncVer((v) => v + 1);
-      setAllRoutines(getClassRoutines());
-      setChildWeeklyProgress(getClassWeeklyProgress(childClass, 'nov-2026-w1'));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
-      }
-    };
-    triggerSync();
-    const timer = setInterval(triggerSync, 60 * 1000);
-    return () => clearInterval(timer);
-  }, [childClass]);
-
   useEffect(() => {
     const onFeeCfgSync = () => setFeeConfigSyncVer((v) => v + 1);
     const onInvSync = () => setFeeConfigSyncVer((v) => v + 1);
@@ -1948,6 +1933,21 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       window.removeEventListener(WEEKLY_PROGRESS_UPDATE_EVENT, handleWeeklyProgressSync);
       window.removeEventListener('storage', handleRoutineSync);
     };
+  }, [childClass]);
+
+  // Periodic auto-sync for Parent Portal (runs immediately on mount and every 60 seconds)
+  useEffect(() => {
+    const triggerSync = () => {
+      setFeeConfigSyncVer((v) => v + 1);
+      setAllRoutines(getClassRoutines());
+      setChildWeeklyProgress(getClassWeeklyProgress(childClass, 'nov-2026-w1'));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
+      }
+    };
+    triggerSync();
+    const timer = setInterval(triggerSync, 60 * 1000);
+    return () => clearInterval(timer);
   }, [childClass]);
 
   const todayDay = getTodayDayOfWeek();
