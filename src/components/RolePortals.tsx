@@ -2325,9 +2325,10 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300 pt-0.5">
-                শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn} · জরুরি হেল্পলাইন: {childClassTeacher.phone}
-              </p>
+              <div className="text-xs text-slate-300 pt-0.5 space-y-0.5">
+                <div>শ্রেণি শিক্ষিকা: {childClassTeacher.nameBn}</div>
+                <div>জরুরি হেল্পলাইন: {childClassTeacher.phone}</div>
+              </div>
             </div>
 
             {/* Compact Side Notification for Unpaid Fee (একপাশে ছোট্ট নোটিফিকেশন আকারে) */}
