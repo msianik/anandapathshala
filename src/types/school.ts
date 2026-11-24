@@ -225,8 +225,8 @@ export interface Student {
   admissionDate?: string; // যেমন: '2026-05-01'
   admissionDateBn?: string; // যেমন: '০১ মে ২০২৬'
   academicYear?: string; // যেমন: '2026' বা '2027'
-  admissionFee?: number; // যেমন: 5000
-  monthlyFee?: number; // যেমন: 4000
+  admissionFee?: number; // যেমন: 8800
+  monthlyFee?: number; // যেমন: 1600
   biometricEnrollId?: string; // ডিজিটাল ফিঙ্গারপ্রিন্ট মেশিনে এনরোল আইডি (যেমন: 100, 101, বা রোল নম্বর)
   biometricSynced?: boolean; // মেশিনে রিয়েলটাইম সিঙ্ক হয়েছে কিনা
   biometricSyncTimeStr?: string; // সর্বশেষ ক্লাউড সিঙ্ক সময়

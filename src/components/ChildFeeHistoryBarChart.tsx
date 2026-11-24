@@ -312,7 +312,7 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
     const studentInvoices = invoices.filter((inv) => inv.studentId === currentStudent.id);
     const netMonthlyConfigured = Math.max(
       0,
-      (studentFeeConfig.monthlyFee || 4000) - (studentFeeConfig.monthlyDiscount || 0)
+      (studentFeeConfig.monthlyFee || 1600) - (studentFeeConfig.monthlyDiscount || 0)
     );
 
     const points: MonthlyFeeHistoryPoint[] = [];
@@ -422,7 +422,7 @@ export const ChildFeeHistoryBarChart: React.FC<ChildFeeHistoryBarChartProps> = (
         monthBn: cfg.nameBn,
         invoiceType: 'monthly',
         admissionDateBn: studentFeeConfig.admissionDateBn,
-        totalAmount: studentFeeConfig.monthlyFee || billed,
+        totalAmount: studentFeeConfig.monthlyFee || 1600,
         discountAmount: studentFeeConfig.monthlyDiscount || 0,
         netAmount: billed,
         dueDate: cfg.dueDayBn,

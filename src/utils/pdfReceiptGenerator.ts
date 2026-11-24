@@ -310,7 +310,7 @@ export async function generateOfficialReceiptPdf(
   ctx.fillStyle = '#1E1B4B';
   ctx.font = `bold 21px ${fontStack}`;
   ctx.fillText(
-    `৳ ${toBengaliNumber((feeConfig?.admissionFee || 5000).toLocaleString())} টাকা`,
+    `৳ ${toBengaliNumber((feeConfig?.admissionFee || 8800).toLocaleString())} টাকা`,
     col2X + 165,
     590
   );
@@ -329,7 +329,7 @@ export async function generateOfficialReceiptPdf(
   ctx.fillStyle = '#047857';
   ctx.font = `bold 21px ${fontStack}`;
   ctx.fillText(
-    `৳ ${toBengaliNumber((feeConfig?.monthlyFee || 4000).toLocaleString())} / মাস`,
+    `৳ ${toBengaliNumber((feeConfig?.monthlyFee || 1600).toLocaleString())} / মাস`,
     col2X + 165,
     640
   );
@@ -829,7 +829,7 @@ function generateStudentInvoicesForReport(
     { key: 'nov', nameBn: 'নভেম্বর ২০২৬', shortBn: 'নভেম্বর', dueDayBn: '১০ নভেম্বর ২০২৬' },
   ];
 
-  const netMonthly = Math.max(0, (config.monthlyFee || 4000) - (config.monthlyDiscount || 0));
+  const netMonthly = Math.max(0, (config.monthlyFee || 1600) - (config.monthlyDiscount || 0));
 
   reportMonths.forEach((m, idx) => {
     const existing = stdLive.find(
@@ -852,7 +852,7 @@ function generateStudentInvoicesForReport(
         monthBn: m.nameBn,
         invoiceType: 'monthly',
         admissionDateBn: config.admissionDateBn,
-        totalAmount: config.monthlyFee || netMonthly,
+        totalAmount: config.monthlyFee || 1600,
         discountAmount: config.monthlyDiscount || 0,
         netAmount: netMonthly,
         dueDate: m.dueDayBn,

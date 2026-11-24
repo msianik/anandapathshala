@@ -59,25 +59,17 @@ export function formatIsoDateToBengali(isoDate: string): string {
   return `${dayStr} ${monthBn} ${yearBn}`;
 }
 
-export function getDefaultClassMonthlyFee(className: SchoolClass): number {
-  if (className === 'HateKhori' || className === 'Play' || className === 'Playgroup') return 3800;
-  if (className === 'Nursery') return 4000;
-  if (className === 'KG' || className === 'KG-1') return 4500;
-  if (className === 'KG-2' || className === 'Class-1' || className === 'Class-2') return 4800;
-  return 4000;
+export function getDefaultClassMonthlyFee(_className?: SchoolClass): number {
+  return 1600;
 }
 
-export function getDefaultClassAdmissionFee(className: SchoolClass): number {
-  if (className === 'HateKhori' || className === 'Play' || className === 'Playgroup') return 4500;
-  if (className === 'Nursery') return 5000;
-  if (className === 'KG' || className === 'KG-1') return 5500;
-  if (className === 'KG-2' || className === 'Class-1' || className === 'Class-2') return 6000;
-  return 5000;
+export function getDefaultClassAdmissionFee(_className?: SchoolClass): number {
+  return 8800;
 }
 
 export function getDefaultStudentFeeConfig(student: Student): StudentFeeConfig {
-  const defaultMonthly = student.monthlyFee || getDefaultClassMonthlyFee(student.className);
-  const defaultAdmission = student.admissionFee || getDefaultClassAdmissionFee(student.className);
+  const defaultMonthly = 1600;
+  const defaultAdmission = 8800;
   const isoDate = student.admissionDate || '2026-05-01';
   const dateBn = student.admissionDateBn || formatIsoDateToBengali(isoDate);
 
@@ -113,8 +105,25 @@ export function getAllStudentFeeConfigs(): Record<string, StudentFeeConfig> {
 
 export function getStudentFeeConfig(student: Student): StudentFeeConfig {
   const all = getAllStudentFeeConfigs();
-  if (all[student.id]) {
-    return all[student.id];
+  const cfg = all[student.id];
+  if (cfg) {
+    let modified = false;
+    const upgraded: StudentFeeConfig = { ...cfg };
+    if (!upgraded.admissionFee || [4500, 5000, 5500, 6000].includes(upgraded.admissionFee)) {
+      upgraded.admissionFee = 8800;
+      modified = true;
+    }
+    if (!upgraded.monthlyFee || [3500, 3800, 4000, 4200, 4500, 4700, 4800, 5000, 5200].includes(upgraded.monthlyFee)) {
+      upgraded.monthlyFee = 1600;
+      modified = true;
+    }
+    if (modified) {
+      all[student.id] = upgraded;
+      try {
+        localStorage.setItem(STUDENT_FEE_CONFIG_STORAGE_KEY, JSON.stringify(all));
+      } catch {}
+    }
+    return upgraded;
   }
   return getDefaultStudentFeeConfig(student);
 }
@@ -235,9 +244,9 @@ export function generateStudentInvoicesFromConfig(
   const monthlyDisc = Math.max(0, config.monthlyDiscount || 0);
   const monthlyNet = Math.max(0, monthlyGross - monthlyDisc);
 
-  // Split monthly fee into clear breakdown items
-  const tuitionPortion = Math.round(monthlyGross * 0.65);
-  const snacksPortion = Math.round(monthlyGross * 0.22);
+  // Split monthly fee into clear breakdown items (e.g. 1600 -> 1000, 400, 200)
+  const tuitionPortion = monthlyGross === 1600 ? 1000 : Math.round(monthlyGross * 0.65);
+  const snacksPortion = monthlyGross === 1600 ? 400 : Math.round(monthlyGross * 0.22);
   const activityPortion = Math.max(0, monthlyGross - tuitionPortion - snacksPortion);
 
   activeMonths.forEach((mMeta, idx) => {

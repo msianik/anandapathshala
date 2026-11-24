@@ -119,8 +119,8 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
   const [newInvType, setNewInvType] = useState<'monthly' | 'admission' | 'combined'>('monthly');
   const [newInvMonthBn, setNewInvMonthBn] = useState<string>('নভেম্বর ২০২৬');
   const [newInvAdmissionDate, setNewInvAdmissionDate] = useState<string>('2026-05-01');
-  const [newInvAdmissionFee, setNewInvAdmissionFee] = useState<number>(5000);
-  const [newInvMonthlyFee, setNewInvMonthlyFee] = useState<number>(4000);
+  const [newInvAdmissionFee, setNewInvAdmissionFee] = useState<number>(8800);
+  const [newInvMonthlyFee, setNewInvMonthlyFee] = useState<number>(1600);
   const [newInvDiscount, setNewInvDiscount] = useState<number>(0);
   const [newInvDueDateBn, setNewInvDueDateBn] = useState<string>('১০ নভেম্বর ২০২৬');
   const [newInvStatus, setNewInvStatus] = useState<'unpaid' | 'paid'>('unpaid');
@@ -3152,8 +3152,8 @@ export const FeeAccountsModule: React.FC<FeeAccountsModuleProps> = ({
                     <div className="text-right">
                       <span className="text-slate-400 block text-[10px]">ফি কাঠামো (ভর্তি / মাসিক):</span>
                       <span className="font-mono font-bold text-indigo-800">
-                        ভর্তি ৳{toBengaliNumber(cfg?.admissionFee || 5000)} · মাসিক ৳
-                        {toBengaliNumber(cfg?.monthlyFee || 4000)}
+                        ভর্তি ৳{toBengaliNumber(cfg?.admissionFee || 8800)} · মাসিক ৳
+                        {toBengaliNumber(cfg?.monthlyFee || 1600)}
                       </span>
                     </div>
                   </div>
