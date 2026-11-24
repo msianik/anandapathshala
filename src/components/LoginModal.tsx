@@ -7,6 +7,12 @@ import {
   resetPortalAccountCredentials,
 } from '../utils/schoolLogic';
 import {
+  getStoredBiometricCredential,
+  registerBiometricCredential,
+  verifyBiometricAuth,
+  StoredBiometricCredential,
+} from '../utils/biometricAuthStorage';
+import {
   Lock,
   User,
   Sparkles,
@@ -24,6 +30,7 @@ import {
   Send,
   AlertCircle,
   Loader2,
+  Fingerprint,
 } from 'lucide-react';
 
 interface LoginModalProps {
@@ -66,7 +73,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [forgotErrorBn, setForgotErrorBn] = useState<string | null>(null);
 
-  // Reset state when modal opens/closes
+  // Biometric / Fingerprint Authentication State
+  const [storedBiometricCred, setStoredBiometricCred] = useState<StoredBiometricCredential | null>(null);
+  const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
+  const [enableBiometricOnLogin, setEnableBiometricOnLogin] = useState(true);
+
+  // Reset state & Load Biometric Credential when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setIdentifier('');
@@ -77,10 +89,54 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsForgotMode(false);
       setForgotStep('verify');
       setForgotErrorBn(null);
+      setIsBiometricAuthenticating(false);
+    } else {
+      const cred = getStoredBiometricCredential();
+      setStoredBiometricCred(cred);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Direct Biometric Login Handler
+  const handleBiometricLogin = async () => {
+    setErrorBn(null);
+    setIsBiometricAuthenticating(true);
+
+    try {
+      const cred = await verifyBiometricAuth();
+      if (!cred) {
+        setErrorBn('বায়োমেট্রিক তথ্য যাচাই করা যায়নি। অনুগ্রহ করে ইউজার আইডি ও পাসওয়ার্ড দিয়ে লগইন করুন।');
+        setIsBiometricAuthenticating(false);
+        return;
+      }
+
+      const account = detectAccountFromIdentifier(cred.accountId);
+      if (!account) {
+        setErrorBn('সংরক্ষিত বায়োমেট্রিক অ্যাকাউন্টের জন্য কোনো সক্রিয় অ্যাকাউন্ট পাওয়া যায়নি।');
+        setIsBiometricAuthenticating(false);
+        return;
+      }
+
+      if (account.isAccessDisabled) {
+        setErrorBn('🚫 আপনার অ্যাকাউন্টটির অ্যাক্সেস বর্তমানে ব্লকড রয়েছে।');
+        setIsBiometricAuthenticating(false);
+        return;
+      }
+
+      setAuthenticatedAccount(account);
+      setLoginState('success');
+      setTimeout(() => {
+        onLoginSuccess(account);
+        setLoginState('idle');
+        setIsBiometricAuthenticating(false);
+      }, 900);
+    } catch (err) {
+      console.error('Biometric login error:', err);
+      setErrorBn('বায়োমেট্রিক অথেন্টিকেশন ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।');
+      setIsBiometricAuthenticating(false);
+    }
+  };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +178,20 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setLoginState('idle');
       setErrorBn('পাসওয়ার্ডটি সঠিক নয়। অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন।');
       return;
+    }
+
+    // Register biometric credential for future instant logins if enabled
+    if (enableBiometricOnLogin) {
+      const accountId = account.userName || account.mobileNumber || String(account.id);
+      const roleLabel =
+        account.role === 'super_admin'
+          ? 'সুপার অ্যাডমিন'
+          : account.role === 'principal'
+          ? 'প্রধান শিক্ষক / পরিচালক'
+          : account.role === 'teacher'
+          ? 'শিক্ষক'
+          : 'অভিভাবক';
+      registerBiometricCredential(accountId, account.nameBn || account.userName, roleLabel);
     }
 
     // Success animation phase
@@ -579,6 +649,42 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           {/* STANDARD CLEAN LOGIN FORM */}
           {loginState !== 'success' && !isForgotMode && (
             <form onSubmit={handleFormSubmit} className="space-y-4">
+              {/* Biometric Quick Login Card if stored */}
+              {storedBiometricCred && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border border-emerald-300 shadow-xs space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Fingerprint className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-900">{storedBiometricCred.userName}</p>
+                        <p className="text-[10.5px] text-emerald-800 font-semibold">{storedBiometricCred.userRole} • সেভ করা বায়োমেট্রিক</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isBiometricAuthenticating}
+                    onClick={handleBiometricLogin}
+                    className="w-full py-2.5 px-3 text-xs font-black text-white bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 active:scale-[0.99] rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                  >
+                    {isBiometricAuthenticating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>বায়োমেট্রিক স্ক্যান হচ্ছে...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Fingerprint className="w-4 h-4 text-emerald-200" />
+                        <span>ফিঙ্গারপ্রিন্ট / ফেস-আনলক দিয়ে সরাসরি লগইন</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
               {errorBn && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium flex items-center gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -644,6 +750,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+              </div>
+
+              {/* Save Biometric Option Checkbox */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <input
+                  type="checkbox"
+                  id="enableBiometric"
+                  checked={enableBiometricOnLogin}
+                  onChange={(e) => setEnableBiometricOnLogin(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                />
+                <label htmlFor="enableBiometric" className="text-xs font-bold text-slate-700 cursor-pointer select-none flex items-center gap-1">
+                  <Fingerprint className="w-3.5 h-3.5 text-emerald-700 inline" />
+                  <span>পরবর্তী লগইনে ফিঙ্গারপ্রিন্ট / ফেস-আনলক সেভ রাখুন</span>
+                </label>
               </div>
 
               {/* Submit Button with Smooth Animation */}
