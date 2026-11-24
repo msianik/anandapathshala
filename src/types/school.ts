@@ -207,6 +207,10 @@ export interface Student {
   bloodGroup: string;
   gender: 'male' | 'female';
   allergies: string;
+  heightCm?: number;
+  weightKg?: number;
+  regularMedicationsBn?: string;
+  emergencyDoctorPhone?: string;
   emergencyPhone: string;
   email?: string;
   fatherNameBn: string;
@@ -344,6 +348,11 @@ export interface AdmissionApplication {
   dateOfBirth: string; // "YYYY-MM-DD"
   gender: 'male' | 'female';
   bloodGroup?: string;
+  heightCm?: number;
+  weightKg?: number;
+  allergies?: string;
+  regularMedicationsBn?: string;
+  emergencyDoctorPhone?: string;
   photoUrl?: string;
   applyingClass: SchoolClass;
   preferredShift: SchoolShift; // 'morning' (০৮:০০-১১:০০) | 'day' (১১:০০-০২:০০)

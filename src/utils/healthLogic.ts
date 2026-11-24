@@ -450,8 +450,33 @@ export const INITIAL_STUDENT_HEALTH_PROFILES: StudentHealthProfile[] = [
 /**
  * Create a default synthetic health profile for any student
  */
+export function parseAllergiesTextToItems(
+  studentId: string,
+  allergiesText?: string
+): StudentAllergyItem[] {
+  if (!allergiesText) return [];
+  const trimmed = allergiesText.trim();
+  if (!trimmed || trimmed === 'নেই' || trimmed.toLowerCase() === 'none') {
+    return [];
+  }
+  return trimmed
+    .split(/[,،]+/)
+    .map((s) => s.trim())
+    .filter((s) => s && s !== 'নেই' && s.toLowerCase() !== 'none')
+    .map((item, idx) => ({
+      id: `allg-${studentId}-${idx + 1}`,
+      allergenBn: item,
+      severity:
+        item.includes('শ্বাসকষ্ট') || item.includes('চিংড়ি') || item.includes('বাদাম')
+          ? ('high' as const)
+          : ('medium' as const),
+      symptomsBn: 'চুলকানি বা অস্বস্তি দেখা দিতে পারে',
+      precautionsBn: 'টিফিন বা পরিবেশিত খাদ্যে এটি সম্পূর্ণ এড়িয়ে চলুন',
+    }));
+}
+
 export function createDefaultHealthProfileForStudent(std: Student): StudentHealthProfile {
-  const heightCm =
+  const defaultHeight =
     std.className === 'HateKhori'
       ? 88
       : std.className === 'Play'
@@ -463,7 +488,7 @@ export function createDefaultHealthProfileForStudent(std: Student): StudentHealt
       : std.className === 'Class-1'
       ? 114
       : 120;
-  const weightKg =
+  const defaultWeight =
     std.className === 'HateKhori'
       ? 12.5
       : std.className === 'Play'
@@ -475,26 +500,11 @@ export function createDefaultHealthProfileForStudent(std: Student): StudentHealt
       : std.className === 'Class-1'
       ? 20.5
       : 23.0;
+  const heightCm = std.heightCm && std.heightCm > 0 ? std.heightCm : defaultHeight;
+  const weightKg = std.weightKg && std.weightKg > 0 ? std.weightKg : defaultWeight;
   const bmiCalc = calculateBmi(heightCm, weightKg);
 
-  const allergiesList: StudentAllergyItem[] = [];
-  if (
-    std.allergies &&
-    std.allergies !== 'নেই' &&
-    std.allergies !== 'None' &&
-    std.allergies.trim()
-  ) {
-    allergiesList.push({
-      id: `allg-${std.id}-1`,
-      allergenBn: std.allergies,
-      severity:
-        std.allergies.includes('শ্বাসকষ্ট') || std.allergies.includes('চিংড়ি')
-          ? 'high'
-          : 'medium',
-      symptomsBn: 'চুলকানি বা অস্বস্তি দেখা দিতে পারে',
-      precautionsBn: 'টিফিন বা পরিবেশিত খাদ্যে এটি সম্পূর্ণ এড়িয়ে চলুন',
-    });
-  }
+  const allergiesList = parseAllergiesTextToItems(std.id, std.allergies);
 
   return {
     studentId: std.id,
@@ -510,13 +520,15 @@ export function createDefaultHealthProfileForStudent(std: Student): StudentHealt
     bmiStatusBn: bmiCalc.statusBn,
     growthMilestoneBn: 'শারীরিক বৃদ্ধি ও বিকাশ স্বাভাবিক ও সন্তোষজনক গতিতে রয়েছে।',
     allergiesList,
+    regularMedicationsBn: std.regularMedicationsBn || undefined,
+    emergencyDoctorPhone: std.emergencyDoctorPhone || undefined,
     criticalHealthAlertBn: allergiesList.some((a) => a.severity === 'high')
       ? 'খাদ্য ও অ্যালার্জেন উপাদানে বিশেষ সতর্কতা আবশ্যক'
       : undefined,
     vaccinations: DEFAULT_VACCINATION_SCHEDULE,
     growthHistory: [
       {
-        monthBn: 'চলতি মাস',
+        monthBn: 'ভর্তি / চলতি মাস',
         heightCm,
         weightKg,
         bmi: bmiCalc.bmi,
@@ -524,9 +536,78 @@ export function createDefaultHealthProfileForStudent(std: Student): StudentHealt
       },
     ],
     lastCheckedDateBn: 'চলতি মাস',
-    updatedByTeacherBn: 'শ্রেণি শিক্ষক',
+    updatedByTeacherBn: 'ভর্তি ফরম ও শ্রেণি শিক্ষক',
     updatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Synchronizes health profile explicitly when entered or updated in Admission Forms.
+ */
+export function syncStudentHealthFieldsToHealthProfile(
+  std: Student,
+  healthFields?: {
+    heightCm?: number;
+    weightKg?: number;
+    bloodGroup?: string;
+    allergiesText?: string;
+    regularMedicationsBn?: string;
+    emergencyDoctorPhone?: string;
+  },
+  year?: string
+): StudentHealthProfile {
+  const targetYear = year || getActiveAcademicYear();
+  const baseDefault = createDefaultHealthProfileForStudent(std);
+  const heightCm =
+    healthFields?.heightCm && healthFields.heightCm > 0
+      ? healthFields.heightCm
+      : baseDefault.heightCm;
+  const weightKg =
+    healthFields?.weightKg && healthFields.weightKg > 0
+      ? healthFields.weightKg
+      : baseDefault.weightKg;
+  const bloodGroup = healthFields?.bloodGroup || std.bloodGroup || baseDefault.bloodGroup;
+  const allergiesList =
+    healthFields?.allergiesText !== undefined
+      ? parseAllergiesTextToItems(std.id, healthFields.allergiesText)
+      : baseDefault.allergiesList;
+
+  return updateStudentHealthProfile(
+    std.id,
+    {
+      studentNameBn: std.nameBn,
+      studentNameEn: std.nameEn,
+      rollNo: std.rollNo,
+      className: std.className,
+      sectionBn: std.section || 'গোলাপ শাখা (ক)',
+      bloodGroup,
+      heightCm,
+      weightKg,
+      allergiesList,
+      regularMedicationsBn:
+        healthFields?.regularMedicationsBn !== undefined
+          ? healthFields.regularMedicationsBn.trim() || undefined
+          : std.regularMedicationsBn,
+      emergencyDoctorPhone:
+        healthFields?.emergencyDoctorPhone !== undefined
+          ? healthFields.emergencyDoctorPhone.trim() || undefined
+          : std.emergencyDoctorPhone,
+      criticalHealthAlertBn: allergiesList.some((a) => a.severity === 'high')
+        ? 'খাদ্য ও অ্যালার্জেন উপাদানে বিশেষ সতর্কতা আবশ্যক'
+        : undefined,
+      growthHistory: [
+        {
+          monthBn: 'ভর্তি সময়কাল',
+          heightCm,
+          weightKg,
+          bmi: calculateBmi(heightCm, weightKg).bmi,
+          recordedDateBn: 'ভর্তি ফরম সিঙ্ক',
+        },
+      ],
+      updatedByTeacherBn: 'ভর্তি ফরম অটো-সিঙ্ক',
+    },
+    targetYear
+  );
 }
 
 /**
@@ -547,6 +628,14 @@ export function syncHealthProfilesWithStudents(
   return students.map((std) => {
     const existing = storedProfiles.find((p) => p.studentId === std.id);
     if (existing) {
+      const nextHeight = std.heightCm && std.heightCm > 0 ? std.heightCm : existing.heightCm;
+      const nextWeight = std.weightKg && std.weightKg > 0 ? std.weightKg : existing.weightKg;
+      const bmiCalc = calculateBmi(nextHeight, nextWeight);
+      const nextAllergies =
+        std.allergies && std.allergies !== 'নেই' && existing.allergiesList.length === 0
+          ? parseAllergiesTextToItems(std.id, std.allergies)
+          : existing.allergiesList;
+
       return {
         ...existing,
         studentNameBn: std.nameBn,
@@ -555,6 +644,13 @@ export function syncHealthProfilesWithStudents(
         className: std.className,
         sectionBn: std.section || existing.sectionBn,
         bloodGroup: std.bloodGroup || existing.bloodGroup,
+        heightCm: nextHeight,
+        weightKg: nextWeight,
+        bmi: bmiCalc.bmi,
+        bmiStatusBn: bmiCalc.statusBn,
+        allergiesList: nextAllergies,
+        regularMedicationsBn: existing.regularMedicationsBn || std.regularMedicationsBn,
+        emergencyDoctorPhone: existing.emergencyDoctorPhone || std.emergencyDoctorPhone,
       };
     }
     return createDefaultHealthProfileForStudent(std);

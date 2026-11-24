@@ -92,6 +92,11 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
     dateOfBirth: '2022-01-01',
     gender: 'male' as 'male' | 'female',
     bloodGroup: 'B+',
+    heightCm: 102,
+    weightKg: 16.5,
+    allergies: '',
+    regularMedicationsBn: '',
+    emergencyDoctorPhone: '',
     applyingClass: 'Play' as SchoolClass,
     preferredShift: 'morning' as SchoolShift,
     fatherNameBn: '',
@@ -173,6 +178,11 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
       dateOfBirth: '2022-01-01',
       gender: 'male',
       bloodGroup: 'B+',
+      heightCm: 102,
+      weightKg: 16.5,
+      allergies: '',
+      regularMedicationsBn: '',
+      emergencyDoctorPhone: '',
       applyingClass: 'Play',
       preferredShift: 'morning',
       fatherNameBn: '',
@@ -992,6 +1002,98 @@ export const OnlineAdmissionModule: React.FC<OnlineAdmissionModuleProps> = ({
                       value={formData.presentAddressBn}
                       onChange={(e) => setFormData({ ...formData, presentAddressBn: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                {/* Section 3: Health, Growth & Allergy Info (Auto-Synced to ChildHealthModule) */}
+                <div className="space-y-3 bg-rose-50/50 border border-rose-200 rounded-2xl p-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-rose-800 border-b border-rose-200/80 pb-1 flex items-center gap-1.5">
+                    <Heart className="w-3.5 h-3.5 text-rose-600" />
+                    <span>৩. শিশুর স্বাস্থ্য, বৃদ্ধি ও অ্যালার্জি তথ্য (স্বাস্থ্য মডিউলে অটো-সিঙ্ক)</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        উচ্চতা (সে.মি.):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min={0}
+                        value={formData.heightCm}
+                        onChange={(e) => setFormData({ ...formData, heightCm: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        ওজন (কেজি):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.2"
+                        min={0}
+                        value={formData.weightKg}
+                        onChange={(e) => setFormData({ ...formData, weightKg: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        রক্তের গ্রুপ:
+                      </label>
+                      <select
+                        value={formData.bloodGroup}
+                        onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white"
+                      >
+                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                          <option key={bg} value={bg}>
+                            {bg}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      অ্যালার্জি সতর্কতা (কমা দিয়ে একাধিক লিখতে পারেন):
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.allergies}
+                      onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                      placeholder="যেমন: চিনাবাদাম, ডিমের সাদা অংশ, গরুর দুধ"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      নিয়মিত ওষুধ বা বিশেষ যত্ন নির্দেশিকা:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={formData.regularMedicationsBn}
+                      onChange={(e) => setFormData({ ...formData, regularMedicationsBn: e.target.value })}
+                      placeholder="যেমন: দুপুর ১২:০০ টায় ১ চামচ সিরাপ..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      জরুরি শিশু বিশেষজ্ঞ / পারিবারিক ডাক্তারের ফোন:
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.emergencyDoctorPhone}
+                      onChange={(e) => setFormData({ ...formData, emergencyDoctorPhone: e.target.value })}
+                      placeholder="যেমন: ০১৭১২-১১২২৩৩"
+                      className="w-full px-3 py-2 rounded-xl border border-amber-400 text-xs font-mono text-slate-900 bg-white"
                     />
                   </div>
                 </div>

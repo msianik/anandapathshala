@@ -29,6 +29,10 @@ import {
   formatIsoDateToBengali,
 } from '../utils/feeManagementLogic';
 import {
+  getStoredHealthProfiles,
+  syncStudentHealthFieldsToHealthProfile,
+} from '../utils/healthLogic';
+import {
   StudentFeeAssignmentChecklist,
   StudentFeeAssignmentSelection,
   createInitialFeeAssignmentSelection,
@@ -207,7 +211,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     emergencyPhone: '',
     email: '',
     homeAddressBn: 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
-    allergies: 'নেই',
+    allergies: '',
+    heightCm: 102,
+    weightKg: 16.5,
+    regularMedicationsBn: '',
+    emergencyDoctorPhone: '',
     guardianNameBn: '',
     guardianRelationBn: 'পিতা',
     currentStatus: 'in_class' as 'in_class' | 'picked_up' | 'absent',
@@ -407,7 +415,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       emergencyPhone: '',
       email: '',
       homeAddressBn: 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
-      allergies: 'নেই',
+      allergies: '',
+      heightCm: 102,
+      weightKg: 16.5,
+      regularMedicationsBn: '',
+      emergencyDoctorPhone: '',
       guardianNameBn: '',
       guardianRelationBn: 'পিতা',
       currentStatus: 'in_class',
@@ -444,6 +456,16 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
     } else {
       setUploadedPhotoName('');
     }
+    const existingHealth = getStoredHealthProfiles(currentAcademicYear).find(
+      (p) => p.studentId === student.id
+    );
+    const existingAllergiesText =
+      existingHealth && existingHealth.allergiesList.length > 0
+        ? existingHealth.allergiesList.map((a) => a.allergenBn).join(', ')
+        : student.allergies && student.allergies !== 'নেই'
+        ? student.allergies
+        : '';
+
     setFormData({
       rollNo: student.rollNo,
       nameBn: student.nameBn,
@@ -453,14 +475,20 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       shift: student.shift || 'morning',
       gender: student.gender,
       birthDate: student.birthDate,
-      bloodGroup: student.bloodGroup || 'B+',
+      bloodGroup: existingHealth?.bloodGroup || student.bloodGroup || 'B+',
       photoUrl: student.photoUrl || '',
       fatherNameBn: student.fatherNameBn || '',
       motherNameBn: student.motherNameBn || '',
       emergencyPhone: student.emergencyPhone || '',
       email: student.email || '',
       homeAddressBn: student.homeAddressBn || 'গোশালা, কোর্টপাড়া, কুষ্টিয়া',
-      allergies: student.allergies || 'নেই',
+      allergies: existingAllergiesText,
+      heightCm: existingHealth?.heightCm || student.heightCm || 102,
+      weightKg: existingHealth?.weightKg || student.weightKg || 16.5,
+      regularMedicationsBn:
+        existingHealth?.regularMedicationsBn || student.regularMedicationsBn || '',
+      emergencyDoctorPhone:
+        existingHealth?.emergencyDoctorPhone || student.emergencyDoctorPhone || '',
       guardianNameBn: student.guardianNameBn || student.authorizedPickups[0]?.nameBn || student.fatherNameBn || '',
       guardianRelationBn: student.guardianRelationBn || student.authorizedPickups[0]?.relationBn || 'পিতা',
       currentStatus: student.currentStatus,
@@ -532,7 +560,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       gender: formData.gender,
       birthDate: formData.birthDate,
       bloodGroup: formData.bloodGroup,
-      allergies: formData.allergies,
+      allergies: formData.allergies.trim() || 'নেই',
+      heightCm: Number(formData.heightCm) || 102,
+      weightKg: Number(formData.weightKg) || 16.5,
+      regularMedicationsBn: formData.regularMedicationsBn.trim() || undefined,
+      emergencyDoctorPhone: formData.emergencyDoctorPhone.trim() || undefined,
       emergencyPhone: formData.emergencyPhone.trim() || '০১৯১৪-০৫৭৫১১',
       email: formData.email.trim() || undefined,
       fatherNameBn: formData.fatherNameBn.trim(),
@@ -573,6 +605,19 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       assignedCustomFeeIds: studentFeeAssignment.assignedCustomFeeIds,
       customFeeOverrides: studentFeeAssignment.customFeeOverrides,
     });
+
+    syncStudentHealthFieldsToHealthProfile(
+      newStudent,
+      {
+        heightCm: Number(formData.heightCm) || 102,
+        weightKg: Number(formData.weightKg) || 16.5,
+        bloodGroup: formData.bloodGroup,
+        allergiesText: formData.allergies,
+        regularMedicationsBn: formData.regularMedicationsBn,
+        emergencyDoctorPhone: formData.emergencyDoctorPhone,
+      },
+      currentAcademicYear
+    );
 
     upsertPortalAccount({
       id: `acc-std-${newId}`,
@@ -656,7 +701,11 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       gender: formData.gender,
       birthDate: formData.birthDate,
       bloodGroup: formData.bloodGroup,
-      allergies: formData.allergies,
+      allergies: formData.allergies.trim() || 'নেই',
+      heightCm: Number(formData.heightCm) || editingStudent.heightCm || 102,
+      weightKg: Number(formData.weightKg) || editingStudent.weightKg || 16.5,
+      regularMedicationsBn: formData.regularMedicationsBn.trim() || undefined,
+      emergencyDoctorPhone: formData.emergencyDoctorPhone.trim() || undefined,
       emergencyPhone: formData.emergencyPhone.trim() || editingStudent.emergencyPhone,
       email: formData.email.trim() || editingStudent.email,
       fatherNameBn: formData.fatherNameBn.trim(),
@@ -696,6 +745,19 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
       assignedCustomFeeIds: studentFeeAssignment.assignedCustomFeeIds,
       customFeeOverrides: studentFeeAssignment.customFeeOverrides,
     });
+
+    syncStudentHealthFieldsToHealthProfile(
+      updatedStudent,
+      {
+        heightCm: Number(formData.heightCm) || 102,
+        weightKg: Number(formData.weightKg) || 16.5,
+        bloodGroup: formData.bloodGroup,
+        allergiesText: formData.allergies,
+        regularMedicationsBn: formData.regularMedicationsBn,
+        emergencyDoctorPhone: formData.emergencyDoctorPhone,
+      },
+      currentAcademicYear
+    );
 
     upsertPortalAccount({
       id: `acc-std-${updatedStudent.id}`,
@@ -1829,7 +1891,7 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">লিঙ্গ</label>
                   <select
@@ -1851,23 +1913,93 @@ export const StudentDirectoryModule: React.FC<StudentDirectoryModuleProps> = ({
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800"
                   />
                 </div>
+              </div>
+
+              {/* 3B. HEALTH, GROWTH & ALLERGY INFORMATION (Auto-Synced to ChildHealthModule) */}
+              <div className="p-3.5 bg-rose-50/50 rounded-2xl border border-rose-200 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="font-black text-rose-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                    <Heart className="w-3.5 h-3.5 text-rose-600" />
+                    <span>শিশুর স্বাস্থ্য, উচ্চতা, ওজন ও অ্যালার্জি তথ্য (স্বাস্থ্য মডিউলে অটো-সিঙ্ক)</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">উচ্চতা (সে.মি.):</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min={0}
+                      value={formData.heightCm}
+                      onChange={(e) => setFormData({ ...formData, heightCm: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">ওজন (কেজি):</label>
+                    <input
+                      type="number"
+                      step="0.2"
+                      min={0}
+                      value={formData.weightKg}
+                      onChange={(e) => setFormData({ ...formData, weightKg: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">রক্তের গ্রুপ:</label>
+                    <select
+                      value={formData.bloodGroup}
+                      onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800"
+                    >
+                      {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                        <option key={bg} value={bg}>
+                          {bg}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">রক্তের গ্রুপ</label>
-                  <select
-                    value={formData.bloodGroup}
-                    onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-slate-800"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    অ্যালার্জি সতর্কতা (কমা দিয়ে একাধিক লিখতে পারেন):
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.allergies}
+                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                    placeholder="যেমন: চিনাবাদাম, ডিমের সাদা অংশ, গরুর দুধ"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    নিয়মিত ওষুধ বা বিশেষ যত্ন নির্দেশিকা:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={formData.regularMedicationsBn}
+                    onChange={(e) => setFormData({ ...formData, regularMedicationsBn: e.target.value })}
+                    placeholder="যেমন: দুপুর ১২:০০ টায় ১ চামচ সিরাপ..."
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    জরুরি শিশু বিশেষজ্ঞ / পারিবারিক ডাক্তারের ফোন:
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emergencyDoctorPhone}
+                    onChange={(e) => setFormData({ ...formData, emergencyDoctorPhone: e.target.value })}
+                    placeholder="যেমন: ০১৭১২-১১২২৩৩"
+                    className="w-full px-3 py-2 bg-white border border-amber-400 rounded-xl font-mono text-slate-800"
+                  />
                 </div>
               </div>
 

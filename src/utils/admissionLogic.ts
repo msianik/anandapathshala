@@ -10,6 +10,7 @@ import {
 } from './academicYearLogic';
 import { cloudSaveStudents } from '../lib/schoolCloudSync';
 import { syncStudentToHomeworkChecklists } from './homeworkChecklistLogic';
+import { syncStudentHealthFieldsToHealthProfile } from './healthLogic';
 
 export const ADMISSION_UPDATE_EVENT = 'anando_admission_update';
 const ADMISSIONS_STORAGE_KEY = 'anando_admission_applications_v1';
@@ -223,7 +224,11 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
       gender: app.gender,
       birthDate: app.dateOfBirth,
       bloodGroup: app.bloodGroup || 'B+',
-      allergies: 'নেই',
+      allergies: app.allergies || 'নেই',
+      heightCm: app.heightCm,
+      weightKg: app.weightKg,
+      regularMedicationsBn: app.regularMedicationsBn,
+      emergencyDoctorPhone: app.emergencyDoctorPhone,
       emergencyPhone: app.fatherPhone || app.emergencyContact,
       email: `${cleanUsername}@anandapathshala.edu.bd`,
       fatherNameBn: app.fatherNameBn,
@@ -275,6 +280,18 @@ export function enrollStudentFromAdmission(app: AdmissionApplication): Student |
     try {
       cloudSaveStudents(updatedStudents);
       syncStudentToHomeworkChecklists(newStudent);
+      syncStudentHealthFieldsToHealthProfile(
+        newStudent,
+        {
+          heightCm: app.heightCm,
+          weightKg: app.weightKg,
+          bloodGroup: app.bloodGroup || newStudent.bloodGroup,
+          allergiesText: app.allergies || newStudent.allergies,
+          regularMedicationsBn: app.regularMedicationsBn,
+          emergencyDoctorPhone: app.emergencyDoctorPhone,
+        },
+        currentYear
+      );
     } catch {}
 
     upsertPortalAccount({
