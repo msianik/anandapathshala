@@ -22,7 +22,7 @@
  * 7. Master One-Click Sync function: `syncAllPortalDataToCloud()`
  */
 
-import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { db } from './firebase';
 import {
   Student,
@@ -1208,6 +1208,68 @@ export interface CloudSyncListeners {
 }
 
 /**
+ * Actively pulls the latest biometric logs, attendance records, and class routines
+ * directly from Cloud Firestore so manual or 1-minute auto-sync always gets fresh data.
+ */
+export async function cloudPullLatestAttendanceAndRoutines(): Promise<{
+  pulledBiometricLogs: boolean;
+  pulledAttendance: boolean;
+  pulledRoutines: boolean;
+}> {
+  const result = {
+    pulledBiometricLogs: false,
+    pulledAttendance: false,
+    pulledRoutines: false,
+  };
+
+  try {
+    const [bioSnap, attSnap, routineSnap] = await Promise.all([
+      getDoc(doc(db, COLLECTION_NAME, 'biometric_logs')),
+      getDoc(doc(db, COLLECTION_NAME, 'attendance')),
+      getDoc(doc(db, COLLECTION_NAME, 'routines')),
+    ]);
+
+    if (bioSnap.exists()) {
+      const bioData = bioSnap.data();
+      if (Array.isArray(bioData?.items) && bioData.items.length > 0) {
+        safeLocalSet('ananda_biometric_punch_logs_v1', bioData.items);
+        safeLocalSet('ap_biometric_punch_logs_v1', bioData.items);
+        result.pulledBiometricLogs = true;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: bioData.items } }));
+        }
+      }
+    }
+
+    if (attSnap.exists()) {
+      const attData = attSnap.data();
+      if (Array.isArray(attData?.items) && attData.items.length > 0) {
+        safeLocalSet('ananda_attendance_v1', attData.items);
+        result.pulledAttendance = true;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('ananda-attendance-updated', { detail: attData.items }));
+        }
+      }
+    }
+
+    if (routineSnap.exists()) {
+      const routineData = routineSnap.data();
+      if (Array.isArray(routineData?.items) && routineData.items.length > 0) {
+        safeLocalSet('ananda_school_class_routines_v2', routineData.items);
+        result.pulledRoutines = true;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('ananda-routines-updated', { detail: { routines: routineData.items } }));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudSync] Failed to pull latest attendance/routines from Firestore:', err);
+  }
+
+  return result;
+}
+
+/**
  * Initializes continuous two-way real-time Firestore listeners for all school datasets.
  * Includes conflict resolution so newer local edits are never wiped by older cloud data.
  */
@@ -1616,8 +1678,10 @@ export function subscribeToSchoolCloud(
           if (Array.isArray(data?.items)) {
             safeProcessCloudUpdate(() => {
               safeLocalSet('ananda_biometric_punch_logs_v1', data.items);
+              safeLocalSet('ap_biometric_punch_logs_v1', data.items);
               listeners.onBiometricLogsChange?.(data.items);
               window.dispatchEvent(new CustomEvent('ananda-biometric-logs-updated', { detail: { logs: data.items } }));
+              window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
             });
           }
         }

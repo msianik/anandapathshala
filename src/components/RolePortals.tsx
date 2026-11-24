@@ -1766,6 +1766,8 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
   }, [myChild?.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);
   const [biometricSyncTimestamp, setBiometricSyncTimestamp] = useState<number>(() => Date.now());
+  const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
+  const [syncDoneFlash, setSyncDoneFlash] = useState<boolean>(false);
 
   // Live Attendance calculation strictly from Real Biometric Machine Punches (No Mock Data)
   const childAttendanceStats = React.useMemo(() => {
@@ -1828,25 +1830,23 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     );
     const pickupTimeStr = myPickup?.timestamp ? myPickup.timestamp.replace(/^আজ[, ]*/, '').trim() : null;
 
-    // 3. Look in attendanceRecords
+    // 3. Look in attendanceRecords strictly for TODAY
     const myRecords = (attendanceRecords || []).filter(
       (r) => r.studentId === myChild.id || (myChild.rollNo && normalizeIdentifier(r.rollNo) === normalizeIdentifier(myChild.rollNo))
     );
-    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr)) || myRecords[0];
+    const todayRec = myRecords.find((r) => isTodayLog(r.entryTimestamp, r.dateStr));
 
-    // Real check-in time strictly from biometric machine punch:
+    // Real check-in time strictly from today's biometric machine punch or today's synced record:
     const realCheckInTime =
       todayEntry?.punchTimeStr ||
       (todayRec?.biometricSynced && todayRec.checkInTime ? todayRec.checkInTime : null) ||
-      latestSessionEntry?.punchTimeStr ||
       null;
 
-    // Real school exit / departure time strictly from device exit punch, gate pickup, or synced records:
+    // Real school exit / departure time strictly from today's device exit punch, gate pickup, or today's synced record:
     const realCheckOutTime =
       todayExit?.punchTimeStr ||
       pickupTimeStr ||
       (todayRec?.biometricSynced && todayRec.checkOutTime ? todayRec.checkOutTime : null) ||
-      latestSessionExit?.punchTimeStr ||
       null;
 
     const present = myRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
@@ -1859,8 +1859,8 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
       totalDays,
       recentCheckIn: realCheckInTime,
       checkOutTime: realCheckOutTime,
-      isBiometricSynced: Boolean(todayEntry || latestSessionEntry || (todayRec?.biometricSynced && realCheckInTime)),
-      punchDate: todayEntry?.dateStr || latestDateStr || todayRec?.dateStr,
+      isBiometricSynced: Boolean(todayEntry || (todayRec?.biometricSynced && realCheckInTime)),
+      punchDate: todayEntry?.dateStr || todayRec?.dateStr,
       hasPunchedToday: Boolean(realCheckInTime),
     };
   }, [attendanceRecords, pickupLogs, myChild.id, myChild.rollNo, myChild.biometricEnrollId, myChild.nameBn, feeConfigSyncVer]);
@@ -2288,23 +2288,31 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                   <span className={`w-2.5 h-2.5 rounded-full ${liveChildStatusInfo.dotColor}`} />
                   <span>আজকের লাইভ স্ট্যাটাস</span>
                 </span>
-                <span className="text-xs text-slate-300 flex items-center gap-1">
-                  <span className="text-emerald-400">●</span> অটো সিঙ্ক
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFeeConfigSyncVer((v) => v + 1);
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
-                        window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
-                      }
-                    }}
-                    title="বায়োমেট্রিক মেশিন থেকে এখনই রিফ্রেশ ও সিঙ্ক করুন"
-                    className="ml-1 p-0.5 rounded text-amber-200 hover:text-white hover:bg-white/10 cursor-pointer transition active:scale-90 inline-flex items-center"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                  </button>
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManualSyncing(true);
+                    setSyncDoneFlash(false);
+                    setFeeConfigSyncVer((v) => v + 1);
+                    setAllRoutines(getClassRoutines());
+                    setChildWeeklyProgress(getClassWeeklyProgress(childClass, 'nov-2026-w1'));
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('ananda_trigger_biometric_sync', { detail: { timestamp: Date.now() } }));
+                    }
+                    setTimeout(() => {
+                      setIsManualSyncing(false);
+                      setSyncDoneFlash(true);
+                      setTimeout(() => setSyncDoneFlash(false), 3000);
+                    }, 900);
+                  }}
+                  disabled={isManualSyncing}
+                  title="বায়োমেট্রিক মেশিন ও ক্লাউড থেকে এখনই রিফ্রেশ ও সিঙ্ক করুন"
+                  className="text-xs text-slate-200 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full border border-white/15 flex items-center gap-1.5 cursor-pointer transition active:scale-95 disabled:opacity-70"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isManualSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                  <span>{isManualSyncing ? 'সিঙ্ক হচ্ছে...' : syncDoneFlash ? 'সিঙ্ক সম্পন্ন ✓' : 'অটো সিঙ্ক'}</span>
+                  <RefreshCw className={`w-3 h-3 text-amber-200 ${isManualSyncing ? 'animate-spin' : ''}`} />
+                </button>
               </div>
 
               <div className="flex items-center gap-2">

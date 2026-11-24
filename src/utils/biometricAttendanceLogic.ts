@@ -120,26 +120,46 @@ export function saveBiometricConfig(config: BiometricDeviceConfig): void {
  */
 export function getBiometricLogs(): BiometricPunchLog[] {
   try {
-    const raw = safeGetItem(BIOMETRIC_LOGS_KEY) || safeGetItem('ananda_biometric_punch_logs_v1');
-    if (!raw) {
+    const rawPrimary = safeGetItem(BIOMETRIC_LOGS_KEY);
+    const rawCloud = safeGetItem('ananda_biometric_punch_logs_v1');
+
+    const parseList = (raw: string | null): BiometricPunchLog[] => {
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const listA = parseList(rawPrimary);
+    const listB = parseList(rawCloud);
+
+    if (listA.length === 0 && listB.length === 0) {
       return REAL_DEVICE_BIOMETRIC_LOGS;
     }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      // Auto-filter obsolete mock logs if present
-      const cleanLogs = parsed.filter(
-        (l) => l && l.id && !l.id.startsWith('bio-log-') && !l.dateStr?.includes('০৮ নভেম্বর ২০২৬')
-      );
-      if (cleanLogs.length === 0 && REAL_DEVICE_BIOMETRIC_LOGS.length > 0) {
-        saveBiometricLogs(REAL_DEVICE_BIOMETRIC_LOGS);
-        return REAL_DEVICE_BIOMETRIC_LOGS;
+
+    // Merge both local & cloud lists, deduplicating by enrollId/personId + timestamp + punchType
+    const mergedMap = new Map<string, BiometricPunchLog>();
+    for (const l of [...listB, ...listA]) {
+      if (!l || !l.id) continue;
+      if (l.id.startsWith('bio-log-') || l.dateStr?.includes('০৮ নভেম্বর ২০২৬')) continue;
+      const key = `${l.enrollId || l.personId}_${l.timestamp}_${l.punchType}`;
+      if (!mergedMap.has(key)) {
+        mergedMap.set(key, l);
       }
-      if (cleanLogs.length !== parsed.length) {
-        saveBiometricLogs(cleanLogs);
-      }
-      return cleanLogs;
     }
-    return REAL_DEVICE_BIOMETRIC_LOGS;
+
+    const cleanLogs = Array.from(mergedMap.values()).sort(
+      (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+    );
+
+    if (cleanLogs.length === 0 && REAL_DEVICE_BIOMETRIC_LOGS.length > 0) {
+      saveBiometricLogs(REAL_DEVICE_BIOMETRIC_LOGS);
+      return REAL_DEVICE_BIOMETRIC_LOGS;
+    }
+    return cleanLogs;
   } catch {
     return REAL_DEVICE_BIOMETRIC_LOGS;
   }

@@ -63,6 +63,7 @@ import {
   cloudSaveAssets,
   cloudSaveProfile,
   cloudSavePublicWebsiteTheme,
+  cloudPullLatestAttendanceAndRoutines,
   enrichStudentsWithPortalAccounts,
 } from './lib/schoolCloudSync';
 import {
@@ -877,6 +878,9 @@ export default function App() {
     const runPeriodicAttendanceSync = async () => {
       try {
         console.log('[CloudSync] Automatic real biometric attendance sync running...');
+
+        // 0. Actively pull latest biometric logs, attendance & class routines from Cloud Firestore
+        await cloudPullLatestAttendanceAndRoutines();
 
         // 1. Fetch latest physical machine biometric logs from endpoint / json (Runs for all logged-in roles)
         try {

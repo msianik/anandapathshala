@@ -26,7 +26,6 @@ import {
   UserCheck,
   MapPin,
   X,
-  Printer,
   FileSpreadsheet,
   CheckCircle2,
   Sparkles,
@@ -184,18 +183,6 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
                 শিফট: <strong className="text-emerald-300">{myChild.shift === 'day' ? 'দিবা শিফট (১১:০০ - ০২:০০)' : 'প্রভাতী শিফট (০৮:০০ - ১১:০০)'}</strong>
               </span>
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-md"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>প্রিন্ট রুটিন</span>
-            </button>
           </div>
         </div>
       </div>
