@@ -1765,6 +1765,7 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     };
   }, [myChild?.className]);
   const [feeConfigSyncVer, setFeeConfigSyncVer] = useState<number>(0);
+  const [biometricSyncTimestamp, setBiometricSyncTimestamp] = useState<number>(() => Date.now());
 
   // Live Attendance calculation strictly from Real Biometric Machine Punches (No Mock Data)
   const childAttendanceStats = React.useMemo(() => {
@@ -1868,7 +1869,13 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
     const onFeeCfgSync = () => setFeeConfigSyncVer((v) => v + 1);
     const onInvSync = () => setFeeConfigSyncVer((v) => v + 1);
     const onStdSync = () => setFeeConfigSyncVer((v) => v + 1);
-    const onBioSync = () => setFeeConfigSyncVer((v) => v + 1);
+    const onBioSync = (e?: Event) => {
+      const ts = (e as CustomEvent | undefined)?.detail?.timestamp;
+      if (typeof ts === 'number' && !Number.isNaN(ts)) {
+        setBiometricSyncTimestamp(ts);
+      }
+      setFeeConfigSyncVer((v) => v + 1);
+    };
     window.addEventListener(STUDENT_FEE_CONFIG_EVENT, onFeeCfgSync);
     window.addEventListener('ananda-invoices-updated', onInvSync);
     window.addEventListener('ananda-students-updated', onStdSync);
@@ -2306,21 +2313,38 @@ export const ParentPortalDashboard: React.FC<ParentPortalDashboardProps> = ({
                 </span>
               </div>
 
-              {/* Exact Biometric Check-In & School Exit Timing Grid */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs sm:text-sm">
-                <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-                  <div className="text-xs text-slate-300 font-medium">স্কুলে প্রবেশের সময়:</div>
-                  <div className="font-bold text-amber-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span>{childAttendanceStats.recentCheckIn || 'পাঞ্চ অপেক্ষমাণ'}</span>
-                  </div>
+              {/* Synced Attendance Date & Biometric Check-In / School Exit Timing Grid */}
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="flex items-center gap-1.5 font-semibold text-amber-200/95">
+                    <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>
+                      তারিখ:{' '}
+                      {childAttendanceStats.punchDate ||
+                        new Date(biometricSyncTimestamp).toLocaleDateString('bn-BD', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                    </span>
+                  </span>
                 </div>
 
-                <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-                  <div className="text-xs text-slate-300 font-medium">স্কুল ত্যাগের সময়:</div>
-                  <div className="font-bold text-emerald-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
-                    <span>{childAttendanceStats.checkOutTime || (schoolTimeInfo.isSchoolEnded ? 'ছুটি সম্পন্ন' : 'ক্লাস চলছে')}</span>
+                <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                  <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                    <div className="text-xs text-slate-300 font-medium">স্কুলে প্রবেশের সময়:</div>
+                    <div className="font-bold text-amber-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span>{childAttendanceStats.recentCheckIn || 'পাঞ্চ অপেক্ষমাণ'}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+                    <div className="text-xs text-slate-300 font-medium">স্কুল ত্যাগের সময়:</div>
+                    <div className="font-bold text-emerald-200 text-sm sm:text-base flex items-center gap-1.5 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
+                      <span>{childAttendanceStats.checkOutTime || (schoolTimeInfo.isSchoolEnded ? 'ছুটি সম্পন্ন' : 'ক্লাস চলছে')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
