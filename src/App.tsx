@@ -82,6 +82,7 @@ import {
   setStoredPublicWebsiteTheme,
   PUBLIC_THEME_CHANGE_EVENT,
 } from './utils/publicWebsiteTheme';
+import { ROUTINE_UPDATE_EVENT, getClassRoutines } from './utils/routineLogic';
 
 const OverviewDashboard = lazy(() => import('./components/OverviewDashboard').then(m => ({ default: m.OverviewDashboard })));
 const TeacherPortalDashboard = lazy(() => import('./components/RolePortals').then(m => ({ default: m.TeacherPortalDashboard })));
@@ -630,6 +631,11 @@ export default function App() {
         onPublicThemeChange: (cloudTheme) => {
           setPublicTheme(cloudTheme);
         },
+        onRoutinesChange: (cloudRoutines) => {
+          if (Array.isArray(cloudRoutines) && cloudRoutines.length > 0) {
+            window.dispatchEvent(new CustomEvent(ROUTINE_UPDATE_EVENT, { detail: { routines: cloudRoutines } }));
+          }
+        },
         onStatusChange: (isConnected, lastSyncTime) => {
           setCloudSyncInfo({ isConnected, lastSyncTime });
           if (isConnected) {
@@ -855,9 +861,9 @@ export default function App() {
     };
   }, []);
 
-  // 15-Minute Periodic Background Attendance & Biometric Data Auto-Sync Runner (Active for all users)
+  // 1-Minute Periodic Background Attendance, Biometric & Routine Auto-Sync Runner (Active for all users)
   useEffect(() => {
-    const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+    const ONE_MINUTE_MS = 60 * 1000;
 
     const runPeriodicAttendanceSync = async () => {
       try {
@@ -915,9 +921,21 @@ export default function App() {
           console.log('[CloudSync] Physical machine log file check:', fetchErr);
         }
 
-        // Notify all views that biometric sync completed
+        // Refresh local attendance state from storage if updated by other workers or devices
+        const storedAtt = localStorage.getItem('ananda_attendance_v1');
+        if (storedAtt) {
+          try {
+            const parsedAtt = JSON.parse(storedAtt);
+            if (Array.isArray(parsedAtt) && parsedAtt.length > 0) {
+              setAttendanceRecords(parsedAtt);
+            }
+          } catch {}
+        }
+
+        // Notify all views that biometric sync and routines sync completed
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('ananda_biometric_synced', { detail: { timestamp: Date.now() } }));
+          window.dispatchEvent(new CustomEvent(ROUTINE_UPDATE_EVENT, { detail: { timestamp: Date.now(), routines: getClassRoutines() } }));
         }
 
         // 2-4. Cloud Firestore persistence (Staff & Admin only)
@@ -925,7 +943,7 @@ export default function App() {
         if (!isStaffOrAdmin) {
           setCloudSyncInfo({
             isConnected: true,
-            lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (অটো সিঙ্ক সক্রিয়)`,
+            lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (১ মিনিট অটো সিঙ্ক)`,
           });
           return;
         }
@@ -958,7 +976,7 @@ export default function App() {
 
         setCloudSyncInfo({
           isConnected: true,
-          lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (অটো ক্লাউড সিঙ্ক)`,
+          lastSyncTime: `${new Date().toLocaleTimeString('bn-BD')} (১ মিনিট অটো সিঙ্ক)`,
         });
       } catch (err) {
         console.warn('[CloudSync] Periodic attendance sync error:', err);
@@ -967,7 +985,7 @@ export default function App() {
 
     // Run once on load for immediate live alignment
     runPeriodicAttendanceSync();
-    const intervalTimer = setInterval(runPeriodicAttendanceSync, FIFTEEN_MINUTES_MS);
+    const intervalTimer = setInterval(runPeriodicAttendanceSync, ONE_MINUTE_MS);
 
     // Also listen for manual triggers from portals
     const handleManualTrigger = () => {

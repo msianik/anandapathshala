@@ -61,13 +61,20 @@ export const ParentClassRoutineView: React.FC<ParentClassRoutineViewProps> = ({
   const [allRoutines, setAllRoutines] = useState<ClassRoutinePeriod[]>(() => getClassRoutines());
   const [selectedPeriod, setSelectedPeriod] = useState<ClassRoutinePeriod | null>(null);
 
-  // Real-time synchronization if routine changes in localStorage
+  // Real-time synchronization if routine changes in localStorage or on 1-minute schedule
   useEffect(() => {
     const handleRoutineSync = () => {
       setAllRoutines(getClassRoutines());
     };
     window.addEventListener(ROUTINE_UPDATE_EVENT, handleRoutineSync);
-    return () => window.removeEventListener(ROUTINE_UPDATE_EVENT, handleRoutineSync);
+    window.addEventListener('storage', handleRoutineSync);
+    // Automatic 1-minute sync
+    const timer = setInterval(handleRoutineSync, 60 * 1000);
+    return () => {
+      window.removeEventListener(ROUTINE_UPDATE_EVENT, handleRoutineSync);
+      window.removeEventListener('storage', handleRoutineSync);
+      clearInterval(timer);
+    };
   }, []);
 
   // Filter routines strictly for this child's class and section
