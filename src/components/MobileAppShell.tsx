@@ -499,7 +499,19 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({
           ) : (
             /* ================= IPHONE / IOS SECTION ================= */
             <div className="space-y-4 animate-in fade-in duration-150">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              {/* Direct Open in iOS Standalone Mode Button */}
+              <a
+                href="https://anandapathshala.vercel.app/?app=ios"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-700/50"
+              >
+                <Apple className="w-4 h-4 text-amber-300" />
+                <span>সরাসরি আইফোন পোর্টাল খুলুন (Open Portal)</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 pt-1">
                 <Apple className="w-4 h-4 text-slate-900 shrink-0" />
                 <span>অ্যাপল আইফোনে কোনো ঝামেলা ছাড়াই অ্যাপ যুক্ত করার ৩টি ধাপ:</span>
               </div>
@@ -553,18 +565,6 @@ export const MobileAppModal: React.FC<MobileAppModalProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Direct Open in iOS Standalone Mode Button */}
-              <a
-                href="https://anandapathshala.vercel.app/?app=ios"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Apple className="w-4 h-4 text-amber-300" />
-                <span>সরাসরি আইফোন পোর্টাল খুলুন (Open Portal)</span>
-                <ArrowRight className="w-4 h-4" />
-              </a>
             </div>
           )}
 
