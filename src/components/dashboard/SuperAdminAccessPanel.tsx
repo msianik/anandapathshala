@@ -82,7 +82,6 @@ import {
   MANAGEMENT_COMMITTEE,
 } from '../../data/mockData';
 import { getStoredStaffMembers, STAFF_CHANGE_EVENT } from '../../utils/staffManagementLogic';
-import { SuperAdminFeeMasterPanel } from '../SuperAdminFeeMasterPanel';
 
 export interface SuperAdminAccessPanelProps {
   isSuperAdmin: boolean;
@@ -850,14 +849,6 @@ export const SuperAdminAccessPanel: React.FC<SuperAdminAccessPanelProps> = ({
           })}
         </div>
       </div>
-
-      {/* 👑 সুপার অ্যাডমিন ফি, মাসিক ওয়ার্কবুক ও পরীক্ষার ফি মাস্টার কন্ট্রোল */}
-      <SuperAdminFeeMasterPanel
-        students={availableStudents}
-        canEdit={isSuperAdmin}
-        compact
-        onSynced={(msg) => showToast(msg)}
-      />
 
       {/* Main Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
